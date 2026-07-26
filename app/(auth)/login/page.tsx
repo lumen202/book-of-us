@@ -1,7 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { login } from "./actions";
+
+const DEV_LOGIN_EMAIL = "jdiniega202@gmail.com";
+const DEV_LOGIN_PASSWORD = "7/5/2026";
 
 function EyeIcon() {
   return (
@@ -27,6 +30,19 @@ function EyeOffIcon() {
 export default function LoginPage() {
   const [error, formAction, pending] = useActionState(login, undefined);
   const [showPassword, setShowPassword] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+
+  const canShowDevAutofill = process.env.NODE_ENV === "development";
+
+  function autofillDevLogin() {
+    if (!emailRef.current || !passwordRef.current) return;
+
+    emailRef.current.value = DEV_LOGIN_EMAIL;
+    passwordRef.current.value = DEV_LOGIN_PASSWORD;
+    setShowPassword(false);
+    passwordRef.current.focus();
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
@@ -47,6 +63,7 @@ export default function LoginPage() {
             <input
               id="email"
               name="email"
+              ref={emailRef}
               type="email"
               required
               autoComplete="email"
@@ -62,6 +79,7 @@ export default function LoginPage() {
               <input
                 id="password"
                 name="password"
+                ref={passwordRef}
                 type={showPassword ? "text" : "password"}
                 required
                 autoComplete="current-password"
@@ -84,6 +102,16 @@ export default function LoginPage() {
           <p role="alert" className="text-sm text-red-600">
             {error}
           </p>
+        ) : null}
+
+        {canShowDevAutofill ? (
+          <button
+            type="button"
+            onClick={autofillDevLogin}
+            className="w-full rounded-lg border border-neutral-300 py-2.5 text-sm font-medium text-neutral-700 transition hover:border-neutral-400 hover:text-neutral-900"
+          >
+            Autofill test account
+          </button>
         ) : null}
 
         <button

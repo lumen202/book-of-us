@@ -3,14 +3,20 @@
 import { AnimatePresence, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useCelebrating } from "@/lib/celebration/useCelebrating";
-import { EnvelopeOpening, GiftOpening } from "./sequences";
+import { GiftOpening, MonthsaryOpening } from "./sequences";
 
 type OpeningSequenceProps = {
   title: string;
   subtitle?: string;
   celebrationLabel?: string;
   celebrationMessage?: string;
-  /** Called after the scene has fully exited — safe to reveal the real page now. */
+  /**
+   * Called the moment the scene's story ends, while it's still dissolving.
+   * The page should start appearing here so it comes up *through* the
+   * opening instead of after it.
+   */
+  onIntroComplete?: () => void;
+  /** Called after the scene has fully exited — safe to unmount it now. */
   onComplete: () => void;
 };
 
@@ -19,6 +25,7 @@ export function OpeningSequence({
   subtitle,
   celebrationLabel,
   celebrationMessage,
+  onIntroComplete,
   onComplete,
 }: OpeningSequenceProps) {
   const celebrating = useCelebrating();
@@ -39,19 +46,28 @@ export function OpeningSequence({
 
   if (!mounted) return null;
 
-  const Scene = celebrating ? GiftOpening : EnvelopeOpening;
+  // Only ever mounted on a celebration day (see HomeCover), so there is no
+  // everyday scene to pick — `GiftOpening` is the fallback for the case where
+  // there's no relationship row yet and therefore no "Happy Nth Monthsary"
+  // label to build the greeting from.
+  if (!celebrating) return null;
+
+  const Scene = celebrationLabel ? MonthsaryOpening : GiftOpening;
 
   return (
     <AnimatePresence onExitComplete={onComplete}>
       {!introDone && (
         <Scene
-          key={celebrating ? "gift" : "envelope"}
+          key={celebrationLabel ? "monthsary" : "gift"}
           title={title}
           subtitle={subtitle}
           celebrationLabel={celebrationLabel}
           celebrationMessage={celebrationMessage}
           reducedMotion={reducedMotion}
-          onIntroComplete={() => setIntroDone(true)}
+          onIntroComplete={() => {
+            setIntroDone(true);
+            onIntroComplete?.();
+          }}
         />
       )}
     </AnimatePresence>

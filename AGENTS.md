@@ -30,3 +30,19 @@ orientation stays cheap even after years of accumulated history):
 `docs/ARCHITECTURE.md` holds the product/technical rationale and setup instructions and is aimed
 more at the human than at an agent mid-task — read it for context, but keep the three doc trees
 above up to date as you work.
+
+## Experience Direction Invariants
+
+When touching UI/UX, preserve the product intent: this should feel like opening memories, not
+using software.
+
+- Prioritize emotional pacing over feature density: each screen should have a clear beginning,
+  buildup, reveal, and resolution.
+- Default to guided progression over broad navigation: reduce simultaneous choices when possible.
+- Avoid generic app patterns (dashboard grids, admin-like forms, utility-first empty states)
+  unless functionally required.
+- Keep interactions tactile and legible (unfold, lift, turn, reveal) and ensure reduced-motion
+  users still get semantic pacing without abrupt jumps.
+- Celebration Mode (5th) should feel like a distinct atmosphere shift, not only a color tweak.
+- Do not break core invariants to achieve style: no duplicated business logic outside `lib/`, no
+  auth/storage/data regressions, no silent behavior changes.

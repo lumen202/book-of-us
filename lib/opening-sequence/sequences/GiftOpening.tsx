@@ -103,6 +103,17 @@ export function GiftOpening({
         />
       </motion.button>
 
+      {stage === "wrapped" && (
+        <motion.p
+          initial={{ opacity: 0, y: reducedMotion ? 0 : 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: reducedMotion ? 0.2 : 0.7, ease: "easeOut" }}
+          className="mt-6 text-xs uppercase tracking-[0.24em] text-ink-muted"
+        >
+          Untie the ribbon
+        </motion.p>
+      )}
+
       {stage === "revealed" && (
         <motion.div
           initial={{ opacity: 0, y: reducedMotion ? 0 : 14 }}

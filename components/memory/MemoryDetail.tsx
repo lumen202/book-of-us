@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { formatFullDate } from "@/lib/format/date";
@@ -24,38 +25,58 @@ export function MemoryDetail({
   }, [onClose]);
 
   return (
-    <div
+    <motion.div
       role="dialog"
       aria-modal="true"
       aria-labelledby="memory-detail-title"
-      className="fixed inset-0 z-40 flex items-center justify-center bg-ink/40 p-4"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-ink/35 p-4 backdrop-blur-[2px]"
       onClick={onClose}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
     >
-      <div
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg bg-surface p-6"
+      <motion.div
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-border/90 bg-surface/97 p-6 shadow-[0_24px_50px_-30px_rgba(43,36,28,0.8)] sm:p-8"
         onClick={(event) => event.stopPropagation()}
+        initial={{ opacity: 0, y: 12, scale: 0.985 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 8, scale: 0.99 }}
+        transition={{ duration: 0.34, ease: "easeOut" }}
       >
         <button
           ref={closeButtonRef}
           type="button"
           onClick={onClose}
-          className="mb-4 text-sm text-ink-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          className="mb-6 text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
         >
-          Close
+          Fold this memory
         </button>
         {memory.mediaUrl && memory.type === "photo" && (
-          <div className="relative mb-4 h-64 w-full overflow-hidden rounded">
-            <Image src={memory.mediaUrl} alt="" fill unoptimized className="object-cover" />
+          /* Lifted off the album page: the print keeps its white mat, and the
+             photo is contained rather than cropped — this is the one place
+             she should see the whole frame as it was taken. */
+          <div className="mb-6 rounded-2xl bg-[#fffdf7] p-3 shadow-[0_14px_30px_-20px_rgba(76,59,48,0.45)]">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-ink/5">
+              <Image
+                src={memory.mediaUrl}
+                alt=""
+                fill
+                unoptimized
+                sizes="(min-width: 640px) 640px, 92vw"
+                className="object-contain"
+              />
+            </div>
           </div>
         )}
-        <h2 id="memory-detail-title" className="font-serif text-2xl text-ink">
+        <h2 id="memory-detail-title" className="font-serif text-4xl leading-tight text-ink">
           {memory.title}
         </h2>
         <time dateTime={memory.occurred_at} className="mt-1 block text-sm text-ink-muted">
           {formatFullDate(memory.occurred_at)}
         </time>
-        {memory.body && <p className="mt-4 whitespace-pre-wrap text-ink">{memory.body}</p>}
-      </div>
-    </div>
+        {memory.body && <p className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-ink">{memory.body}</p>}
+      </motion.div>
+    </motion.div>
   );
 }

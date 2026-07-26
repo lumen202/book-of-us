@@ -50,7 +50,13 @@ proxy.ts              Auth gate — redirects unauthenticated requests to /login
 - **No raw memory reads.** All memory fetching goes through `lib/memories/queries.ts`, which
   calls the `get_chapter_memories` Postgres RPC — see `data-model.md`. That RPC is the only place
   that filters out soft-deleted rows and locked time-capsules.
-- **No hard deletes.** Every mutable table has `deleted_at`. The app never issues `DELETE`.
+- **No hard deletes, with exactly one gated exception.** Every mutable table has `deleted_at`,
+  and no table has a DELETE RLS policy — the app's own role *cannot* issue a `DELETE` at all.
+  The single exception is `purgeMemory()` in `lib/memories/mutations.ts`: admin-only, behind
+  `requireAdmin()`, via the service-role client in `lib/supabase/admin.ts`, and it refuses to
+  touch anything that hasn't been soft-deleted first. It exists because someone has to be able
+  to empty the trash. **Do not add a second one** — if new code needs a hard delete, the answer
+  is almost certainly a soft delete plus an entry in the admin archive. See `admin.md`.
 - **Cross-cutting systems live in `lib/`, not in pages.** If a page needs to reimplement opening
   sequence / celebration / theming / timeline / surprises logic, something's wrong — extend the
   existing module instead.

@@ -1,52 +1,76 @@
 # Design Tokens + Theming
 
-Base warm "quiet luxury" palette (parchment background, ink text, single gold accent) plus a
-season layer. Celebration Mode (5th of every month) and per-chapter atmosphere are separate,
-not-yet-built layers that will extend this same pattern — see `celebration-mode.md` when it
-exists.
+Hand-painted storybook palette (Ghibli register, not editorial romance): cream paper, warm brown
+ink, a cool accent and a warm one, plus a season layer. Read the doc comment on `baseTokens` in
+`lib/theme/tokens.ts` before changing any colour — it states the rules, and the palette has
+already drifted cold once.
+
+The three rules, in short:
+
+1. **No true black, no true grey.** Every neutral carries yellow. A desaturated hex is the tell.
+2. **Nothing darker than the ink.** Backgrounds stay light in every mode.
+3. **Two accents, always both.** `accent` is the cool one (meadow/sky/water), `accentWarm` is the
+   sunlight. Dropping the warm one is what makes it read as cold.
+
+## Seasons are Philippine, not temperate
+
+The book is read in the Philippines. `Season` is `amihan` (Nov–Feb, cool dry) | `tag-init`
+(Mar–May, hot dry) | `tag-ulan` (Jun–Oct, rainy) — **not** winter/spring/summer/autumn. A
+"winter" palette in Manila never matches what's outside the window. Seasons override only the
+accents, never the neutrals.
+
+## Celebration Mode has no palette
+
+There is deliberately **no** `celebrationTokens` and **no** `:root[data-celebration]` colour
+block. A tinted celebration palette existed and was removed: it made the site look like a
+different site rather than like a special day. The 5th distinguishes itself through the opening
+ceremony and its illustrated scene (see `opening-sequence.md`), not through colour.
+
+`data-celebration` is still set on `<html>` by `CelebrationProvider`, so *behaviour* can branch
+on it — just not colour.
 
 ## Files
 
 - `lib/theme/tokens.ts` — source of truth for token values as plain TS objects (no CSS/JSX here,
-  so the values are testable and reusable outside a component tree):
-  - `baseTokens.color` — the neutral palette (background/surface/ink/border) that never changes
-    across seasons.
-  - `seasonAccents` — per-`Season` overrides of just `accent`/`accentMuted`. Seasons only ever
-    touch the accent, never the neutrals, so the book's mood shifts without the base feeling
-    different app to app.
-  - `getSeason(date?)` — pure function, meteorological Northern-hemisphere seasons from a month
-    number. Defaults to `new Date()` but takes a `date` param so it's unit-testable and so
-    Celebration Mode / a future "force a date for QA" override can call it deterministically.
-- `lib/theme/ThemeProvider.tsx` — client component, no visual output (`<>{children}</>`). Sets
-  `document.documentElement.dataset.season` in a `useEffect`. Deliberately a client effect rather
-  than only a server computation: the intent (per the build plan) is for `data-celebration` to
-  be added here later and flip mid-session if a tab is left open across midnight on the 5th —
-  `data-season` is built the same way now so both attributes share one mechanism.
-- `app/layout.tsx` — also sets `data-season` on `<html>` directly at render time (server-side,
-  via the same `getSeason()`) so there's a correct value on first paint before the client effect
-  runs; the effect is a same-value no-op in the common case.
-- `app/globals.css` — `:root` defines the base CSS custom properties; `:root[data-season="X"]`
-  blocks override just `--color-accent` / `--color-accent-muted`. A Tailwind v4 `@theme inline`
-  block maps these to `bg-background`, `text-ink`, `text-ink-muted`, `bg-accent`, `border-border`,
-  etc., plus `--font-serif` (Fraunces) / `--font-sans` (Inter). No `tailwind.config.ts` — Tailwind
-  v4 is CSS-first, so this file is the only place token names are registered.
-- `app/layout.tsx` — Fraunces (serif, titles) and Inter (sans, body/UI) loaded via
-  `next/font/google`, self-hosted at build time, exposed as `--font-fraunces`/`--font-inter` CSS
-  variables consumed by the `@theme` block above.
+  so the values are testable and reusable outside a component tree): `baseTokens.color`,
+  `seasonAccents`, `getSeason(date?)` (pure, takes a `date` so it's unit-testable).
+- `lib/theme/ThemeProvider.tsx` — client component, no visual output. Sets
+  `document.documentElement.dataset.season` in a `useEffect`, so a tab left open across a season
+  boundary still updates.
+- `app/layout.tsx` — also sets `data-season` server-side so there's a correct value on first
+  paint; the client effect is a same-value no-op in the common case. Also loads Cormorant
+  Garamond (serif, titles) and Manrope (sans, body) via `next/font/google`.
+- `app/globals.css` — `:root` defines the base custom properties; `:root[data-season="X"]`
+  overrides just the accents. The Tailwind v4 `@theme inline` block registers them as utilities
+  (`bg-background`, `text-ink`, `bg-accent`, …) and also defines `--radius-card`,
+  `--radius-panel`, and `--ease-bounce`. No `tailwind.config.ts` — Tailwind v4 is CSS-first, so
+  this file is the only place token names are registered.
+- `app/globals.css` also holds the **keyframes for the ambient scene**
+  (`cloud-drift`, `cloud-bob`, `bird-fly`, `bird-flap`, `sway`, `float-up`, `sun-glow`). They
+  live here because several elements share them at different durations, and because the
+  `prefers-reduced-motion` block at the bottom of the file kills every one of them at once via
+  `[class*="ambient-"]`.
+
+## The painted background
+
+`components/ambient/StorybookSky.tsx`, mounted once in `app/(app)/layout.tsx` at `-z-10`. Inline
+SVG only — no image assets — so it themes off the tokens via `color-mix`. Its own doc comment
+carries the composition rules (weight at the edges, nothing fast through the reading band,
+resting state must look finished because reduced motion stops all of it).
+
+## Shape and motion
+
+Rounder and bouncier than a typical app, on purpose: large radii (`rounded-2xl` / `rounded-[2rem]`),
+soft warm shadows, and `ease-(--ease-bounce)` for things that should feel alive as they arrive.
+Every hover transform has a `motion-reduce:` counterpart.
 
 ## Not yet built
 
-- **Celebration Mode token/pool swap** (`data-celebration` attribute, alternate token set) — see
-  build plan step 7.
-- **Per-chapter atmosphere** (`chapters.atmosphere` jsonb -> inline style overrides scoped to a
-  chapter page) — see build plan step 5/8.
-- `app/page.tsx` still renders the raw `create-next-app` scaffold (it references
-  `bg-foreground`/`text-background`, which no longer resolve to anything now that the token names
-  changed) — this is expected until the reading-experience work (build plan step 5) replaces it;
-  don't treat the broken scaffold styling as a regression from this change.
+- **Per-chapter atmosphere** (`chapters.atmosphere` jsonb → inline style overrides scoped to a
+  chapter page).
 
 ## Gotcha for later sessions
 
 There is deliberately no light/dark mode toggle and no `prefers-color-scheme` branch — the
-product brief calls for one consistent warm palette, not a generic dark mode. If a dark mode is
-ever requested, it's a deliberate new decision, not a bug fix.
+product calls for one consistent warm palette, not a generic dark mode. If dark mode is ever
+requested, it's a deliberate new decision, not a bug fix.
