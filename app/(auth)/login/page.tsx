@@ -1,10 +1,32 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { login } from "./actions";
+
+function EyeIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
+      <path d="M1.5 10S4.5 4 10 4s8.5 6 8.5 6-3 6-8.5 6-8.5-6-8.5-6Z" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="10" cy="10" r="2.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-5 w-5">
+      <path
+        d="M2.5 2.5l15 15M8.3 5.2C8.85 5.07 9.42 5 10 5c5.5 0 8.5 6 8.5 6-.4.8-1.2 2.05-2.4 3.2M6.1 6.9C3.7 8.2 1.5 10 1.5 10s3 6 8.5 6c1.05 0 2-.2 2.85-.55"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 export default function LoginPage() {
   const [error, formAction, pending] = useActionState(login, undefined);
+  const [showPassword, setShowPassword] = useState(false);
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-neutral-50 px-6">
@@ -36,14 +58,25 @@ export default function LoginPage() {
             <label htmlFor="password" className="text-sm text-neutral-700">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              autoComplete="current-password"
-              className="w-full rounded-lg border border-neutral-300 px-3 py-2 text-neutral-900 outline-none focus:border-neutral-500"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                required
+                autoComplete="current-password"
+                className="w-full rounded-lg border border-neutral-300 px-3 py-2 pr-10 text-neutral-900 outline-none focus:border-neutral-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((value) => !value)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+                className="absolute inset-y-0 right-0 flex items-center px-3 text-neutral-400 hover:text-neutral-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-neutral-500"
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
           </div>
         </div>
 
