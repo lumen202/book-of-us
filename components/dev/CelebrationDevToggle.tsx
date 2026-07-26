@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { OVERRIDE_KEY } from "@/lib/celebration/useCelebrating";
+import { forgetOpeningSeen } from "@/lib/opening-sequence/useOpeningSeen";
 
 function readStoredOverride(): boolean | null {
   const stored = window.localStorage.getItem(OVERRIDE_KEY);
@@ -33,6 +34,10 @@ export function CelebrationDevToggle() {
   if (process.env.NODE_ENV !== "development") return null;
 
   function apply(value: boolean | null) {
+    // The whole point of flipping this is to watch the opening again, and the
+    // reload below keeps sessionStorage — so clear the "already played this
+    // visit" flag or the preview shows the page with no ceremony.
+    forgetOpeningSeen();
     if (value === null) {
       window.localStorage.removeItem(OVERRIDE_KEY);
     } else {

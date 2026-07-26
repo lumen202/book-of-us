@@ -1,45 +1,51 @@
 @import "tailwindcss";
 
+/*
+ * Keep these in sync with lib/theme/tokens.ts — that file is the written
+ * rationale for the palette (warm neutrals only, nothing darker than the ink,
+ * a cool accent AND a warm one, always both). Read the comment there before
+ * changing a colour here.
+ */
 :root {
-  --color-background: #faf6ef;
-  --color-surface: #ffffff;
-  --color-ink: #2b241c;
-  --color-ink-muted: #6b6153;
-  --color-accent: #b8863f;
-  --color-accent-muted: #d9c9a8;
-  --color-border: #e6ddc9;
+  --color-background: #fdf6e6;
+  --color-surface: #fffdf7;
+  --color-ink: #4c3b30;
+  --color-ink-muted: #8d7460;
+  --color-accent: #7bb0a6;
+  --color-accent-muted: #cfe3dc;
+  --color-accent-warm: #e8a06b;
+  --color-border: #e7d5bb;
 }
 
-:root[data-season="winter"] {
-  --color-accent: #5f7d95;
-  --color-accent-muted: #c9d3da;
+/* Philippine seasons — see the `Season` type in lib/theme/tokens.ts. */
+:root[data-season="amihan"] {
+  --color-accent: #8fb8cf;
+  --color-accent-muted: #d7e7ef;
+  --color-accent-warm: #efc389;
 }
 
-:root[data-season="spring"] {
-  --color-accent: #8fa876;
-  --color-accent-muted: #d6e0c9;
+:root[data-season="tag-init"] {
+  --color-accent: #8cbcae;
+  --color-accent-muted: #dcebe2;
+  --color-accent-warm: #e5a659;
 }
 
-:root[data-season="summer"] {
-  --color-accent: #d99a4e;
-  --color-accent-muted: #f0dcb8;
-}
-
-:root[data-season="autumn"] {
-  --color-accent: #b8623f;
-  --color-accent-muted: #e3c3b3;
+:root[data-season="tag-ulan"] {
+  --color-accent: #6fac9c;
+  --color-accent-muted: #cde4dc;
+  --color-accent-warm: #dfa07a;
 }
 
 /*
- * Celebration Mode overrides season entirely (source order matters here:
- * this rule comes after the data-season blocks above so it wins regardless
- * of which season is also set). See lib/theme/tokens.ts celebrationTokens.
+ * Celebration Mode deliberately does NOT recolour the app.
+ *
+ * `data-celebration` is still set on <html> (see CelebrationProvider) and is
+ * fine to hang behaviour off, but the 5th distinguishes itself through the
+ * opening ceremony and its own illustrated scene — not by tinting every page
+ * a different colour. The tinted variant existed and was dropped: it made the
+ * site look like a different site rather than like a special day, and the base
+ * palette is the one worth keeping.
  */
-:root[data-celebration="true"] {
-  --color-background: #fbf1df;
-  --color-accent: #c9962f;
-  --color-accent-muted: #f2dfa0;
-}
 
 @theme inline {
   --color-background: var(--color-background);
@@ -48,13 +54,140 @@
   --color-ink-muted: var(--color-ink-muted);
   --color-accent: var(--color-accent);
   --color-accent-muted: var(--color-accent-muted);
+  --color-accent-warm: var(--color-accent-warm);
   --color-border: var(--color-border);
-  --font-serif: var(--font-fraunces);
-  --font-sans: var(--font-inter);
+  --font-serif: var(--font-cormorant);
+  --font-sans: var(--font-manrope);
+
+  /* Rounder than a typical app on purpose — see AGENTS.md art direction. */
+  --radius-card: 1.25rem;
+  --radius-panel: 1.75rem;
+
+  /* One springy easing, used for anything that should feel alive when it
+     arrives. Overshoots slightly; don't use it for long ambient drifts. */
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 body {
   background: var(--color-background);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  line-height: 1.6;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/*
+ * The painted scene itself lives in components/ambient/StorybookSky.tsx.
+ * These keyframes drive it. They're here rather than inline because several
+ * elements share them at different durations/offsets, and because every one of
+ * them must stop under prefers-reduced-motion (see the block at the bottom).
+ */
+
+/* Clouds crossing the sky, left to right, off both edges.
+   Distances are in `vw`, not `%`: a percentage in a transform resolves
+   against the element's own width, which for a 220px cloud is a nudge, not a
+   journey across the sky. */
+@keyframes cloud-drift {
+  from {
+    transform: translate3d(-40vw, 0, 0);
+  }
+  to {
+    transform: translate3d(120vw, 0, 0);
+  }
+}
+
+/* A slow vertical bob layered on top of the drift, so clouds don't track
+   along a perfectly flat line. */
+@keyframes cloud-bob {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(0, -12px, 0);
+  }
+}
+
+/* Birds: across the sky and gently up, fading in and out at the edges. */
+@keyframes bird-fly {
+  0% {
+    transform: translate3d(-15vw, 40px, 0);
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.7;
+  }
+  85% {
+    opacity: 0.7;
+  }
+  100% {
+    transform: translate3d(110vw, -60px, 0);
+    opacity: 0;
+  }
+}
+
+/* Wing flap — a squash on the Y axis, which reads as flapping at this size
+   far more cheaply than animating the path itself. */
+@keyframes bird-flap {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  50% {
+    transform: scaleY(0.45);
+  }
+}
+
+/* Grass and leaves leaning in the wind. */
+@keyframes sway {
+  0%,
+  100% {
+    transform: rotate(-1.6deg);
+  }
+  50% {
+    transform: rotate(1.6deg);
+  }
+}
+
+/* Dandelion seeds / dust motes rising through the light. */
+@keyframes float-up {
+  0% {
+    transform: translate3d(0, 20vh, 0) scale(0.7);
+    opacity: 0;
+  }
+  15% {
+    opacity: 0.7;
+  }
+  80% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate3d(30px, -12vh, 0) scale(1);
+    opacity: 0;
+  }
+}
+
+/* Sun breathing behind everything. */
+@keyframes sun-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.06);
+  }
+}
+
+/*
+ * Reduced motion: the scene stays — it's the composition doing the emotional
+ * work, not the movement — but nothing in it moves. Anything animated into
+ * view by these keyframes must therefore also be legible in its resting state.
+ */
+@media (prefers-reduced-motion: reduce) {
+  [class*="ambient-"] {
+    animation: none !important;
+  }
 }

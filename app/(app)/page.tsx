@@ -4,8 +4,10 @@ import { listChapters } from "@/lib/chapters/queries";
 import { getRelationship } from "@/lib/relationship/queries";
 import { getMonthsaryNumber } from "@/lib/relationship/monthsary";
 import { pickMonthsaryMessage } from "@/lib/celebration/messages";
-import { toLocalDate } from "@/lib/format/date";
+import { formatMonthDay, toLocalDate } from "@/lib/format/date";
 import { ordinal } from "@/lib/format/ordinal";
+import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
+import { ClosingReflection } from "@/components/story/ClosingReflection";
 
 export default async function HomePage() {
   const [chapters, relationship] = await Promise.all([listChapters(), getRelationship()]);
@@ -24,6 +26,7 @@ export default async function HomePage() {
   const celebrationLabel =
     monthsaryNumber !== null ? `Happy ${ordinal(monthsaryNumber)} Monthsary` : undefined;
   const celebrationMessage = celebrationLabel ? pickMonthsaryMessage() : undefined;
+  const nextChapterDate = getNextChapterDate();
 
   return (
     <HomeCover
@@ -32,18 +35,40 @@ export default async function HomePage() {
       celebrationLabel={celebrationLabel}
       celebrationMessage={celebrationMessage}
     >
-      <main className="mx-auto flex max-w-4xl flex-1 flex-col gap-8 px-6 py-16">
-        <h1 className="font-serif text-3xl text-ink">Chapters</h1>
+      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-14 px-6 pb-6 pt-8">
+        <section className="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center">
+          <span className="text-[11px] uppercase tracking-[0.32em] text-accent">Open gently</span>
+          <p className="font-serif text-4xl leading-tight text-ink sm:text-5xl">
+            Some days are big enough to deserve a chapter.
+          </p>
+          <p className="max-w-xl text-base text-ink-muted sm:text-lg">
+            Move slowly. Pick a month. Let a memory arrive before you ask it to.
+          </p>
+        </section>
+
+        <section className="mx-auto w-full max-w-3xl">
+          <h1 className="mb-6 font-serif text-3xl text-ink">Chapters</h1>
         {chapters.length === 0 ? (
-          <p className="text-ink-muted">No chapters yet.</p>
+            <p className="max-w-xl text-ink-muted">
+              The first chapter has not been written yet. When it appears, this shelf will remember
+              exactly where it belongs.
+            </p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {chapters.map((chapter) => (
-              <ChapterCover key={chapter.id} chapter={chapter} />
-            ))}
-          </div>
+            <ol className="flex flex-col gap-5">
+              {chapters.map((chapter, index) => (
+                <li key={chapter.id}>
+                  <ChapterCover chapter={chapter} index={index} />
+                </li>
+              ))}
+            </ol>
         )}
+        </section>
       </main>
+
+      <ClosingReflection
+        nextChapterLabel={formatMonthDay(nextChapterDate)}
+        daysUntilNextChapter={getDaysUntil(nextChapterDate)}
+      />
     </HomeCover>
   );
 }

@@ -26,6 +26,11 @@ export function formatMonthYear(isoDate: string): string {
   return `${MONTH_NAMES[month - 1]} ${year}`;
 }
 
+/** For dates the app computed itself (not read from Postgres), e.g. the next chapter's arrival. */
+export function formatMonthDay(date: Date): string {
+  return `${MONTH_NAMES[date.getMonth()]} ${date.getDate()}`;
+}
+
 export function formatFullDate(isoDate: string): string {
   const { year, month, day } = parseDateOnly(isoDate);
   return `${MONTH_NAMES[month - 1]} ${day}, ${year}`;
