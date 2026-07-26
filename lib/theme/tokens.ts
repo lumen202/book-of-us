@@ -34,3 +34,17 @@ export function getSeason(date: Date = new Date()): Season {
   if (month <= 7) return "summer";
   return "autumn";
 }
+
+/**
+ * Celebration Mode (5th of every month, see lib/celebration/isCelebrationDay.ts)
+ * overrides season entirely rather than blending with it — the 5th should feel
+ * like a distinct, recognizable occasion, not a slightly-warmer version of
+ * whatever season it happens to fall in.
+ */
+export const celebrationTokens = {
+  color: {
+    background: "#fbf1df",
+    accent: "#c9962f",
+    accentMuted: "#f2dfa0",
+  },
+} as const;

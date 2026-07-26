@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 
 /**
  * Server-side Supabase client for use in Server Components, Server Actions,
- * and Route Handlers. Reads the session from cookies; middleware.ts is
+ * and Route Handlers. Reads the session from cookies; proxy.ts is
  * responsible for keeping that session fresh on every request.
  */
 export async function createClient() {

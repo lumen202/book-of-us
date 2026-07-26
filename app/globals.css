@@ -30,6 +30,17 @@
   --color-accent-muted: #e3c3b3;
 }
 
+/*
+ * Celebration Mode overrides season entirely (source order matters here:
+ * this rule comes after the data-season blocks above so it wins regardless
+ * of which season is also set). See lib/theme/tokens.ts celebrationTokens.
+ */
+:root[data-celebration="true"] {
+  --color-background: #fbf1df;
+  --color-accent: #c9962f;
+  --color-accent-muted: #f2dfa0;
+}
+
 @theme inline {
   --color-background: var(--color-background);
   --color-surface: var(--color-surface);
