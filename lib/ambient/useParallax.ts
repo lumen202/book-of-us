@@ -27,7 +27,10 @@ export function useParallax(ref: RefObject<HTMLElement | null>, range = 1100): v
   useEffect(() => {
     const element = ref.current;
     if (!element) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Kept in sync with the CSS switch at the bottom of globals.css — see the
+    // comment there for why `(pointer: coarse)` is included alongside the
+    // accessibility setting.
+    if (window.matchMedia("(prefers-reduced-motion: reduce), (pointer: coarse)").matches) return;
 
     let frame = 0;
     let last = -1;

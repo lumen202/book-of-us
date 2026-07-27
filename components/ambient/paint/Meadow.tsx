@@ -81,7 +81,7 @@ export function MeadowLayer() {
       </g>
 
       {/* Stones. Small, few, and half of them catching the light. */}
-      <g filter="url(#brush-meadow)">
+      <g className="brush-meadow" filter="url(#brush-meadow)">
         {field.pebbles.map((pebble, i) => (
           <path
             key={i}

@@ -34,7 +34,7 @@ function PaintedCloud({ spec }: { spec: CloudSpec }) {
             <path key={`w${i}`} d={d} />
           ))}
         </g>
-        <g filter="url(#brush-cloud)">
+        <g className="brush-cloud" filter="url(#brush-cloud)">
           <g fill={veil(pigment.cloudShade, 62 * contrast)}>
             {mass.shade.map((d, i) => (
               <path key={`s${i}`} d={d} />

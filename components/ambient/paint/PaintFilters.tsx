@@ -97,6 +97,51 @@ export function PaintFilters() {
         ))}
 
         {/*
+         * Touch-device counterparts of the ridge brushes above, swapped in by
+         * the `(pointer: coarse)` rule at the bottom of globals.css. Same warp
+         * and blur — the silhouette reads the same — with the second
+         * `feTurbulence`→`feColorMatrix`→`feComposite`→`feBlend` "tooth" pass
+         * dropped. That pass is what gives the fill its pigment texture, and
+         * it is a second full-region noise generation on top of the first;
+         * `feTurbulence` is the most expensive primitive here, so this is
+         * roughly half the cost per ridge for a texture difference nobody
+         * reads as "wrong" at meadow scale on a phone screen. See the
+         * `(pointer: coarse)` performance note in globals.css for why phones
+         * get this and desktop doesn't.
+         */}
+        {RIDGES.map((ridge, index) => (
+          <filter
+            key={`${ridge.id}-lite`}
+            id={`brush-${ridge.id}-lite`}
+            x="-6%"
+            y="-14%"
+            width="112%"
+            height="132%"
+            colorInterpolationFilters="sRGB"
+          >
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency={`${0.006 + index * 0.0015} ${0.017 + index * 0.004}`}
+              numOctaves={3}
+              seed={11 + index * 7}
+              result="warp"
+            />
+            <feDisplacementMap
+              in="SourceGraphic"
+              in2="warp"
+              scale={3 + (1 - ridge.depth) * 13}
+              xChannelSelector="R"
+              yChannelSelector="G"
+              result="edge"
+            />
+            <feGaussianBlur
+              in="edge"
+              stdDeviation={Math.round((0.4 + ridge.depth * ridge.depth * 4) * 10) / 10}
+            />
+          </filter>
+        ))}
+
+        {/*
          * Clouds. Two brushes: a coarse one for the built-up parts of a cloud
          * and a very soft one for the shoulders that are supposed to be losing
          * their argument with the sky.
@@ -114,6 +159,13 @@ export function PaintFilters() {
           <feComposite in="toothTint" in2="edge" operator="in" result="grain" />
           <feBlend in="edge" in2="grain" mode="multiply" result="painted" />
           <feGaussianBlur in="painted" stdDeviation="2.4" />
+        </filter>
+
+        {/* Touch-device counterpart of brush-cloud — see the ridge-lite note above. */}
+        <filter id="brush-cloud-lite" x="-18%" y="-30%" width="136%" height="170%" colorInterpolationFilters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.008 0.014" numOctaves={4} seed={3} result="warp" />
+          <feDisplacementMap in="SourceGraphic" in2="warp" scale="26" xChannelSelector="R" yChannelSelector="G" result="edge" />
+          <feGaussianBlur in="edge" stdDeviation="2.4" />
         </filter>
 
         <filter id="brush-vapour" x="-30%" y="-40%" width="160%" height="180%" colorInterpolationFilters="sRGB">
@@ -142,6 +194,13 @@ export function PaintFilters() {
           <feGaussianBlur in="painted" stdDeviation="0.55" />
         </filter>
 
+        {/* Touch-device counterpart of brush-leaf — see the ridge-lite note above. */}
+        <filter id="brush-leaf-lite" x="-16%" y="-16%" width="132%" height="132%" colorInterpolationFilters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.026 0.034" numOctaves={4} seed={41} result="warp" />
+          <feDisplacementMap in="SourceGraphic" in2="warp" scale="17" xChannelSelector="R" yChannelSelector="G" result="edge" />
+          <feGaussianBlur in="edge" stdDeviation="0.55" />
+        </filter>
+
         {/* Foreground growth: rough edges, coarse pigment, no softening at all. */}
         <filter id="brush-meadow" x="-10%" y="-16%" width="120%" height="134%" colorInterpolationFilters="sRGB">
           <feTurbulence type="fractalNoise" baseFrequency="0.02 0.05" numOctaves={3} seed={61} result="warp" />
@@ -155,6 +214,12 @@ export function PaintFilters() {
           />
           <feComposite in="toothTint" in2="edge" operator="in" result="grain" />
           <feBlend in="edge" in2="grain" mode="multiply" />
+        </filter>
+
+        {/* Touch-device counterpart of brush-meadow — see the ridge-lite note above. */}
+        <filter id="brush-meadow-lite" x="-10%" y="-16%" width="120%" height="134%" colorInterpolationFilters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.02 0.05" numOctaves={3} seed={61} result="warp" />
+          <feDisplacementMap in="SourceGraphic" in2="warp" scale="4.5" xChannelSelector="R" yChannelSelector="G" />
         </filter>
 
         {/* Undergrowth and cast shadow: soft, formless, sits under everything. */}

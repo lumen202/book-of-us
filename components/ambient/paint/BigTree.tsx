@@ -87,7 +87,7 @@ export function BigTree() {
           </g>
 
           {/* canopy: shade, structure showing through, body, then the light */}
-          <g filter="url(#brush-leaf)" fill={mix(pigment.grassDeep, 88, pigment.lilac)}>
+          <g className="brush-leaf" filter="url(#brush-leaf)" fill={mix(pigment.grassDeep, 88, pigment.lilac)}>
             {tree.shadow.map((d, i) => (
               <path key={i} d={d} />
             ))}
@@ -97,19 +97,19 @@ export function BigTree() {
               <path key={i} d={d} />
             ))}
           </g>
-          <g filter="url(#brush-leaf)" fill={pigment.grass}>
+          <g className="brush-leaf" filter="url(#brush-leaf)" fill={pigment.grass}>
             {tree.mid.map((d, i) => (
               <path key={i} d={d} />
             ))}
           </g>
-          <g filter="url(#brush-leaf)" fill={mix(pigment.grassLit, 86, pigment.butter)}>
+          <g className="brush-leaf" filter="url(#brush-leaf)" fill={mix(pigment.grassLit, 86, pigment.butter)}>
             {tree.lit.map((d, i) => (
               <path key={i} d={d} />
             ))}
           </g>
 
           {/* blossom */}
-          <g filter="url(#brush-leaf)">
+          <g className="brush-leaf" filter="url(#brush-leaf)">
             {tree.blossoms.map((d, i) => (
               <path key={i} d={d} fill={veil(pigment.blossom, i % 3 === 0 ? 92 : 68)} />
             ))}

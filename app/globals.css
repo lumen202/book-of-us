@@ -435,9 +435,63 @@ body {
  * `calc()` transform resolves to zero travel; `useAmbientLife` starts no
  * timers, so nothing new is spawned; and `DistantFlock` is always rendered, so
  * the sky still has birds in it when none are passing through.
+ *
+ * Also fires on `(pointer: coarse)` — i.e. touch devices, not just the OS
+ * accessibility setting. The scene stacks several full-viewport
+ * `mix-blend-mode` layers (GrainOverlay's three passes, LightRays, Sky's
+ * sun-glow) inside one `isolation: isolate` root, which means the browser
+ * re-flattens all of them against everything moving underneath on every
+ * frame. Desktop GPUs absorb that; phone GPUs at high pixel density visibly
+ * don't, which is what "laggy on Android" turned out to be. Touch devices get
+ * the same finished resting composition as reduced-motion, by design, rather
+ * than a cut-down "mobile mode" — see the comment above for why the resting
+ * state has to carry the emotional weight on its own regardless of why
+ * motion is off.
  */
-@media (prefers-reduced-motion: reduce) {
+@media (prefers-reduced-motion: reduce), (pointer: coarse) {
   [class*="ambient-"] {
     animation: none !important;
+  }
+}
+
+/*
+ * Cheaper brushes for touch devices — independent of the motion switch above,
+ * because this is about raster cost, not animation. The ridge, cloud, leaf
+ * and meadow filters in PaintFilters.tsx each run the noise-warp displacement
+ * *twice*: once to wobble the shape's edge, once more (the "tooth" pass —
+ * feTurbulence → feColorMatrix → feComposite → feBlend) to texture the fill.
+ * feTurbulence is the single most expensive SVG filter primitive, and these
+ * regions cover a large fraction of the viewport (the ridges nearly all of
+ * it), so on a phone GPU this is real cost even with every animation frozen —
+ * it is why the scene was still heavy after the `(pointer: coarse)` rule
+ * above landed. Each `*-lite` filter in PaintFilters.tsx keeps the same warp
+ * and blur (the silhouette is unchanged) and drops only the second
+ * `feTurbulence` pass. Desktop keeps the full brushwork; this rule only
+ * matters on the devices where it was actually a problem.
+ */
+@media (pointer: coarse) {
+  .brush-far {
+    filter: url(#brush-far-lite) !important;
+  }
+  .brush-middle {
+    filter: url(#brush-middle-lite) !important;
+  }
+  .brush-knoll {
+    filter: url(#brush-knoll-lite) !important;
+  }
+  .brush-near {
+    filter: url(#brush-near-lite) !important;
+  }
+  .brush-bank {
+    filter: url(#brush-bank-lite) !important;
+  }
+  .brush-cloud {
+    filter: url(#brush-cloud-lite) !important;
+  }
+  .brush-leaf {
+    filter: url(#brush-leaf-lite) !important;
+  }
+  .brush-meadow {
+    filter: url(#brush-meadow-lite) !important;
   }
 }

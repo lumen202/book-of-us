@@ -43,7 +43,7 @@ function Bough({ seed }: { seed: number }) {
       style={{ overflow: "visible", display: "block" }}
     >
       {/* shade: the underside of the canopy — cool green, never heavy */}
-      <g filter="url(#brush-leaf)" fill={mix(pigment.grassDeep, 88, pigment.lilac)}>
+      <g className="brush-leaf" filter="url(#brush-leaf)" fill={mix(pigment.grassDeep, 88, pigment.lilac)}>
         {bough.shadow.map((d, i) => (
           <path key={i} d={d} />
         ))}
@@ -64,21 +64,21 @@ function Bough({ seed }: { seed: number }) {
       </g>
 
       {/* the body of the canopy */}
-      <g filter="url(#brush-leaf)" fill={pigment.grass}>
+      <g className="brush-leaf" filter="url(#brush-leaf)" fill={pigment.grass}>
         {bough.mid.map((d, i) => (
           <path key={i} d={d} />
         ))}
       </g>
 
       {/* the leaves the afternoon reaches */}
-      <g filter="url(#brush-leaf)" fill={mix(pigment.grassLit, 84, pigment.butter)}>
+      <g className="brush-leaf" filter="url(#brush-leaf)" fill={mix(pigment.grassLit, 84, pigment.butter)}>
         {bough.lit.map((d, i) => (
           <path key={i} d={d} />
         ))}
       </g>
 
       {/* blossom, out where the light is */}
-      <g filter="url(#brush-leaf)">
+      <g className="brush-leaf" filter="url(#brush-leaf)">
         {bough.blossoms.map((d, i) => (
           <path key={i} d={d} fill={veil(pigment.blossom, i % 3 === 0 ? 94 : 66)} />
         ))}
