@@ -59,7 +59,7 @@ function Ridge({ spec, points }: { spec: RidgeSpec; points: Point[] }) {
   const detail = 1 - spec.depth;
 
   return (
-    <g filter={`url(#brush-${spec.id})`}>
+    <g className={`brush-${spec.id}`} filter={`url(#brush-${spec.id})`}>
       <path d={ridgeBody(points)} fill={fill} />
 
       {/* the crest, where the afternoon lands */}

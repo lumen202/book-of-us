@@ -30,8 +30,9 @@ import { useEffect, useRef, useState } from "react";
  * the server: it only starts after mount, so there is nothing for hydration to
  * disagree about, and unpredictability is the entire feature.
  *
- * Under `prefers-reduced-motion` no timers are started at all and the hook
- * returns an empty list — the scene keeps its own static flock and its resting
+ * Under `prefers-reduced-motion` (or on a touch device — see globals.css) no
+ * timers are started at all and the hook returns an empty list — the scene
+ * keeps its own static flock and its resting
  * butterflies instead, so the composition still reads as finished and inhabited.
  */
 
@@ -210,7 +211,10 @@ export function useAmbientLife(): LifeEvent[] {
   const nextId = useRef(0);
 
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Kept in sync with the CSS switch at the bottom of globals.css — see the
+    // comment there for why `(pointer: coarse)` is included alongside the
+    // accessibility setting.
+    if (window.matchMedia("(prefers-reduced-motion: reduce), (pointer: coarse)").matches) return;
 
     const timers = new Set<ReturnType<typeof setTimeout>>();
 
