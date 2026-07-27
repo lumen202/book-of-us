@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createMemory, softDeleteMemory, type NewMemoryInput } from "@/lib/memories/mutations";
+import { clearReaction, setReaction } from "@/lib/reactions/mutations";
 
 /**
  * Thin wrapper: the actual write lives in `lib/memories/mutations.ts`. This
@@ -20,4 +21,16 @@ export async function removeMemory(id: string, chapterSlug: string) {
   await softDeleteMemory(id);
   revalidatePath(`/chapters/${chapterSlug}`);
   revalidatePath("/");
+}
+
+/** Sets or changes the signed-in user's reaction on a memory. */
+export async function reactToMemory(memoryId: string, emoji: string, chapterSlug: string) {
+  await setReaction(memoryId, emoji);
+  revalidatePath(`/chapters/${chapterSlug}`);
+}
+
+/** Removes the signed-in user's reaction — see `clearReaction`. */
+export async function unreactToMemory(memoryId: string, chapterSlug: string) {
+  await clearReaction(memoryId);
+  revalidatePath(`/chapters/${chapterSlug}`);
 }

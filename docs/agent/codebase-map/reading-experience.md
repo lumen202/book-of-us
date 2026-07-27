@@ -55,6 +55,13 @@ framing copy), then the album, then the composer, then `ClosingReflection`.
 `MemoryGrid` wraps the detail in `AnimatePresence` so its exit variants actually play. Without
 that wrapper they're dead code — this was silently the case before 2026-07-27.
 
+- `components/memory/MemoryReactions.tsx` — a small, curated set of emoji reactions (see
+  `lib/reactions/types.ts`; deliberately not Facebook's stock six), aggregated by emoji rather
+  than attributed by person — with only two people in this book, per-person avatars would be the
+  first genuinely app-like widget on the page. Two variants: `corner` (a sticker + tap-to-reveal
+  picker on each grid print) and `inline` (the picker sits open in the lifted detail view). Data
+  comes from `lib/reactions/`, which reads/writes `memory_reactions` directly — see `data-model.md`.
+
 ## Photos only, for now
 
 `albumPrints()` in `lib/memories/queries.ts` is the gate: the album shows `type === "photo"`

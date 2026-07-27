@@ -24,16 +24,22 @@ everything else.
 **`unlock_at`** on `memories` makes *any* memory a potential time capsule, not just letters —
 see `time-capsules.md`.
 
+- **`memory_reactions`** — emoji reactions on memories, one row per `(memory_id, user_id)` (that
+  pair is the primary key). Not time-capsule-gated content, so `lib/reactions/queries.ts` reads
+  the table directly rather than through an RPC — the "no raw memory reads" rule below is scoped
+  to `memories` itself. See `reading-experience.md` for the UI.
+
 ## Soft delete
 
 Every mutable table has `deleted_at timestamptz`. The app never issues `DELETE`. RLS has no
 delete policy on any table, so a normal authenticated connection literally cannot delete a row —
 only a service-role connection could (used solely by `scripts/backup-export.ts`'s tooling, not
-by the running app).
+by the running app). `memory_reactions` follows the same rule: "un-reacting" stamps `deleted_at`
+rather than deleting the row, and reacting again upserts on the primary key, clearing it.
 
 ## RLS
 
-RLS is enabled on all three tables. Every table has the same shape: `select`/`insert`/`update`
+RLS is enabled on all four tables. Every table has the same shape: `select`/`insert`/`update`
 policies all just check `auth.uid() is not null` — this is a shared two-person book, not
 per-user-owned data, so there's no per-row ownership split.
 

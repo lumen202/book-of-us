@@ -6,6 +6,7 @@ not an edit to an old one.
 
 | Date | Title | File |
 |---|---|---|
+| 2026-07-27 | Emoji reactions, mobile perf chase, scroll-flash fix | [`2026-07-27-emoji-reactions-and-mobile-perf.md`](2026-07-27-emoji-reactions-and-mobile-perf.md) |
 | 2026-07-27 | Chapter gating corrected: monthsary count, not each chapter's own date | [`2026-07-27-chapter-gating-corrected-to-monthsary-count.md`](2026-07-27-chapter-gating-corrected-to-monthsary-count.md) |
 | 2026-07-27 | Chapters gated by their own reveal date (superseded) | [`2026-07-27-chapter-reveal-date-gating.md`](2026-07-27-chapter-reveal-date-gating.md) |
 | 2026-07-27 | Painted world rebuild (backdrop → generated garden) | [`2026-07-27-painted-world-rebuild.md`](2026-07-27-painted-world-rebuild.md) |
