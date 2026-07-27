@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { removeMemory } from "@/app/(app)/chapters/[slug]/actions";
 import type { MemoryWithMedia } from "@/lib/memories/queries";
+import type { Reaction } from "@/lib/reactions/types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { MemoryCard } from "./MemoryCard";
 import { MemoryDetail } from "./MemoryDetail";
@@ -18,9 +19,13 @@ import { MemoryDetail } from "./MemoryDetail";
 export function MemoryGrid({
   memories,
   chapterSlug,
+  reactionsByMemory,
+  currentUserId,
 }: {
   memories: MemoryWithMedia[];
   chapterSlug: string;
+  reactionsByMemory: Record<string, Reaction[]>;
+  currentUserId: string | null;
 }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -81,6 +86,9 @@ export function MemoryGrid({
               <MemoryCard
                 memory={memory}
                 index={index}
+                chapterSlug={chapterSlug}
+                reactions={reactionsByMemory[memory.id] ?? []}
+                currentUserId={currentUserId}
                 onSelect={() => setSelectedId(memory.id)}
                 onRemove={() => setPendingRemovalId(memory.id)}
               />
@@ -96,6 +104,9 @@ export function MemoryGrid({
           <MemoryDetail
             key={selected.id}
             memory={selected}
+            chapterSlug={chapterSlug}
+            reactions={reactionsByMemory[selected.id] ?? []}
+            currentUserId={currentUserId}
             onClose={() => setSelectedId(null)}
           />
         )}

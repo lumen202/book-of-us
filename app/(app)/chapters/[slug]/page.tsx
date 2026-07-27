@@ -5,6 +5,8 @@ import { getChapterBySlug } from "@/lib/chapters/queries";
 import { albumPrints, getChapterMemories, resolveMemoryMedia } from "@/lib/memories/queries";
 import { getAppNow } from "@/lib/relationship/devClock";
 import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
+import { getReactionsForMemories, groupReactionsByMemory } from "@/lib/reactions/queries";
+import { createClient } from "@/lib/supabase/server";
 import { MemoryGrid } from "@/components/memory/MemoryGrid";
 import { MemoryComposer } from "@/components/memory/MemoryComposer";
 import { ClosingReflection } from "@/components/story/ClosingReflection";
@@ -19,6 +21,13 @@ export default async function ChapterPage({
   if (!chapter) notFound();
 
   const memories = albumPrints(await resolveMemoryMedia(await getChapterMemories(chapter.id)));
+  const reactionsByMemory = groupReactionsByMemory(
+    await getReactionsForMemories(memories.map((memory) => memory.id)),
+  );
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const now = getAppNow();
   const nextChapterDate = getNextChapterDate(now);
 
@@ -47,7 +56,12 @@ export default async function ChapterPage({
 
         <MemoryComposer chapterId={chapter.id} chapterSlug={chapter.slug} />
 
-        <MemoryGrid memories={memories} chapterSlug={chapter.slug} />
+        <MemoryGrid
+          memories={memories}
+          chapterSlug={chapter.slug}
+          reactionsByMemory={reactionsByMemory}
+          currentUserId={user?.id ?? null}
+        />
       </main>
 
       <ClosingReflection

@@ -5,12 +5,20 @@ import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { formatFullDate } from "@/lib/format/date";
 import type { MemoryWithMedia } from "@/lib/memories/queries";
+import type { Reaction } from "@/lib/reactions/types";
+import { MemoryReactions } from "./MemoryReactions";
 
 export function MemoryDetail({
   memory,
+  chapterSlug,
+  reactions,
+  currentUserId,
   onClose,
 }: {
   memory: MemoryWithMedia;
+  chapterSlug: string;
+  reactions: Reaction[];
+  currentUserId: string | null;
   onClose: () => void;
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -76,6 +84,13 @@ export function MemoryDetail({
           {formatFullDate(memory.occurred_at)}
         </time>
         {memory.body && <p className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-ink">{memory.body}</p>}
+        <MemoryReactions
+          memoryId={memory.id}
+          chapterSlug={chapterSlug}
+          reactions={reactions}
+          currentUserId={currentUserId}
+          variant="inline"
+        />
       </motion.div>
     </motion.div>
   );

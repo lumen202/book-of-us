@@ -3,6 +3,8 @@
 import Image from "next/image";
 import { formatFullDate, formatMonthDay, toLocalDate } from "@/lib/format/date";
 import type { MemoryWithMedia } from "@/lib/memories/queries";
+import type { Reaction } from "@/lib/reactions/types";
+import { MemoryReactions } from "./MemoryReactions";
 
 /**
  * Prints are never laid down perfectly straight in a real album. The tilt is
@@ -37,11 +39,17 @@ function Corner({ className }: { className: string }) {
 export function MemoryCard({
   memory,
   index,
+  chapterSlug,
+  reactions,
+  currentUserId,
   onSelect,
   onRemove,
 }: {
   memory: MemoryWithMedia;
   index: number;
+  chapterSlug: string;
+  reactions: Reaction[];
+  currentUserId: string | null;
   onSelect: () => void;
   /** Asks to remove this print — the caller confirms in a dialog first. */
   onRemove: () => void;
@@ -109,6 +117,14 @@ export function MemoryCard({
       >
         ×
       </button>
+
+      <MemoryReactions
+        memoryId={memory.id}
+        chapterSlug={chapterSlug}
+        reactions={reactions}
+        currentUserId={currentUserId}
+        variant="corner"
+      />    
     </div>
   );
 }
