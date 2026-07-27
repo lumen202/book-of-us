@@ -41,6 +41,7 @@ export function MemoryCard({
   index,
   chapterSlug,
   reactions,
+  commentCount,
   currentUserId,
   onSelect,
   onRemove,
@@ -49,6 +50,7 @@ export function MemoryCard({
   index: number;
   chapterSlug: string;
   reactions: Reaction[];
+  commentCount: number;
   currentUserId: string | null;
   onSelect: () => void;
   /** Asks to remove this print — the caller confirms in a dialog first. */
@@ -95,12 +97,19 @@ export function MemoryCard({
                 {memory.title}
               </span>
             )}
-            <time
-              dateTime={memory.occurred_at}
-              className="mt-1 block text-[11px] uppercase tracking-[0.18em] text-ink-muted"
-            >
-              {formatFullDate(memory.occurred_at)}
-            </time>
+            <div className="mt-1 flex items-center gap-2">
+              <time
+                dateTime={memory.occurred_at}
+                className="block text-[11px] uppercase tracking-[0.18em] text-ink-muted"
+              >
+                {formatFullDate(memory.occurred_at)}
+              </time>
+              {commentCount > 0 && (
+                <span className="text-[11px] tracking-[0.18em] text-ink-muted">
+                  · {commentCount === 1 ? "1 note" : `${commentCount} notes`}
+                </span>
+              )}
+            </div>
           </figcaption>
         </div>
       </button>
@@ -113,7 +122,12 @@ export function MemoryCard({
         type="button"
         aria-label={`Remove ${memory.title} from this chapter`}
         onClick={onRemove}
-        className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-base leading-none text-ink-muted shadow-[0_4px_10px_-4px_rgba(76,59,48,0.5)] transition hover:scale-110 hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none motion-reduce:hover:scale-100"
+        // The visible circle stays 32px so it doesn't dominate the print's
+        // corner — `before` pads out the actual tappable area to ~44px (the
+        // touch-target comfort minimum) without adding any paint. The button
+        // is already `absolute`, which is all a descendant pseudo-element
+        // needs to position against.
+        className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-base leading-none text-ink-muted shadow-[0_4px_10px_-4px_rgba(76,59,48,0.5)] transition before:absolute before:-inset-1.5 before:content-[''] hover:scale-110 hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:transition-none motion-reduce:hover:scale-100"
       >
         ×
       </button>

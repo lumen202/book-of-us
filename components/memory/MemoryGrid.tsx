@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { removeMemory } from "@/app/(app)/chapters/[slug]/actions";
+import type { Comment } from "@/lib/comments/types";
 import type { MemoryWithMedia } from "@/lib/memories/queries";
 import type { Reaction } from "@/lib/reactions/types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -20,11 +21,13 @@ export function MemoryGrid({
   memories,
   chapterSlug,
   reactionsByMemory,
+  commentsByMemory,
   currentUserId,
 }: {
   memories: MemoryWithMedia[];
   chapterSlug: string;
   reactionsByMemory: Record<string, Reaction[]>;
+  commentsByMemory: Record<string, Comment[]>;
   currentUserId: string | null;
 }) {
   const router = useRouter();
@@ -88,6 +91,7 @@ export function MemoryGrid({
                 index={index}
                 chapterSlug={chapterSlug}
                 reactions={reactionsByMemory[memory.id] ?? []}
+                commentCount={(commentsByMemory[memory.id] ?? []).length}
                 currentUserId={currentUserId}
                 onSelect={() => setSelectedId(memory.id)}
                 onRemove={() => setPendingRemovalId(memory.id)}
@@ -106,6 +110,7 @@ export function MemoryGrid({
             memory={selected}
             chapterSlug={chapterSlug}
             reactions={reactionsByMemory[selected.id] ?? []}
+            comments={commentsByMemory[selected.id] ?? []}
             currentUserId={currentUserId}
             onClose={() => setSelectedId(null)}
           />

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatMonthDay, formatMonthYear } from "@/lib/format/date";
 import { getChapterBySlug } from "@/lib/chapters/queries";
+import { getCommentsForMemories, groupCommentsByMemory } from "@/lib/comments/queries";
 import { albumPrints, getChapterMemories, resolveMemoryMedia } from "@/lib/memories/queries";
 import { getAppNow } from "@/lib/relationship/devClock";
 import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
@@ -23,6 +24,9 @@ export default async function ChapterPage({
   const memories = albumPrints(await resolveMemoryMedia(await getChapterMemories(chapter.id)));
   const reactionsByMemory = groupReactionsByMemory(
     await getReactionsForMemories(memories.map((memory) => memory.id)),
+  );
+  const commentsByMemory = groupCommentsByMemory(
+    await getCommentsForMemories(memories.map((memory) => memory.id)),
   );
   const supabase = await createClient();
   const {
@@ -60,6 +64,7 @@ export default async function ChapterPage({
           memories={memories}
           chapterSlug={chapter.slug}
           reactionsByMemory={reactionsByMemory}
+          commentsByMemory={commentsByMemory}
           currentUserId={user?.id ?? null}
         />
       </main>

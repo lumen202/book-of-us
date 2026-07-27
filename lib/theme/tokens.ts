@@ -115,13 +115,12 @@ export const seasonLeaf: Record<Season, { leaf: string; leafDeep: string }> = {
   "tag-ulan": { leaf: "#87c065", leafDeep: "#53924f" },
 };
 
-/** A fixed, deterministic mapping from month — see the `Season` doc comment. */
-export function getSeason(date: Date = new Date()): Season {
-  const month = date.getMonth(); // 0 = January
-  if (month >= 10 || month <= 1) return "amihan"; // Nov–Feb
-  if (month <= 4) return "tag-init"; // Mar–May
-  return "tag-ulan"; // Jun–Oct
-}
+/**
+ * Which season the book is in right now — set by hand, not computed from
+ * today's date. Edit this directly when the season actually changes; see the
+ * `Season` doc comment above for the rough months each one covers.
+ */
+export const CURRENT_SEASON: Season = "tag-ulan";
 
 /**
  * Celebration Mode (5th of every month, see lib/celebration/isCelebrationDay.ts)

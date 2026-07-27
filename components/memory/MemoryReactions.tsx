@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { reactToMemory, unreactToMemory } from "@/app/(app)/chapters/[slug]/actions";
 import { REACTION_EMOJIS } from "@/lib/reactions/types";
 import type { Reaction } from "@/lib/reactions/types";
@@ -42,13 +42,32 @@ export function MemoryReactions({
   const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
 
-  const mine = currentUserId ? reactions.find((r) => r.userId === currentUserId)?.emoji ?? null : null;
-  const present = Array.from(new Set(reactions.map((r) => r.emoji)));
+  // Shows the tap immediately instead of waiting on the round trip to the
+  // server action + `router.refresh()`. React reverts this back to the real
+  // `reactions` prop on its own if the action throws, and settles onto the
+  // (matching) server value once the refresh lands — no manual reconciling.
+  const [optimisticReactions, setOptimisticReaction] = useOptimistic(
+    reactions,
+    (state, nextEmoji: string | null) => {
+      const withoutMine = state.filter((r) => r.userId !== currentUserId);
+      return nextEmoji && currentUserId
+        ? [...withoutMine, { memoryId, userId: currentUserId, emoji: nextEmoji }]
+        : withoutMine;
+    },
+  );
+
+  const mine = currentUserId
+    ? optimisticReactions.find((r) => r.userId === currentUserId)?.emoji ?? null
+    : null;
+  const present = Array.from(new Set(optimisticReactions.map((r) => r.emoji)));
 
   function choose(emoji: string) {
+    if (!currentUserId) return;
     setOpen(false);
+    const nextEmoji = emoji === mine ? null : emoji;
     startTransition(async () => {
-      if (emoji === mine) {
+      setOptimisticReaction(nextEmoji);
+      if (nextEmoji === null) {
         await unreactToMemory(memoryId, chapterSlug);
       } else {
         await reactToMemory(memoryId, emoji, chapterSlug);
@@ -67,7 +86,7 @@ export function MemoryReactions({
             onClick={() => choose(emoji)}
             aria-pressed={emoji === mine}
             aria-label={emoji === mine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}
-            className={`flex h-10 w-10 items-center justify-center rounded-full border text-lg transition hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent motion-reduce:hover:scale-100 ${
+            className={`relative flex h-10 w-10 items-center justify-center rounded-full border text-lg transition before:absolute before:-inset-1 before:content-[''] hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent motion-reduce:hover:scale-100 ${
               emoji === mine
                 ? "border-accent bg-accent-muted"
                 : "border-border bg-surface hover:border-accent/60"
@@ -89,7 +108,12 @@ export function MemoryReactions({
       onClick={(event) => event.stopPropagation()}
     >
       {open && (
-        <div className="absolute bottom-full right-0 mb-2 flex gap-1 rounded-full border border-border bg-surface px-2 py-1.5 shadow-[0_10px_20px_-10px_rgba(76,59,48,0.5)]">
+        // Buttons here are sized up to 40px (rather than padded out with an
+        // invisible hit-slop like the solitary buttons elsewhere) because
+        // they sit right next to each other — an overlapping invisible hit
+        // area would just move the mis-tap problem to "which neighbour did
+        // that register on" instead of fixing it.
+        <div className="absolute bottom-full right-0 mb-2 flex gap-1.5 rounded-full border border-border bg-surface px-2 py-1.5 shadow-[0_10px_20px_-10px_rgba(76,59,48,0.5)]">
           {REACTION_EMOJIS.map((emoji) => (
             <button
               key={emoji}
@@ -97,7 +121,7 @@ export function MemoryReactions({
               onClick={() => choose(emoji)}
               aria-pressed={emoji === mine}
               aria-label={emoji === mine ? `Remove your ${emoji} reaction` : `React with ${emoji}`}
-              className={`flex h-8 w-8 items-center justify-center rounded-full text-base transition hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent motion-reduce:hover:scale-100 ${
+              className={`flex h-10 w-10 items-center justify-center rounded-full text-lg transition hover:scale-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent motion-reduce:hover:scale-100 ${
                 emoji === mine ? "bg-accent-muted" : "hover:bg-background"
               }`}
             >
@@ -111,7 +135,11 @@ export function MemoryReactions({
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-label={present.length > 0 ? `${present.join(" ")} — change your reaction` : "React to this photo"}
-        className="flex h-8 min-w-8 items-center justify-center gap-0.5 rounded-full border border-border bg-surface px-1.5 text-sm leading-none shadow-[0_4px_10px_-4px_rgba(76,59,48,0.5)] transition hover:scale-110 hover:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:hover:scale-100"
+        // Visual size stays 32px; `before` pads the tappable area out to the
+        // ~44px touch-target minimum without adding paint — safe here since,
+        // unlike the picker row above, there's no neighbouring button for an
+        // invisible hit area to collide with.
+        className="relative flex h-8 min-w-8 items-center justify-center gap-0.5 rounded-full border border-border bg-surface px-1.5 text-sm leading-none shadow-[0_4px_10px_-4px_rgba(76,59,48,0.5)] transition before:absolute before:-inset-1.5 before:content-[''] hover:scale-110 hover:border-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:hover:scale-100"
       >
         {present.length > 0 ? present.join("") : <span className="text-ink-muted">♡</span>}
       </button>
