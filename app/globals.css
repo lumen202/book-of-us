@@ -99,6 +99,22 @@ body {
 }
 
 /*
+ * For ink-coloured text that sits directly on the ambient scene with no
+ * card under it (hero copy, page headings, the closing reflection). The
+ * scene's sky, sun and light rays breathe in brightness over time, so
+ * contrast that's fine on a still frame can thin out at a brighter moment.
+ * A tight paper-coloured edge on the glyphs themselves — not a panel behind
+ * the block — reads as ink slightly embossed into paper, which is the
+ * effect wanted here, and holds up no matter what's moving behind it.
+ */
+.ink-legible {
+  text-shadow:
+    0 0 1px color-mix(in srgb, var(--color-surface) 85%, transparent),
+    0 0 5px color-mix(in srgb, var(--color-surface) 55%, transparent),
+    0 1px 2px color-mix(in srgb, var(--color-surface) 40%, transparent);
+}
+
+/*
  * The painted scene itself lives in components/ambient/StorybookSky.tsx.
  * These keyframes drive it. They're here rather than inline because several
  * elements share them at different durations/offsets, and because every one of

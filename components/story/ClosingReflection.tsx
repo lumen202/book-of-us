@@ -37,7 +37,7 @@ export function ClosingReflection({
       viewport={{ once: true, margin: "-80px" }}
       transition={{ duration: 1.6, ease: "easeOut" }}
     >
-      <p className="font-serif text-2xl italic leading-relaxed text-ink/80 sm:text-3xl">
+      <p className="ink-legible font-serif text-2xl italic leading-relaxed text-ink sm:text-3xl">
         That&apos;s enough for now. Let it sit a while.
       </p>
 
@@ -47,8 +47,10 @@ export function ClosingReflection({
       />
 
       <div className="flex flex-col gap-2">
-        <p className="font-serif text-xl text-ink sm:text-2xl">Our story continues.</p>
-        <p className="text-[11px] uppercase tracking-[0.28em] text-ink-muted">{forwardLine}</p>
+        <p className="ink-legible font-serif text-xl text-ink sm:text-2xl">Our story continues.</p>
+        <p className="ink-legible text-[11px] font-medium uppercase tracking-[0.28em] text-ink">
+          {forwardLine}
+        </p>
       </div>
     </motion.section>
   );
