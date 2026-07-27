@@ -89,6 +89,19 @@
   --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/*
+ * `StorybookSky` covers the viewport with `position: fixed; inset: 0`, which
+ * assumes the visible area never scrolls past the document's own bounds. On
+ * Android Chrome, rubber-band overscroll at the top/bottom does exactly
+ * that — for an instant you're looking past the fixed backdrop's edge at the
+ * plain `body` background underneath. `overscroll-behavior` stops the bounce
+ * at the document boundary instead of past it, which is what was showing as
+ * a brief flash of flat colour while scrolling on a phone.
+ */
+html {
+  overscroll-behavior-y: none;
+}
+
 body {
   background: var(--color-background);
   color: var(--color-ink);
@@ -96,6 +109,7 @@ body {
   line-height: 1.6;
   position: relative;
   overflow-x: hidden;
+  overscroll-behavior-y: none;
 }
 
 /*
