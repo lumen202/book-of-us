@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { formatMonthDay, formatMonthYear } from "@/lib/format/date";
 import { getChapterBySlug } from "@/lib/chapters/queries";
 import { albumPrints, getChapterMemories, resolveMemoryMedia } from "@/lib/memories/queries";
+import { getAppNow } from "@/lib/relationship/devClock";
 import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
 import { MemoryGrid } from "@/components/memory/MemoryGrid";
 import { MemoryComposer } from "@/components/memory/MemoryComposer";
@@ -18,7 +19,8 @@ export default async function ChapterPage({
   if (!chapter) notFound();
 
   const memories = albumPrints(await resolveMemoryMedia(await getChapterMemories(chapter.id)));
-  const nextChapterDate = getNextChapterDate();
+  const now = getAppNow();
+  const nextChapterDate = getNextChapterDate(now);
 
   return (
     <>
@@ -50,7 +52,7 @@ export default async function ChapterPage({
 
       <ClosingReflection
         nextChapterLabel={formatMonthDay(nextChapterDate)}
-        daysUntilNextChapter={getDaysUntil(nextChapterDate)}
+        daysUntilNextChapter={getDaysUntil(nextChapterDate, now)}
       />
     </>
   );

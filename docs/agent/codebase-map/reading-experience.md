@@ -2,6 +2,42 @@
 
 How a chapter is read, and how photos get in and out of it.
 
+## Chapters unlock one per monthsary
+
+Chapter one is the month the relationship started (`relationship.started_at`) — visible from day
+one, not gated behind waiting for a monthsary to pass. Each monthsary after that unlocks one more,
+oldest-first. The total unlocked is `getElapsedMonthsaries(relationship.started_at, now) + 1`
+(`lib/relationship/nextChapter.ts` for `getElapsedMonthsaries`, `lib/chapters/queries.ts` for the
+`+ 1`) — `getElapsedMonthsaries` counts how many 5ths have passed *after* the start month, day-
+of-month aware (unlike `getMonthsaryNumber` in `monthsary.ts`, which is a raw year/month
+subtraction only safe to call *on* the 5th; this one is safe on any day).
+
+**A chapter's own `month` field is a label, not an unlock date.** Nothing compares it to today.
+This matters because a chapter could in principle predate the relationship's official start (a
+"how we met" backstory) — an earlier version of this seed data did exactly that and it was wrong
+for a different reason: it's confusing to see a chapter "unlock" that's dated before the
+relationship existed. The current seed has exactly one chapter, for the start month itself, titled
+with the date rather than a phrase (`"June 2026"`, not `"Where It Began"`) — see
+`supabase/seed.sql`. Future chapters get added for real as they're written, not pre-seeded
+speculatively; nothing pre-generates placeholder rows for months that haven't happened.
+
+`lib/chapters/queries.ts`'s `listRevealedChapters()` is the single gate: `listChapters()` (shelf)
+and `getChapterBySlug()` (direct route) both go through it, so an unlocked-later chapter is
+invisible on the shelf *and* 404s if its slug is guessed or bookmarked ahead of time. It's
+application-code filtering, not RLS/RPC-enforced like memory time capsules (see `data-model.md`)
+— this is pacing between two people who already see the same shared book, not a security boundary.
+
+## The dev clock
+
+`lib/relationship/devClock.ts`'s `getAppNow()` is used everywhere `listChapters()` /
+`getChapterBySlug()` / the "next chapter" countdown need to agree on the date. It's just
+`new Date()` — real time, same in dev and production — with one dev-only escape hatch: set
+`DEV_NOW=YYYY-MM-DD` in `.env.local` to preview a *later* monthsary than the one currently live,
+without waiting for the real date or editing rows. An earlier version of this file pinned dev to a
+fixed anchor date automatically; that was a temporary workaround for when the seeded start date
+hadn't reached its first monthsary yet in real time, and it was removed once the start date moved
+earlier and stopped needing it.
+
 ## The chapter is a photo album page
 
 `app/(app)/chapters/[slug]/page.tsx` renders a title page (month, chapter title, one line of

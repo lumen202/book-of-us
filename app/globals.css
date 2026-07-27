@@ -15,25 +15,46 @@
   --color-accent-muted: #cfe3dc;
   --color-accent-warm: #e8a06b;
   --color-border: #e7d5bb;
+
+  /*
+   * The garden palette — scene pigments for components/ambient/ only, never
+   * for UI. See the `gardenTokens` comment in lib/theme/tokens.ts for why
+   * these have to exist: green, pink, lavender and butter yellow are simply
+   * not reachable by mixing cream, brown, teal and apricot.
+   */
+  --color-leaf: #93c46b;
+  --color-leaf-deep: #5d9a56;
+  --color-blossom: #f0a8bb;
+  --color-lilac: #b7a9dc;
+  --color-butter: #f8d98d;
+  --color-sky: #9ecfec;
 }
 
-/* Philippine seasons — see the `Season` type in lib/theme/tokens.ts. */
+/* Philippine seasons — see the `Season` type in lib/theme/tokens.ts. Seasons
+   move the accents and how green the garden is; the blossom pinks stay put all
+   year, because the flowers are what make it this place. */
 :root[data-season="amihan"] {
   --color-accent: #8fb8cf;
   --color-accent-muted: #d7e7ef;
   --color-accent-warm: #efc389;
+  --color-leaf: #9ac773;
+  --color-leaf-deep: #629c5b;
 }
 
 :root[data-season="tag-init"] {
   --color-accent: #8cbcae;
   --color-accent-muted: #dcebe2;
   --color-accent-warm: #e5a659;
+  --color-leaf: #a8ca77;
+  --color-leaf-deep: #6d9e58;
 }
 
 :root[data-season="tag-ulan"] {
   --color-accent: #6fac9c;
   --color-accent-muted: #cde4dc;
   --color-accent-warm: #dfa07a;
+  --color-leaf: #87c065;
+  --color-leaf-deep: #53924f;
 }
 
 /*
@@ -82,6 +103,18 @@ body {
  * These keyframes drive it. They're here rather than inline because several
  * elements share them at different durations/offsets, and because every one of
  * them must stop under prefers-reduced-motion (see the block at the bottom).
+ *
+ * Two conventions run through all of them:
+ *
+ * 1. **Per-element values come in as custom properties** (`--sway`, `--ray-o`,
+ *    `--life-x0`, `--mote-drift`, ...). One keyframe then serves a whole
+ *    population of elements that each move by their own amount, instead of
+ *    generating a keyframe per element. The property is read on the element, so
+ *    inline styles are enough to configure it.
+ * 2. **Only `transform` and `opacity`.** Both are composited; nothing here can
+ *    trigger layout or repaint, which is what lets a scene this dense animate
+ *    continuously behind the whole book. Note in particular that no SVG filter
+ *    primitive is ever animated — see the note in PaintFilters.tsx.
  */
 
 /* Clouds crossing the sky, left to right, off both edges.
@@ -139,45 +172,239 @@ body {
   }
 }
 
-/* Grass and leaves leaning in the wind. */
-@keyframes sway {
+/* Butterfly and dragonfly wings. Same idea as bird-flap, much faster. */
+@keyframes wing-beat {
   0%,
   100% {
-    transform: rotate(-1.6deg);
+    transform: scaleX(1);
   }
   50% {
-    transform: rotate(1.6deg);
+    transform: scaleX(0.34);
   }
 }
 
-/* Dandelion seeds / dust motes rising through the light. */
-@keyframes float-up {
-  0% {
-    transform: translate3d(0, 20vh, 0) scale(0.7);
-    opacity: 0;
+/*
+ * The sky's colour, drifting from a cool afternoon toward a warm one and back.
+ * 210s with `alternate` is a seven-minute round trip: far longer than anyone
+ * watches a background for, which is the point — you can tell it is different
+ * from when you arrived, but never catch it changing.
+ */
+@keyframes sky-warm {
+  from {
+    opacity: 0.12;
   }
-  15% {
-    opacity: 0.7;
+  to {
+    opacity: 0.74;
   }
-  80% {
+}
+
+/* The sun breathing behind everything. Long, and never quite in phase with
+   the sky's own cycle, so the two never resolve into one rhythm. */
+@keyframes sun-breathe {
+  0%,
+  100% {
     opacity: 0.5;
+    transform: scale(0.97);
+  }
+  50% {
+    opacity: 0.88;
+    transform: scale(1.05);
+  }
+}
+
+/*
+ * A shaft of light brightening and fading, as if something out of frame were
+ * moving across the sun. `--ray-o` is the ray's own full strength, so six rays
+ * of different intensities share this one keyframe and each fades to its own
+ * floor rather than to a common one.
+ */
+@keyframes ray-breathe {
+  0%,
+  100% {
+    opacity: calc(var(--ray-o, 0.2) * 0.38);
+    transform: translate3d(-0.4vw, 0, 0);
+  }
+  50% {
+    opacity: var(--ray-o, 0.2);
+    transform: translate3d(0.4vw, 0, 0);
+  }
+}
+
+/*
+ * Grass and wildflowers leaning. `--sway` is set per tuft and scales with how
+ * near the tuft is, so the front row moves about three times as far as the back
+ * row — that difference is the meadow's main depth cue. The animation delay
+ * (set inline, derived from x) is what makes it a wave crossing the field
+ * rather than the whole meadow leaning at once.
+ */
+@keyframes tuft-sway {
+  0%,
+  100% {
+    transform: rotate(calc(var(--sway, 2deg) * -1));
+  }
+  50% {
+    transform: rotate(var(--sway, 2deg));
+  }
+}
+
+/* The boughs at the corners, barely moving. Anything more here would drag the
+   eye to the edge of the frame, which is the opposite of what they are for. */
+@keyframes bough-sway {
+  0%,
+  100% {
+    transform: rotate(-0.45deg) translate3d(0, 0, 0);
+  }
+  50% {
+    transform: rotate(0.5deg) translate3d(2px, 3px, 0);
+  }
+}
+
+/* Pollen and seed heads rising through the light. `--mote-drift` gives each one
+   its own sideways wander so they never read as a column. */
+@keyframes mote-rise {
+  0% {
+    transform: translate3d(0, 10vh, 0) scale(0.55);
+    opacity: 0;
+  }
+  16% {
+    opacity: var(--mote-o, 0.4);
+  }
+  74% {
+    opacity: calc(var(--mote-o, 0.4) * 0.66);
   }
   100% {
-    transform: translate3d(30px, -12vh, 0) scale(1);
+    transform: translate3d(var(--mote-drift, 0px), -86vh, 0) scale(1.05);
     opacity: 0;
   }
 }
 
-/* Sun breathing behind everything. */
-@keyframes sun-glow {
+/*
+ * One crossing of the frame by one bird, butterfly, petal or leaf.
+ *
+ * Runs once and stops (`forwards`); the element is unmounted afterwards by
+ * useAmbientLife. Every endpoint is a custom property, so a single keyframe
+ * covers both directions of travel, any amount of rise or fall, and any amount
+ * of spin — which is what lets each appearance be genuinely different instead
+ * of a loop with a different delay on it.
+ */
+@keyframes life-cross {
+  0% {
+    transform: translate3d(var(--life-x0, -16vw), 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  9% {
+    opacity: var(--life-o, 0.5);
+  }
+  86% {
+    opacity: var(--life-o, 0.5);
+  }
+  100% {
+    transform: translate3d(var(--life-x1, 114vw), var(--life-y1, 0), 0)
+      rotate(var(--life-r1, 0deg));
+    opacity: 0;
+  }
+}
+
+/* A petal or leaf turning over as it falls — the squash on X reads as the
+   thing going edge-on to you and back. */
+@keyframes petal-flutter {
   0%,
   100% {
-    opacity: 0.55;
-    transform: scale(1);
+    transform: scaleX(1) rotate(-8deg);
   }
   50% {
-    opacity: 0.8;
-    transform: scale(1.06);
+    transform: scaleX(0.25) rotate(9deg);
+  }
+}
+
+/*
+ * One butterfly, bee or firefly wandering across the frame.
+ *
+ * Five waypoints instead of two, eased between, with the route computed per
+ * creature in useAmbientLife. A butterfly that flies in a straight line is a
+ * moth-shaped bullet; the meandering *is* the butterfly, and it is the single
+ * detail that makes the garden feel inhabited rather than decorated.
+ */
+@keyframes life-wander {
+  0% {
+    transform: translate3d(var(--w0x, -14vw), var(--w0y, 0), 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: var(--life-o, 0.6);
+  }
+  25% {
+    transform: translate3d(var(--w1x, 18vw), var(--w1y, 0), 0);
+  }
+  50% {
+    transform: translate3d(var(--w2x, 50vw), var(--w2y, 0), 0);
+  }
+  75% {
+    transform: translate3d(var(--w3x, 82vw), var(--w3y, 0), 0);
+  }
+  90% {
+    opacity: var(--life-o, 0.6);
+  }
+  100% {
+    transform: translate3d(var(--w4x, 114vw), var(--w4y, 0), 0);
+    opacity: 0;
+  }
+}
+
+/* A butterfly at rest, opening and closing its wings. Much slower than
+   `wing-beat`, which is flight. */
+@keyframes wing-rest {
+  0%,
+  100% {
+    transform: scaleX(1);
+  }
+  45%,
+  55% {
+    transform: scaleX(0.55);
+  }
+}
+
+/* A firefly, coming on and going off. Never fully dark — it is late afternoon,
+   not night, and these are a hint of the evening rather than the evening. */
+@keyframes firefly-blink {
+  0%,
+  100% {
+    opacity: 0.22;
+    transform: scale(0.8);
+  }
+  40%,
+  60% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+}
+
+/* Dew, or the sun off a leaf edge. Twenty-two of these on unrelated periods
+   make the meadow glitter faintly without ever pulsing together. */
+@keyframes sparkle-twinkle {
+  0%,
+  100% {
+    opacity: 0.12;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/*
+ * The swing, still moving very slightly — as though somebody has just got up
+ * from it. Under two degrees, and slow enough that you are never sure you saw
+ * it. This is the most sentimental line of CSS in the project and it earns its
+ * place: an object that is *still settling* implies someone was here a moment
+ * ago far more strongly than any amount of scenery can.
+ */
+@keyframes swing-rest {
+  0%,
+  100% {
+    transform: rotate(-1.1deg);
+  }
+  50% {
+    transform: rotate(1.3deg);
   }
 }
 
@@ -185,6 +412,13 @@ body {
  * Reduced motion: the scene stays — it's the composition doing the emotional
  * work, not the movement — but nothing in it moves. Anything animated into
  * view by these keyframes must therefore also be legible in its resting state.
+ *
+ * This one selector is the whole switch, which is why every animated element in
+ * the backdrop carries an `ambient-` class. Three things cover the rest:
+ * `useParallax` never attaches, so `--scroll` stays 0 and every layer's
+ * `calc()` transform resolves to zero travel; `useAmbientLife` starts no
+ * timers, so nothing new is spawned; and `DistantFlock` is always rendered, so
+ * the sky still has birds in it when none are passing through.
  */
 @media (prefers-reduced-motion: reduce) {
   [class*="ambient-"] {

@@ -12,12 +12,25 @@ The three rules, in short:
 3. **Two accents, always both.** `accent` is the cool one (meadow/sky/water), `accentWarm` is the
    sunlight. Dropping the warm one is what makes it read as cold.
 
+## There is a second, scene-only palette
+
+`gardenTokens` in `lib/theme/tokens.ts` adds six pigments used **only** by the ambient backdrop:
+`leaf`, `leafDeep`, `blossom`, `lilac`, `butter`, `sky`. They exist because the four base tokens
+cannot reach green, pink, lavender or butter yellow — teal mixed toward apricot is
+near-complementary and lands on khaki, which is how the backdrop ended up olive and melancholy
+once. Read the comment on `gardenTokens` before touching them.
+
+**Do not use them for UI.** Buttons, borders, cards and type stay on `baseTokens`; that
+separation is what keeps the painted world from leaking into the interface. See
+[`painted-world.md`](painted-world.md).
+
 ## Seasons are Philippine, not temperate
 
 The book is read in the Philippines. `Season` is `amihan` (Nov–Feb, cool dry) | `tag-init`
 (Mar–May, hot dry) | `tag-ulan` (Jun–Oct, rainy) — **not** winter/spring/summer/autumn. A
-"winter" palette in Manila never matches what's outside the window. Seasons override only the
-accents, never the neutrals.
+"winter" palette in Manila never matches what's outside the window. Seasons override the accents
+and the two leaf pigments (how green the year is), never the neutrals and never the blossom
+colours — the flowers are what make the backdrop feel like one particular place.
 
 ## Celebration Mode has no palette
 
@@ -45,18 +58,18 @@ on it — just not colour.
   (`bg-background`, `text-ink`, `bg-accent`, …) and also defines `--radius-card`,
   `--radius-panel`, and `--ease-bounce`. No `tailwind.config.ts` — Tailwind v4 is CSS-first, so
   this file is the only place token names are registered.
-- `app/globals.css` also holds the **keyframes for the ambient scene**
-  (`cloud-drift`, `cloud-bob`, `bird-fly`, `bird-flap`, `sway`, `float-up`, `sun-glow`). They
-  live here because several elements share them at different durations, and because the
-  `prefers-reduced-motion` block at the bottom of the file kills every one of them at once via
-  `[class*="ambient-"]`.
+- `app/globals.css` also holds the **keyframes for the ambient scene** (`cloud-drift`,
+  `cloud-bob`, `bird-fly`, `bird-flap`, `wing-beat`, `wing-rest`, `sky-warm`, `sun-breathe`,
+  `ray-breathe`, `tuft-sway`, `bough-sway`, `swing-rest`, `mote-rise`, `life-cross`,
+  `life-wander`, `petal-flutter`, `firefly-blink`, `sparkle-twinkle`). They live here because
+  several elements share them at different durations, and because the `prefers-reduced-motion`
+  block at the bottom of the file kills every one of them at once via `[class*="ambient-"]`.
 
 ## The painted background
 
-`components/ambient/StorybookSky.tsx`, mounted once in `app/(app)/layout.tsx` at `-z-10`. Inline
-SVG only — no image assets — so it themes off the tokens via `color-mix`. Its own doc comment
-carries the composition rules (weight at the edges, nothing fast through the reading band,
-resting state must look finished because reduced motion stops all of it).
+See [`painted-world.md`](painted-world.md) — it is a large enough subsystem to have its own file.
+Short version: `components/ambient/StorybookSky.tsx` at `-z-10`, generated geometry only (no
+image assets), every colour a `color-mix()` of base tokens plus `gardenTokens`.
 
 ## Shape and motion
 
