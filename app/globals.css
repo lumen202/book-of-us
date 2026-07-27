@@ -450,20 +450,48 @@ body {
  * timers, so nothing new is spawned; and `DistantFlock` is always rendered, so
  * the sky still has birds in it when none are passing through.
  *
- * Also fires on `(pointer: coarse)` — i.e. touch devices, not just the OS
- * accessibility setting. The scene stacks several full-viewport
- * `mix-blend-mode` layers (GrainOverlay's three passes, LightRays, Sky's
- * sun-glow) inside one `isolation: isolate` root, which means the browser
- * re-flattens all of them against everything moving underneath on every
- * frame. Desktop GPUs absorb that; phone GPUs at high pixel density visibly
- * don't, which is what "laggy on Android" turned out to be. Touch devices get
- * the same finished resting composition as reduced-motion, by design, rather
- * than a cut-down "mobile mode" — see the comment above for why the resting
- * state has to carry the emotional weight on its own regardless of why
- * motion is off.
+ * This is the accessibility switch specifically — it freezes *everything*,
+ * unconditionally, regardless of cost. Touch-device performance is a
+ * different concern with a much narrower fix below; don't fold it back in
+ * here, or the backdrop goes back to being a still painting on every phone
+ * for no reason.
  */
-@media (prefers-reduced-motion: reduce), (pointer: coarse) {
+@media (prefers-reduced-motion: reduce) {
   [class*="ambient-"] {
+    animation: none !important;
+  }
+}
+
+/*
+ * Touch devices: freeze only the animations that are actually expensive,
+ * not the whole scene. An earlier version froze every `ambient-` class here
+ * too, on the theory that any animation forces a re-composite of the
+ * `isolation: isolate` root's `mix-blend-mode` layers — but that's only true
+ * for animations that are *themselves* inside a blend-mode layer. Checked
+ * each one against `mixBlendMode` in the paint/ components:
+ *
+ * - **Expensive, stays frozen**: `ambient-sun` / `ambient-sun-wide` (inside
+ *   `SunGlow`'s `mix-blend-mode: screen` wrapper), `ambient-ray` (same, plus
+ *   its own `blur()` filter, ×6), `ambient-sparkle` (inside `Meadow`'s
+ *   `mix-blend-mode: screen` group). These genuinely force a full blended
+ *   recomposite every frame against a large, moving area.
+ * - **Cheap, left running**: grass sway, clouds, boughs, the swing, pollen,
+ *   the sky's slow warm/cool breathing, and every creature in
+ *   `LivingThings.tsx` (birds, butterflies, fireflies, …) — none of these are
+ *   inside a blend-mode layer, and the wildlife has no filter on it at all.
+ *   Freezing these bought nothing and was most of why the backdrop felt dead
+ *   on a phone — it's meant to feel inhabited there too, not just on desktop.
+ *
+ * `useParallax` and `useAmbientLife` are back to gating on reduced-motion
+ * only, to match: parallax is a single cheap property write per scroll
+ * frame, and the creatures `useAmbientLife` spawns are exactly the cheap,
+ * unblended kind above.
+ */
+@media (pointer: coarse) {
+  .ambient-sun,
+  .ambient-sun-wide,
+  .ambient-ray,
+  .ambient-sparkle {
     animation: none !important;
   }
 }

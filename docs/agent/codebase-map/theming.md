@@ -46,13 +46,14 @@ on it — just not colour.
 
 - `lib/theme/tokens.ts` — source of truth for token values as plain TS objects (no CSS/JSX here,
   so the values are testable and reusable outside a component tree): `baseTokens.color`,
-  `seasonAccents`, `getSeason(date?)` (pure, takes a `date` so it's unit-testable).
-- `lib/theme/ThemeProvider.tsx` — client component, no visual output. Sets
-  `document.documentElement.dataset.season` in a `useEffect`, so a tab left open across a season
-  boundary still updates.
-- `app/layout.tsx` — also sets `data-season` server-side so there's a correct value on first
-  paint; the client effect is a same-value no-op in the common case. Also loads Cormorant
-  Garamond (serif, titles) and Manrope (sans, body) via `next/font/google`.
+  `seasonAccents`, `CURRENT_SEASON`.
+- `CURRENT_SEASON` is set by hand, not computed from today's date — an earlier version had a
+  pure `getSeason(date?)` mapping months to seasons, called both server-side in `app/layout.tsx`
+  and client-side in a now-deleted `ThemeProvider` (so a tab left open across a season boundary
+  would still update). Removed because nobody wanted the season changing itself; whoever owns the
+  book edits `CURRENT_SEASON` directly when the season actually changes.
+- `app/layout.tsx` — sets `data-season={CURRENT_SEASON}` on `<html>` directly, server-side only.
+  Also loads Cormorant Garamond (serif, titles) and Manrope (sans, body) via `next/font/google`.
 - `app/globals.css` — `:root` defines the base custom properties; `:root[data-season="X"]`
   overrides just the accents. The Tailwind v4 `@theme inline` block registers them as utilities
   (`bg-background`, `text-ink`, `bg-accent`, …) and also defines `--radius-card`,

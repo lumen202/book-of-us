@@ -61,6 +61,12 @@ that wrapper they're dead code — this was silently the case before 2026-07-27.
   first genuinely app-like widget on the page. Two variants: `corner` (a sticker + tap-to-reveal
   picker on each grid print) and `inline` (the picker sits open in the lifted detail view). Data
   comes from `lib/reactions/`, which reads/writes `memory_reactions` directly — see `data-model.md`.
+- `components/memory/MemoryComments.tsx` — freeform notes, detail view only (a note needs more
+  room than a grid print has). Attributed as "You" / "Your partner" rather than a name — there's
+  no reliable mapping anywhere from an auth account to "Joshua" or "Liezel", so the component only
+  ever asserts the one thing it can know for certain (`comment.userId === currentUserId`), and
+  that's also what gates the remove control. `MemoryCard` shows a small "N notes" count next to
+  the date so a print with notes is discoverable from the grid without opening it.
 
 ## Photos only, for now
 

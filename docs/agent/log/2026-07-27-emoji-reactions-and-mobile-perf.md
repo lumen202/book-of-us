@@ -1,6 +1,6 @@
-# Emoji reactions, mobile performance chase, and a scroll-flash fix
+# Emoji reactions, freeform notes, mobile performance chase, and a scroll-flash fix
 
-Session covered three unrelated things; noting them separately since they'll be searched for
+Session covered four unrelated things; noting them separately since they'll be searched for
 separately.
 
 ## Emoji reactions on photos
@@ -31,6 +31,23 @@ on each grid print, in the same visual language as the existing remove-× contro
 (`supabase.auth.getUser()`) and passes it down through `MemoryGrid` alongside a
 `memoryId → Reaction[]` map, so `MemoryCard`/`MemoryDetail` know which reaction (if any) is
 "mine" without each doing their own auth lookup.
+
+## Freeform notes on photos
+
+Same session, follow-on request. New `memory_comments` table
+(`supabase/migrations/0004_comments.sql`, **also not yet applied**), `lib/comments/`
+(`types.ts`/`queries.ts`/`mutations.ts`) mirroring `lib/reactions/` exactly — direct table read
+for the same "not time-capsule-gated content" reason, soft delete on removal.
+
+`MemoryComments.tsx` lives only in the detail view (a note is a sentence, needs more room than a
+grid print has), and attributes each note as "You" / "Your partner" rather than a real name —
+there's no column or mapping anywhere that ties an `auth.users` row to "Joshua" or "Liezel"
+specifically, so the component only asserts what it can actually know:
+`comment.userId === currentUserId`. That's also what gates the remove control per-note. Guessing
+a real name would have been worse than not showing one.
+
+`MemoryCard` in the grid gets a small "N notes" count next to the date (not interactive, just
+discoverability — otherwise notes are invisible until you open a print).
 
 ## Mobile performance
 
@@ -72,7 +89,9 @@ affects what the local autofill button types in, not the actual Supabase account
 
 ## Next session should
 
-- Apply `0003_reactions.sql` in Supabase before reactions can work at all.
+- Apply `0003_reactions.sql` **and** `0004_comments.sql` in Supabase before reactions or notes
+  can work at all — chapter pages throw a Postgres "relation does not exist" error until both
+  are run.
 - Get a real `(pointer: coarse)` DevTools trace (or an actual Android trace via
   `chrome://inspect`) to confirm the filter/animation work above actually fixed the lag, not just
   plausibly should have.

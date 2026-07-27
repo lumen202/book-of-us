@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
-import { ThemeProvider } from "@/lib/theme/ThemeProvider";
-import { getSeason } from "@/lib/theme/tokens";
+import { CURRENT_SEASON } from "@/lib/theme/tokens";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -29,12 +28,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      data-season={getSeason()}
+      data-season={CURRENT_SEASON}
       className={`${cormorant.variable} ${manrope.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-ink">
-        <ThemeProvider>{children}</ThemeProvider>
-      </body>
+      <body className="min-h-full flex flex-col bg-background text-ink">{children}</body>
     </html>
   );
 }

@@ -28,18 +28,23 @@ see `time-capsules.md`.
   pair is the primary key). Not time-capsule-gated content, so `lib/reactions/queries.ts` reads
   the table directly rather than through an RPC — the "no raw memory reads" rule below is scoped
   to `memories` itself. See `reading-experience.md` for the UI.
+- **`memory_comments`** — freeform notes on memories, own `id` (not a composite key like
+  reactions, since a memory can have any number of notes from the same person). Same direct-read
+  reasoning as `memory_reactions`. No column ties a row to "Joshua" or "Liezel" by name — the UI
+  only ever knows a note is "yours" (`user_id = auth.uid()`) or not; see `reading-experience.md`.
 
 ## Soft delete
 
 Every mutable table has `deleted_at timestamptz`. The app never issues `DELETE`. RLS has no
 delete policy on any table, so a normal authenticated connection literally cannot delete a row —
 only a service-role connection could (used solely by `scripts/backup-export.ts`'s tooling, not
-by the running app). `memory_reactions` follows the same rule: "un-reacting" stamps `deleted_at`
-rather than deleting the row, and reacting again upserts on the primary key, clearing it.
+by the running app). `memory_reactions` and `memory_comments` follow the same rule: removing one
+stamps `deleted_at` rather than deleting the row (reactions upsert on the primary key to clear it
+again; comments just get a fresh row for a fresh note).
 
 ## RLS
 
-RLS is enabled on all four tables. Every table has the same shape: `select`/`insert`/`update`
+RLS is enabled on all five tables. Every table has the same shape: `select`/`insert`/`update`
 policies all just check `auth.uid() is not null` — this is a shared two-person book, not
 per-user-owned data, so there's no per-row ownership split.
 

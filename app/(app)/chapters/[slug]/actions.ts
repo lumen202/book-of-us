@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { addComment as writeComment, removeComment as deleteComment } from "@/lib/comments/mutations";
 import { createMemory, softDeleteMemory, type NewMemoryInput } from "@/lib/memories/mutations";
 import { clearReaction, setReaction } from "@/lib/reactions/mutations";
 
@@ -32,5 +33,17 @@ export async function reactToMemory(memoryId: string, emoji: string, chapterSlug
 /** Removes the signed-in user's reaction — see `clearReaction`. */
 export async function unreactToMemory(memoryId: string, chapterSlug: string) {
   await clearReaction(memoryId);
+  revalidatePath(`/chapters/${chapterSlug}`);
+}
+
+/** Leaves a note on a memory. */
+export async function addComment(memoryId: string, body: string, chapterSlug: string) {
+  await writeComment(memoryId, body);
+  revalidatePath(`/chapters/${chapterSlug}`);
+}
+
+/** Soft delete — see `removeComment` in `lib/comments/mutations.ts`. */
+export async function removeMemoryComment(commentId: string, chapterSlug: string) {
+  await deleteComment(commentId);
   revalidatePath(`/chapters/${chapterSlug}`);
 }
