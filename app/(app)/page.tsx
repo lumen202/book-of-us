@@ -6,6 +6,7 @@ import { getMonthsaryNumber } from "@/lib/relationship/monthsary";
 import { pickMonthsaryMessage } from "@/lib/celebration/messages";
 import { formatMonthDay, toLocalDate } from "@/lib/format/date";
 import { ordinal } from "@/lib/format/ordinal";
+import { getAppNow } from "@/lib/relationship/devClock";
 import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
 import { ClosingReflection } from "@/components/story/ClosingReflection";
 
@@ -15,18 +16,25 @@ export default async function HomePage() {
     ? `${relationship.partner_a_name} & ${relationship.partner_b_name}`
     : undefined;
 
+  // `getAppNow()` is the real clock in production and everywhere except local
+  // dev before the first monthsary — see lib/relationship/devClock.ts. Used
+  // here (rather than each call defaulting to `new Date()`) so this number,
+  // the "next chapter" countdown below, and the shelf's unlocked-chapter
+  // count from `listChapters()` all agree on what day it is.
+  const now = getAppNow();
+
   // Clamped to at least 1: the real 1st monthsary isn't until a full month
   // has elapsed, but Celebration Mode (via the dev preview toggle) can be
   // forced on before then, and "Happy 0th Monthsary" would be a broken-
   // looking thing to show — the clamp only ever matters in that narrow
   // first-month window.
   const monthsaryNumber = relationship
-    ? Math.max(1, getMonthsaryNumber(toLocalDate(relationship.started_at)))
+    ? Math.max(1, getMonthsaryNumber(toLocalDate(relationship.started_at), now))
     : null;
   const celebrationLabel =
     monthsaryNumber !== null ? `Happy ${ordinal(monthsaryNumber)} Monthsary` : undefined;
   const celebrationMessage = celebrationLabel ? pickMonthsaryMessage() : undefined;
-  const nextChapterDate = getNextChapterDate();
+  const nextChapterDate = getNextChapterDate(now);
 
   return (
     <HomeCover
@@ -67,7 +75,7 @@ export default async function HomePage() {
 
       <ClosingReflection
         nextChapterLabel={formatMonthDay(nextChapterDate)}
-        daysUntilNextChapter={getDaysUntil(nextChapterDate)}
+        daysUntilNextChapter={getDaysUntil(nextChapterDate, now)}
       />
     </HomeCover>
   );

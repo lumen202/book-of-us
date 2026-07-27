@@ -50,6 +50,45 @@ export const baseTokens = {
   },
 } as const;
 
+/**
+ * The garden palette — colours that exist only for the painted world in
+ * `components/ambient/`, never for UI.
+ *
+ * These are a deliberate widening of the token set, and the reason is
+ * arithmetic: the four base colours are cream, warm brown, meadow teal and
+ * apricot, and **no mix of them reaches green, pink, lavender or butter
+ * yellow**. Teal mixed toward apricot is near-complementary, so it lands on
+ * khaki; teal mixed toward cream lands on mint. The backdrop was built that way
+ * once and the result was a beautiful, olive, slightly melancholy countryside —
+ * technically right and emotionally wrong for a book about two people in love.
+ *
+ * So: a small, named set of scene pigments, in one place, themeable, with the
+ * same rules as the base palette (nothing darker than the ink, no true grey,
+ * every neutral carries yellow). `lib/ambient/palette.ts` mixes everything the
+ * scene paints out of *these plus* the base tokens, and nothing in the scene is
+ * allowed a literal hex.
+ *
+ * **Do not use these for UI.** Buttons, borders, cards and type stay on
+ * `baseTokens` — that separation is what keeps the world from leaking into the
+ * interface and making the book look like a different site.
+ */
+export const gardenTokens = {
+  color: {
+    /** Fresh spring green. The dominant colour of the world. */
+    leaf: "#93c46b",
+    /** Foliage in shade. Still green — never olive, never brown. */
+    leafDeep: "#5d9a56",
+    /** Gentle pink: blossom, petals, the pink wildflowers. */
+    blossom: "#f0a8bb",
+    /** Muted lavender, for the lavender drifts and for cool shadow. */
+    lilac: "#b7a9dc",
+    /** Butter yellow — the sunlight, warmer and less orange than `accentWarm`. */
+    butter: "#f8d98d",
+    /** Optimistic pastel sky. */
+    sky: "#9ecfec",
+  },
+} as const;
+
 type SeasonAccents = { accent: string; accentMuted: string; accentWarm: string };
 
 export const seasonAccents: Record<Season, SeasonAccents> = {
@@ -59,6 +98,21 @@ export const seasonAccents: Record<Season, SeasonAccents> = {
   "tag-init": { accent: "#8cbcae", accentMuted: "#dcebe2", accentWarm: "#e5a659" },
   /** Wet leaves, green everywhere, softer light. */
   "tag-ulan": { accent: "#6fac9c", accentMuted: "#cde4dc", accentWarm: "#dfa07a" },
+};
+
+/**
+ * The one garden pigment the seasons move: how green the world is.
+ *
+ * Blossom, lilac and butter stay put all year — the flowers in this garden are
+ * a constant, and shifting them would make the world feel like a different
+ * place in June than in December, which is exactly what it must not feel like.
+ * The leaf tone, though, is the difference between the bleached end of the dry
+ * season and the middle of the rains, and it is worth having.
+ */
+export const seasonLeaf: Record<Season, { leaf: string; leafDeep: string }> = {
+  amihan: { leaf: "#9ac773", leafDeep: "#629c5b" },
+  "tag-init": { leaf: "#a8ca77", leafDeep: "#6d9e58" },
+  "tag-ulan": { leaf: "#87c065", leafDeep: "#53924f" },
 };
 
 /** A fixed, deterministic mapping from month — see the `Season` doc comment. */
