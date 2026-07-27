@@ -4,7 +4,7 @@ import { useActionState, useRef, useState } from "react";
 import { login } from "./actions";
 
 const DEV_LOGIN_EMAIL = "jdiniega202@gmail.com";
-const DEV_LOGIN_PASSWORD = "7/5/2026";
+const DEV_LOGIN_PASSWORD = "6/5/2026";
 
 function EyeIcon() {
   return (
