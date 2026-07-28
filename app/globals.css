@@ -96,7 +96,16 @@
  * is a low warm sun, not dusk — see the note there about why the 5th must not
  * become a night scene.
  */
-:root[data-celebration="true"] {
+/*
+ * `data-night-preview` mirrors this block exactly, for the Settings toggle
+ * that lets either account look at the same night backdrop on an ordinary
+ * day — see NightPreviewProvider.tsx for why it's a separate attribute
+ * instead of reusing `data-celebration` (that one also drives confetti, the
+ * ceremony copy and the look-back photo fetch, none of which a cosmetic
+ * preview should touch).
+ */
+:root[data-celebration="true"],
+:root[data-night-preview="true"] {
   /* The air goes deep indigo. This is the value doing most of the work — sky,
      far hills, distance and the pale grass all dilute into it, so the world
      gets its night from one place rather than from a wash on top. Blue, never
@@ -133,7 +142,8 @@
  * cream paper lit against a dark garden is, if anything, better. That is the
  * whole reason the UI tokens stay put while only the scene moves.
  */
-:root[data-celebration="true"] .ink-legible {
+:root[data-celebration="true"] .ink-legible,
+:root[data-night-preview="true"] .ink-legible {
   color: color-mix(in srgb, var(--color-surface) 92%, var(--color-butter)) !important;
   text-shadow:
     0 0 2px color-mix(in srgb, #10173a 80%, transparent),
@@ -161,7 +171,8 @@
  * survives untouched — the same reason the UI tokens never move. Reach for this
  * on anything translucent that sits over the scene and contains type.
  */
-:root[data-celebration="true"] .scene-card {
+:root[data-celebration="true"] .scene-card,
+:root[data-night-preview="true"] .scene-card {
   background-color: color-mix(in srgb, var(--color-surface) 94%, transparent);
 }
 
@@ -174,13 +185,17 @@
  */
 :root[data-celebration="true"] .ambient-sun,
 :root[data-celebration="true"] .ambient-sun-wide,
-:root[data-celebration="true"] .ambient-ray {
+:root[data-celebration="true"] .ambient-ray,
+:root[data-night-preview="true"] .ambient-sun,
+:root[data-night-preview="true"] .ambient-sun-wide,
+:root[data-night-preview="true"] .ambient-ray {
   opacity: 0 !important;
 }
 
 /* And the night sky comes up: stars, and the moon the lanterns were waiting
    for. Same always-rendered, CSS-revealed treatment. */
-:root[data-celebration="true"] .night-sky {
+:root[data-celebration="true"] .night-sky,
+:root[data-night-preview="true"] .night-sky {
   opacity: 1;
 }
 
@@ -193,7 +208,8 @@
  * is the single most legible "today is different" detail in the scene: a small
  * warm point of light that simply was not there yesterday.
  */
-:root[data-celebration="true"] .lantern-flame {
+:root[data-celebration="true"] .lantern-flame,
+:root[data-night-preview="true"] .lantern-flame {
   opacity: 1;
 }
 

@@ -1,14 +1,15 @@
 import Link from "next/link";
 import { signOut } from "@/app/(app)/actions";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
+import { AdminMenu } from "@/components/nav/AdminMenu";
 
 export async function AppHeader() {
-  // Only the keeper sees the link. The route checks again on its own — hiding
-  // this is tidiness, not access control.
+  // Only the keeper sees the menu. The routes behind it check again on their
+  // own — hiding this is tidiness, not access control.
   const isAdmin = await isCurrentUserAdmin();
 
   return (
-    <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-6 pb-2 pt-6">
+    <header className="mx-auto flex w-full max-w-5xl flex-wrap items-center justify-between gap-x-5 gap-y-2 px-6 pb-2 pt-6">
       <Link href="/" className="group flex flex-col text-ink">
         <span className="ink-legible text-[10px] uppercase tracking-[0.28em] text-ink-muted">A keepsake</span>
         <span className="ink-legible font-serif text-2xl leading-none transition group-hover:text-accent">
@@ -22,14 +23,13 @@ export async function AppHeader() {
         >
           Bucket list
         </Link>
-        {isAdmin && (
-          <Link
-            href="/archive"
-            className="ink-legible text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            Removed
-          </Link>
-        )}
+        <Link
+          href="/settings"
+          className="ink-legible text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          Settings
+        </Link>
+        {isAdmin && <AdminMenu />}
         <form action={signOut}>
           <button
             type="submit"
