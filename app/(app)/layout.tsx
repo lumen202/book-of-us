@@ -1,4 +1,5 @@
 import { CelebrationProvider } from "@/lib/celebration/CelebrationProvider";
+import { NightPreviewProvider } from "@/lib/night-preview/NightPreviewProvider";
 import { ReducedMotionConfig } from "@/components/motion/ReducedMotionConfig";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { StorybookSky } from "@/components/ambient/StorybookSky";
@@ -13,14 +14,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <CelebrationProvider>
-      <ReducedMotionConfig>
-        {/* Sits behind everything at -z-10 — the whole book takes place
-            inside this painting. */}
-        <StorybookSky />
-        <AppHeader />
-        {children}
-        <CelebrationDevToggle isAdmin={isAdmin} />
-      </ReducedMotionConfig>
+      <NightPreviewProvider>
+        <ReducedMotionConfig>
+          {/* Sits behind everything at -z-10 — the whole book takes place
+              inside this painting. */}
+          <StorybookSky />
+          <AppHeader />
+          {children}
+          <CelebrationDevToggle isAdmin={isAdmin} />
+        </ReducedMotionConfig>
+      </NightPreviewProvider>
     </CelebrationProvider>
   );
 }

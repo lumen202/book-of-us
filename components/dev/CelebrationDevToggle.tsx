@@ -1,77 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { OVERRIDE_KEY } from "@/lib/celebration/useCelebrating";
-import { forgetOpeningSeen } from "@/lib/opening-sequence/useOpeningSeen";
-
-function readStoredOverride(): boolean | null {
-  const stored = window.localStorage.getItem(OVERRIDE_KEY);
-  if (stored === "true") return true;
-  if (stored === "false") return false;
-  return null;
-}
+import { useCelebrationOverride } from "./useCelebrationOverride";
 
 /**
- * Preview control for Celebration Mode, so the 5th can be rehearsed on any day.
+ * Floating dev-only fallback for the Celebration Mode preview, for a
+ * non-admin account testing locally in development.
  *
- * ## Why this is visible in production, to one person
- *
- * It used to be `NODE_ENV === "development"` only, which meant the one thing it
- * exists for — checking the ceremony on a real phone, on the real deployment —
- * was the one thing it could not do. It is now shown to the admin
- * (`isCurrentUserAdmin`, decided server-side in the layout) and to nobody else.
- *
- * That is a *decoration* boundary, not a security one, and it does not need to
- * be more than that: everything this widget can do — replay an intro, pretend
- * it is the 5th — is cosmetic and self-inflicted. There is no destructive action
- * behind it, so unlike the archive's admin routes there is nothing here that
- * needs `requireAdmin()` on the other end.
- *
- * ## Why "Play the ceremony" navigates instead of just setting a flag
- *
- * `?celebrate=1` has to reach the **server**, because the ceremony's look-back
- * beat is fed by photos the page fetches during render (see the note in
- * `app/(app)/page.tsx`). Flipping localStorage alone turns the ceremony on
- * client-side while the server, still believing it is an ordinary day, sends no
- * photographs — and the look back silently skips itself. A full navigation with
- * the query param is what keeps the preview honest.
+ * The admin's copy of these controls lives inside the Keeper menu in
+ * `AppHeader`/`AdminMenu` (`CelebrationControls`) — always available in
+ * production, not just in development, per the original reason for showing
+ * this to one person: rehearsing the ceremony on a real phone, on the real
+ * deployment. This widget needs its own pill/card look (unlike the flat menu
+ * version) because it floats directly over the ambient scene with nothing
+ * else around it for legibility.
  */
 export function CelebrationDevToggle({ isAdmin = false }: { isAdmin?: boolean }) {
-  const [override, setOverride] = useState<boolean | null>(null);
+  const { override, apply, playCeremony } = useCelebrationOverride();
 
-  useEffect(() => {
-    // Unlike useCelebrating()'s boolean, this state feeds visible className —
-    // starting at null (matching what SSR renders, since there's no
-    // localStorage on the server) and syncing the real value only after
-    // mount avoids a hydration mismatch. The one-time extra render this
-    // causes is the point, not a bug the lint rule should flag here.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setOverride(readStoredOverride());
-  }, []);
-
-  if (process.env.NODE_ENV !== "development" && !isAdmin) return null;
-
-  function apply(value: boolean | null) {
-    // The whole point of flipping this is to watch the opening again, and the
-    // reload below keeps sessionStorage — so clear the "already played this
-    // visit" flag or the preview shows the page with no ceremony.
-    forgetOpeningSeen();
-    if (value === null) {
-      window.localStorage.removeItem(OVERRIDE_KEY);
-    } else {
-      window.localStorage.setItem(OVERRIDE_KEY, String(value));
-    }
-    window.location.reload();
-  }
-
-  function playCeremony() {
-    forgetOpeningSeen();
-    window.localStorage.setItem(OVERRIDE_KEY, "true");
-    // Hard navigation, not `router.push`: the server has to re-render `/` with
-    // `celebrate=1` in its search params for the look-back photographs to be
-    // fetched at all.
-    window.location.href = "/?celebrate=1";
-  }
+  if (process.env.NODE_ENV !== "development" || isAdmin) return null;
 
   const optionClass = (active: boolean) =>
     active ? "font-semibold text-accent" : "text-ink-muted hover:text-ink";
