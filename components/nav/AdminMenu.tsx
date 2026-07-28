@@ -43,7 +43,7 @@ export function AdminMenu() {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-haspopup="true"
-        className="ink-legible text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        className="ink-legible cursor-pointer text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
       >
         Keeper
       </button>

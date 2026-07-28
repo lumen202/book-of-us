@@ -24,7 +24,7 @@ export function CelebrationControls() {
       <button
         type="button"
         onClick={playCeremony}
-        className="rounded-lg px-3 py-2 text-left text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:bg-accent-muted/40 hover:text-ink"
+        className="cursor-pointer rounded-lg px-3 py-2 text-left text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:bg-accent-muted/40 hover:text-ink"
       >
         Play the ceremony
       </button>
@@ -38,7 +38,7 @@ export function CelebrationControls() {
               type="button"
               onClick={() => apply(value)}
               aria-pressed={active}
-              className={`flex-1 rounded-lg py-1.5 text-[10px] uppercase tracking-[0.15em] transition ${
+              className={`flex-1 cursor-pointer rounded-lg py-1.5 text-[10px] uppercase tracking-[0.15em] transition ${
                 active ? "bg-accent text-surface" : "text-ink-muted hover:bg-accent-muted/40 hover:text-ink"
               }`}
             >
