@@ -46,12 +46,16 @@ export async function getPartnerEmail(): Promise<string | null> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // Never silently fall through to "any user" — with no confirmed session,
+  // `entry.id !== undefined` would be true for every account, including our
+  // own, and this is a lookup that a real password change hangs off.
+  if (!user) return null;
 
   const admin = createAdminClient();
   const { data, error } = await admin.auth.admin.listUsers();
   if (error) return null;
 
-  return data.users.find((entry) => entry.id !== user?.id)?.email ?? null;
+  return data.users.find((entry) => entry.id !== user.id)?.email ?? null;
 }
 
 export async function changePartnerPassword(
@@ -69,12 +73,16 @@ export async function changePartnerPassword(
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // Same guard as getPartnerEmail: with no confirmed session, `entry.id !==
+  // undefined` matches every account, including our own — that must never
+  // silently become the "partner" this action overwrites the password of.
+  if (!user) return { status: "error", message: "You need to be signed in." };
 
   const admin = createAdminClient();
   const { data, error: listError } = await admin.auth.admin.listUsers();
   if (listError) return { status: "error", message: "Couldn't find the other account — try again." };
 
-  const partner = data.users.find((entry) => entry.id !== user?.id);
+  const partner = data.users.find((entry) => entry.id !== user.id);
   if (!partner) return { status: "error", message: "Couldn't find the other account." };
 
   const { error } = await admin.auth.admin.updateUserById(partner.id, { password: newPassword });
