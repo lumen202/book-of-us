@@ -759,6 +759,23 @@ body {
     mix-blend-mode: normal !important;
     opacity: 0.55 !important;
   }
+
+  /*
+   * The reasoning above ("screen and normal land within a few percent of each
+   * other") only holds against the *daytime* backdrop it was written for — a
+   * light, warm sky. At night the backdrop is deep indigo, so a `normal`-blend
+   * warm wash at 0.55 opacity paints directly over the stars and moon instead
+   * of only lightening past them, washing the whole night sky out. Worth the
+   * extra compositing cost `screen` brings back here: this only runs on the
+   * real celebration day, or when the Settings night-view toggle is
+   * deliberately on — never during ordinary scrolling, which is the case this
+   * file's touch-device rules above are otherwise built to protect.
+   */
+  :root[data-celebration="true"] .paper-bloom,
+  :root[data-night-preview="true"] .paper-bloom {
+    mix-blend-mode: screen !important;
+    opacity: 0.7 !important;
+  }
 }
 
 /*

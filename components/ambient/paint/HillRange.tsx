@@ -47,8 +47,18 @@ const FRAME = {
   // Extended below the viewport so parallax can lift the layer without
   // exposing the page underneath.
   bottom: -52,
-  height: "calc(48vh + 52px)",
-  minHeight: 360,
+  /*
+   * Taller below `sm`: a phone's viewport is a lot more vertical than a
+   * desktop window, and `vh` sizing alone gave every device the same 48%,
+   * which on a tall narrow screen reads as a wide plain band of sky sitting
+   * above a comparatively squeezed strip of hills — the scene has no side
+   * gutter of extra hillside to balance it the way desktop does. Taking more
+   * of the phone's own height for the hills (independent of the horizontal
+   * crop question, which is still open) moves the horizon up and gives the
+   * detailed part of the painting more of the screen it actually has.
+   */
+  heightClass: "h-[calc(60vh_+_52px)] sm:h-[calc(48vh_+_52px)]",
+  minHeightClass: "min-h-[420px] sm:min-h-[360px]",
 } as const;
 
 const HUES = [species.pink.petal, species.daisy.petal, species.buttercup.petal, species.lavender.petal];
@@ -112,14 +122,12 @@ export function FarRange() {
 
   return (
     <svg
-      className="absolute left-0 w-full"
+      className={`absolute left-0 w-full ${FRAME.heightClass} ${FRAME.minHeightClass}`}
       viewBox={`0 0 ${HILL_VIEW.width} ${HILL_VIEW.height}`}
       preserveAspectRatio="none"
       fill="none"
       style={{
         bottom: FRAME.bottom,
-        height: FRAME.height,
-        minHeight: FRAME.minHeight,
         transform: "translate3d(0, 0, 0)",
       }}
       data-parallax={TRAVEL.rangeFar}
@@ -176,14 +184,12 @@ export function NearHills() {
 
   return (
     <svg
-      className="absolute left-0 w-full"
+      className={`absolute left-0 w-full ${FRAME.heightClass} ${FRAME.minHeightClass}`}
       viewBox={`0 0 ${HILL_VIEW.width} ${HILL_VIEW.height}`}
       preserveAspectRatio="none"
       fill="none"
       style={{
         bottom: FRAME.bottom,
-        height: FRAME.height,
-        minHeight: FRAME.minHeight,
         transform: "translate3d(0, 0, 0)",
       }}
       data-parallax={TRAVEL.hillsNear}
