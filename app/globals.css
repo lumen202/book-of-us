@@ -90,13 +90,18 @@
 }
 
 /*
- * `StorybookSky` covers the viewport with `position: fixed; inset: 0`, which
- * assumes the visible area never scrolls past the document's own bounds. On
- * Android Chrome, rubber-band overscroll at the top/bottom does exactly
- * that — for an instant you're looking past the fixed backdrop's edge at the
- * plain `body` background underneath. `overscroll-behavior` stops the bounce
- * at the document boundary instead of past it, which is what was showing as
- * a brief flash of flat colour while scrolling on a phone.
+ * `StorybookSky` is `position: fixed`, so anything that lets the visible area
+ * extend past the backdrop's edge shows flat `--color-background` underneath
+ * it. Two separate things could do that, and only one of them is this rule:
+ *
+ * 1. **Rubber-band overscroll** — dragging past the document's own bounds.
+ *    That is what `overscroll-behavior-y: none` stops, here and on `body`.
+ * 2. **The Android Chrome toolbar retracting mid-gesture** — which is a
+ *    different bug with a different fix, and the one that was actually being
+ *    reported. It is handled by sizing the scene to `100lvh` rather than
+ *    `inset: 0`; see the long note in `StorybookSky.tsx` and BUG-003.
+ *
+ * Keep both. Fixing (2) does not make (1) impossible, and this rule is free.
  */
 html {
   overscroll-behavior-y: none;

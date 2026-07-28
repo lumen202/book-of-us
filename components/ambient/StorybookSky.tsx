@@ -86,11 +86,37 @@ export function StorybookSky() {
     <div
       ref={scene}
       aria-hidden
-      className="ambient-scene pointer-events-none fixed inset-0 -z-10 overflow-hidden"
+      className="ambient-scene pointer-events-none fixed left-0 top-0 w-full -z-10 overflow-hidden"
       style={{
         // Every blend mode in the scene has to resolve against the painting,
         // not against the page behind it.
         isolation: "isolate",
+        /*
+         * `100lvh`, not `inset: 0`. See BUG-003.
+         *
+         * On Android Chrome the URL toolbar retracts as you scroll down, and
+         * the visible area grows by its height — but Chrome does not commit the
+         * layout-viewport resize until the touch gesture *ends*. So for the
+         * whole time a finger is down, a `position: fixed; inset: 0` element is
+         * still sized to the pre-retraction viewport and a toolbar-high strip
+         * at the bottom of the screen is simply not covered by the painting.
+         * The reader sees flat `--color-background` cream under the meadow, and
+         * it stays there until they let go, which is exactly how it was
+         * reported.
+         *
+         * `lvh` is the *large* viewport — the height with browser chrome
+         * retracted, which is the largest the visible area ever gets. Sizing to
+         * it means the strip the toolbar is about to vacate is already painted
+         * before it is exposed. `svh`/`dvh` would both reintroduce the bug,
+         * `dvh` by tracking the same deferred resize this is working around.
+         *
+         * Anchored to `top`, deliberately: the uncovered strip is at the
+         * bottom, so the extra height has to hang off the bottom edge to cover
+         * it. That does push the meadow down by the toolbar's height while the
+         * toolbar is showing — which is fine, because it is identical to where
+         * the meadow settles once the toolbar is gone.
+         */
+        height: "100lvh",
       }}
     >
       <PaintFilters />
