@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { addComment, removeMemoryComment } from "@/app/(app)/chapters/[slug]/actions";
+import { addComment, editMemoryComment, removeMemoryComment } from "@/app/(app)/chapters/[slug]/actions";
 import type { Comment } from "@/lib/comments/types";
 
 function formatNoteDate(iso: string): string {
@@ -36,6 +36,8 @@ export function MemoryComments({
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editDraft, setEditDraft] = useState("");
   const [pending, startTransition] = useTransition();
 
   function submit() {
@@ -55,12 +57,62 @@ export function MemoryComments({
     });
   }
 
+  function startEdit(comment: Comment) {
+    setEditingId(comment.id);
+    setEditDraft(comment.body);
+  }
+
+  function saveEdit(commentId: string) {
+    const body = editDraft.trim();
+    if (!body) return;
+    startTransition(async () => {
+      await editMemoryComment(commentId, body, chapterSlug);
+      setEditingId(null);
+      router.refresh();
+    });
+  }
+
   return (
     <div className="mt-8 border-t border-border pt-6">
       {comments.length > 0 && (
         <ul className="flex flex-col gap-4">
           {comments.map((comment) => {
             const mine = comment.userId === currentUserId;
+            const editing = editingId === comment.id;
+
+            if (editing) {
+              return (
+                <li key={comment.id}>
+                  <textarea
+                    autoFocus
+                    value={editDraft}
+                    onChange={(event) => setEditDraft(event.target.value)}
+                    disabled={pending}
+                    rows={2}
+                    className="block w-full resize-none border-b border-accent bg-transparent py-1.5 font-serif text-lg text-ink focus:outline-none"
+                  />
+                  <div className="mt-2 flex items-center gap-4">
+                    <button
+                      type="button"
+                      onClick={() => saveEdit(comment.id)}
+                      disabled={pending || editDraft.trim().length === 0}
+                      className="text-[11px] uppercase tracking-[0.22em] text-accent disabled:opacity-60"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(null)}
+                      disabled={pending}
+                      className="text-[11px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </li>
+              );
+            }
+
             return (
               <li key={comment.id} className="group flex items-start justify-between gap-3">
                 <p className="font-serif text-lg italic leading-snug text-ink">
@@ -70,14 +122,24 @@ export function MemoryComments({
                   </span>
                 </p>
                 {mine && (
-                  <button
-                    type="button"
-                    onClick={() => remove(comment.id)}
-                    aria-label="Remove this note"
-                    className="shrink-0 text-xs text-ink-muted opacity-0 transition hover:text-accent focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent group-hover:opacity-100"
-                  >
-                    Remove
-                  </button>
+                  <span className="flex shrink-0 items-center gap-3 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(comment)}
+                      aria-label="Edit this note"
+                      className="text-xs text-ink-muted transition hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => remove(comment.id)}
+                      aria-label="Remove this note"
+                      className="text-xs text-ink-muted transition hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+                    >
+                      Remove
+                    </button>
+                  </span>
                 )}
               </li>
             );
