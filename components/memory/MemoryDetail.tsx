@@ -1,8 +1,10 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { loadMemoryFullUrl } from "@/app/(app)/chapters/[slug]/actions";
+import { PhotoLightbox } from "./PhotoLightbox";
 import type { Comment } from "@/lib/comments/types";
 import { formatFullDate } from "@/lib/format/date";
 import type { MemoryWithMedia } from "@/lib/memories/queries";
@@ -12,6 +14,7 @@ import { MemoryReactions } from "./MemoryReactions";
 
 export function MemoryDetail({
   memory,
+  chapterId,
   chapterSlug,
   reactions,
   comments,
@@ -19,6 +22,7 @@ export function MemoryDetail({
   onClose,
 }: {
   memory: MemoryWithMedia;
+  chapterId: string;
   chapterSlug: string;
   reactions: Reaction[];
   comments: Comment[];
@@ -27,14 +31,51 @@ export function MemoryDetail({
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
+  /**
+   * The chapter page only signs thumbnails, so the full-size URL is fetched
+   * when a print is actually lifted (see `resolveMemoryMedia`). Until it
+   * arrives the thumbnail already in hand is shown in its place — it is the
+   * same photograph, just softer, and it is on screen in the first frame. A
+   * spinner or an empty mat here would be strictly worse: the reader opened
+   * this print to look at it, and they can, immediately.
+   *
+   * `memory.mediaUrl` is still honoured if it happens to be set, so callers
+   * that do resolve full URLs up front (the archive) need no special case.
+   */
+  const [fullUrl, setFullUrl] = useState<string | null>(memory.mediaUrl);
+  const showing = fullUrl ?? memory.thumbnailUrl;
+
+  useEffect(() => {
+    if (fullUrl) return;
+    let live = true;
+    loadMemoryFullUrl(chapterId, memory.id)
+      .then((url) => {
+        if (live && url) setFullUrl(url);
+      })
+      // A failure here leaves the thumbnail up, which is a legible photo and
+      // not an error state worth interrupting anyone for.
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [chapterId, memory.id, fullUrl]);
+
+  /** Tapping the print opens it full-screen — see `PhotoLightbox`. */
+  const [zoomed, setZoomed] = useState(false);
+
   useEffect(() => {
     closeButtonRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key !== "Escape") return;
+      // One Escape, one layer. Without this the key would close the lightbox
+      // and the memory underneath it in the same press, and the reader would
+      // land back on the album page having only meant to stop zooming.
+      if (zoomed) setZoomed(false);
+      else onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
+  }, [onClose, zoomed]);
 
   return (
     <motion.div
@@ -61,37 +102,69 @@ export function MemoryDetail({
         exit={{ opacity: 0, y: 8, scale: 0.99 }}
         transition={{ duration: 0.34, ease: "easeOut" }}
       >
-        <button
-          ref={closeButtonRef}
-          type="button"
-          onClick={onClose}
-          className="mb-6 text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-        >
-          Fold this memory
-        </button>
-        {memory.mediaUrl && memory.type === "photo" && (
+        {/* The way out sits at the top right, where a thing you close lives. */}
+        <div className="mb-6 flex justify-end">
+          <button
+            ref={closeButtonRef}
+            type="button"
+            onClick={onClose}
+            className="text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            Fold this memory
+          </button>
+        </div>
+        {showing && memory.type === "photo" && (
           /* Lifted off the album page: the print keeps its white mat, and the
              photo is contained rather than cropped — this is the one place
-             she should see the whole frame as it was taken. */
+             she should see the whole frame as it was taken.
+
+             Tapping it again opens it full-screen. That is the gesture people
+             already have for "let me actually look at this", and the print is
+             the obvious thing to aim it at, so it carries no instructions. */
           <div className="mb-6 rounded-2xl bg-[#fffdf7] p-3 shadow-[0_14px_30px_-20px_rgba(76,59,48,0.45)]">
-            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl bg-ink/5">
+            <button
+              type="button"
+              onClick={() => setZoomed(true)}
+              aria-label="See this photograph full screen"
+              className="group relative block aspect-[4/3] w-full cursor-zoom-in overflow-hidden rounded-xl bg-ink/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
               <Image
-                src={memory.mediaUrl}
+                // Keyed on the URL so React swaps the element rather than
+                // mutating `src` in place — the browser then paints the full
+                // image only once it has decoded, instead of blanking the mat
+                // while it loads.
+                key={showing}
+                src={showing}
                 alt=""
                 fill
+                // A print you can pick up and drop somewhere is not a thing
+                // anyone asked for; the gesture belongs to opening it.
+                draggable={false}
                 unoptimized
                 sizes="(min-width: 640px) 640px, 92vw"
-                className="object-contain"
+                className="object-contain transition duration-500 group-hover:scale-[1.01] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
               />
-            </div>
+            </button>
           </div>
         )}
         <h2 id="memory-detail-title" className="font-serif text-4xl leading-tight text-ink">
           {memory.title}
         </h2>
-        <time dateTime={memory.occurred_at} className="mt-1 block text-sm text-ink-muted">
-          {formatFullDate(memory.occurred_at)}
-        </time>
+        <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-ink-muted">
+          <time dateTime={memory.occurred_at}>{formatFullDate(memory.occurred_at)}</time>
+          {/*
+           * Who put this here. `created_by` is a bare `auth.users` id and there
+           * is no column anywhere mapping one to "Joshua" or "Liezel" —
+           * `relationship` stores the two names but nothing tying either to an
+           * account — so this says only what it can actually know, exactly as
+           * `MemoryComments` does for notes. Inventing a name would be worse
+           * than not printing one. If real names are wanted, the missing piece
+           * is a migration adding partner user ids to `relationship`.
+           */}
+          {memory.created_by && (
+            <span>· Kept by {memory.created_by === currentUserId ? "you" : "your partner"}</span>
+          )}
+        </div>
         {memory.body && <p className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-ink">{memory.body}</p>}
         <MemoryReactions
           memoryId={memory.id}
@@ -107,6 +180,14 @@ export function MemoryDetail({
           currentUserId={currentUserId}
         />
       </motion.div>
+
+      {/* Rendered inside the detail, so this modal stays mounted underneath and
+          closing the lightbox returns to it exactly as it was left. */}
+      <AnimatePresence>
+        {zoomed && showing && (
+          <PhotoLightbox src={showing} alt={memory.title} onClose={() => setZoomed(false)} />
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

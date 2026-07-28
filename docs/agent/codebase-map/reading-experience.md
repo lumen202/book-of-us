@@ -99,6 +99,64 @@ handled, and they compose:
 correctly-sized image, and signed URLs rotate every 5 minutes, so routing them through the
 Vercel optimizer would miss its cache on every mint for no gain.
 
+### How many URLs get signed, which is the thing that scales
+
+Every signed URL is a Storage round trip, so `resolveMemoryMedia` costs `renditions × memories` —
+the one cost on a chapter page that grows with how full a month is.
+
+**The chapter page passes `{ full: false }` and signs thumbnails only.** The full-size URL for a
+print is signed on demand by `getMemoryFullUrl` (via the `loadMemoryFullUrl` action) when that
+print is lifted. Signing both up front doubled the page's Storage traffic for a URL most prints
+never use, and which expires in five minutes anyway — so one minted at page load for a print
+opened twenty minutes later was already dead. `MemoryDetail` shows the thumbnail it already has
+while the full one is fetched, so the photo is on screen in the first frame either way.
+
+`getMemoryFullUrl` goes back through `getChapterMemories`, not a direct row read — asking for a
+locked time-capsule's media by id would otherwise be a side door around the "no raw memory reads"
+invariant.
+
+The archive still resolves both (default `full: true`): it lists soft-deleted rows, which may
+have no thumbnail at all.
+
+### What a print responds to
+
+| Gesture | Where | What happens |
+|---|---|---|
+| Tap | grid print | Lifts it into `MemoryDetail` |
+| Press and hold (450ms) | grid print | Opens the reaction picker — same one the corner ♡ opens |
+| Tap the photo | inside `MemoryDetail` | Opens `PhotoLightbox`, the photo full-screen |
+| Escape | either | Closes one layer only: lightbox first, then the memory |
+
+The hold is in `MemoryCard`: a timer, a 10px movement cancel (or every scroll starting on a photo
+opens a picker), and a `heldRef` flag that swallows the `click` the same press ends with — without
+that, reacting also lifts the print open behind the picker. `MemoryReactions`' `corner` variant
+takes optional `open`/`onOpenChange` so both entry points drive one picker, and it dismisses on
+outside `pointerdown` or Escape.
+
+Every `next/image` in the album is `draggable={false}`. Native image drag fires on exactly the
+press-and-hold the picker wants, and the print visibly peels off the page as a drag ghost.
+`select-none` + `-webkit-touch-callout: none` on the print button suppress the OS "save image"
+sheet and text selection for the same reason.
+
+`PhotoLightbox` is the one dark surface in the book — deliberately, so a photograph shown at full
+size has no warm colour cast over it. It renders *inside* `MemoryDetail` (so the memory stays
+mounted underneath) and therefore stops click propagation, or one tap would close both.
+
+### Who kept a memory
+
+`memories.created_by` is a bare `auth.users` id, and **nothing in the schema maps one to a name** —
+`relationship` holds `partner_a_name`/`partner_b_name` but no user ids. So both the grid print and
+the lifted detail say "kept by you" / "kept by your partner", the same thing `MemoryComments` does
+for notes, because it is the most that can be truthfully asserted. Real names need a migration
+adding partner user ids to `relationship`; until then, do not guess.
+
+### Opening a chapter
+
+`app/(app)/chapters/[slug]/loading.tsx` renders the instant the link is tapped. It is an album
+sheet with blank mounted prints in the real page's exact layout, not a spinner — the page is
+already turned to, the photos just haven't developed. Read the file's own note before changing
+it; the anti-spinner reasoning is an experience-direction call, not a style preference.
+
 ## Adding a photo
 
 `components/memory/MemoryComposer.tsx`, rendered at the bottom of the album as an empty

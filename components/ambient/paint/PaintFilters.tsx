@@ -108,6 +108,12 @@ export function PaintFilters() {
          * reads as "wrong" at meadow scale on a phone screen. See the
          * `(pointer: coarse)` performance note in globals.css for why phones
          * get this and desktop doesn't.
+         *
+         * The surviving warp also drops to `numOctaves={2}`. Turbulence cost
+         * is close to linear in octave count, and octaves three and four of a
+         * `baseFrequency` this low contribute detail finer than the
+         * displacement scale can express — they were being generated and then
+         * rounded away. The ridge silhouette is unchanged.
          */}
         {RIDGES.map((ridge, index) => (
           <filter
@@ -122,7 +128,7 @@ export function PaintFilters() {
             <feTurbulence
               type="fractalNoise"
               baseFrequency={`${0.006 + index * 0.0015} ${0.017 + index * 0.004}`}
-              numOctaves={3}
+              numOctaves={2}
               seed={11 + index * 7}
               result="warp"
             />
@@ -163,7 +169,7 @@ export function PaintFilters() {
 
         {/* Touch-device counterpart of brush-cloud — see the ridge-lite note above. */}
         <filter id="brush-cloud-lite" x="-18%" y="-30%" width="136%" height="170%" colorInterpolationFilters="sRGB">
-          <feTurbulence type="fractalNoise" baseFrequency="0.008 0.014" numOctaves={4} seed={3} result="warp" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.008 0.014" numOctaves={2} seed={3} result="warp" />
           <feDisplacementMap in="SourceGraphic" in2="warp" scale="26" xChannelSelector="R" yChannelSelector="G" result="edge" />
           <feGaussianBlur in="edge" stdDeviation="2.4" />
         </filter>
@@ -196,7 +202,7 @@ export function PaintFilters() {
 
         {/* Touch-device counterpart of brush-leaf — see the ridge-lite note above. */}
         <filter id="brush-leaf-lite" x="-16%" y="-16%" width="132%" height="132%" colorInterpolationFilters="sRGB">
-          <feTurbulence type="fractalNoise" baseFrequency="0.026 0.034" numOctaves={4} seed={41} result="warp" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.026 0.034" numOctaves={2} seed={41} result="warp" />
           <feDisplacementMap in="SourceGraphic" in2="warp" scale="17" xChannelSelector="R" yChannelSelector="G" result="edge" />
           <feGaussianBlur in="edge" stdDeviation="0.55" />
         </filter>
@@ -218,7 +224,7 @@ export function PaintFilters() {
 
         {/* Touch-device counterpart of brush-meadow — see the ridge-lite note above. */}
         <filter id="brush-meadow-lite" x="-10%" y="-16%" width="120%" height="134%" colorInterpolationFilters="sRGB">
-          <feTurbulence type="fractalNoise" baseFrequency="0.02 0.05" numOctaves={3} seed={61} result="warp" />
+          <feTurbulence type="fractalNoise" baseFrequency="0.02 0.05" numOctaves={2} seed={61} result="warp" />
           <feDisplacementMap in="SourceGraphic" in2="warp" scale="4.5" xChannelSelector="R" yChannelSelector="G" />
         </filter>
 

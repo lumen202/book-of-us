@@ -28,7 +28,7 @@ import { pigment, veil } from "@/lib/ambient/palette";
  */
 export function SkyLayer() {
   return (
-    <div className="absolute inset-0" style={{ transform: parallax(TRAVEL.sky) }}>
+    <div className="absolute inset-0" {...parallax(TRAVEL.sky)}>
       {/* daylight */}
       <div
         className="absolute inset-0"
@@ -92,13 +92,16 @@ export function SkyLayer() {
  * glow, not an object. The bloom is what gives everything near it that
  * overexposed warmth, and it is why the clouds on that side read as lit rather
  * than as white.
+ *
+ * `screen` sits on each falloff rather than on the parallax wrapper. On the
+ * wrapper it made the blended region the whole viewport even though the hot
+ * core only covers the top-right corner — and a `mix-blend-mode` region has to
+ * be re-resolved against its backdrop whenever anything behind it moves. Same
+ * result, a fraction of the fill.
  */
 export function SunGlow() {
   return (
-    <div
-      className="absolute inset-0"
-      style={{ transform: parallax(TRAVEL.sky), mixBlendMode: "screen" }}
-    >
+    <div className="absolute inset-0" {...parallax(TRAVEL.sky)}>
       <div
         className="ambient-sun absolute right-[-6vw] top-[-24vh] h-[72vh] w-[72vh]"
         style={{
@@ -108,6 +111,7 @@ export function SunGlow() {
             ${veil(pigment.light, 22)} 54%,
             transparent 72%)`,
           opacity: 0.72,
+          mixBlendMode: "screen",
           animation: "sun-breathe 47s ease-in-out infinite",
         }}
       />
@@ -119,6 +123,7 @@ export function SunGlow() {
             ${veil(pigment.sunGlow, 14)} 40%,
             transparent 70%)`,
           opacity: 0.66,
+          mixBlendMode: "screen",
           animation: "sun-breathe 83s ease-in-out infinite reverse",
         }}
       />

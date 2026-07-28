@@ -108,9 +108,21 @@ Only `transform` and `opacity` are ever animated. Filters are static and rasteri
 animating a filter primitive would re-run the whole paint every frame and is the single change
 most likely to make this expensive.
 
-Scroll parallax is one custom property (`--scroll`, 0→1, clamped) published by `useParallax`;
-each layer declares its own travel in `depth.ts`. Travel is tens of pixels, and the *ratios*
-between layers are the effect. Parallax you can see is parallax that has become the subject.
+Scroll parallax: nine layers carry `data-parallax="<px>"` (spread on via `parallax(TRAVEL.x)`
+from `depth.ts`), and `useParallax` writes each one's `transform` directly, once per rAF, only
+when the value changed. Travel is tens of pixels, and the *ratios* between layers are the effect.
+Parallax you can see is parallax that has become the subject.
+
+**Touch devices get no parallax at all.** It is the only thing that makes the fixed backdrop
+change while the reader scrolls, and it is therefore the only reason the viewport-sized paper
+blend has to re-resolve during a scroll — the moment a phone has least to spare. Everything else
+keeps moving there. See the note in `useParallax`.
+
+**Do not put this back on a custom property.** It used to be one `--scroll` on the scene root
+with each layer doing `calc(var(--scroll) * -48px)`. One write per frame instead of nine, and far
+worse: custom properties inherit, so every change invalidated style for the whole scene subtree
+(~1000 SVG nodes), and a `calc()` over a custom property can't be composited either. See the long
+note in `depth.ts`.
 
 `useAmbientLife` runs an independent random-interval timer per creature kind, so the aggregate
 never resolves into a rhythm. Butterflies, bees and fireflies use `life-wander` (five eased
@@ -119,9 +131,27 @@ moth-shaped bullet.
 
 ## Performance budget
 
-The meadow is one SVG whose children animate, so it repaints as a whole each frame; its node
-count is the real budget. Currently ~590 nodes / ~106 animated groups. If you add to it, take
-something out — and spend detail by distance (far flowers are two nodes, near ones are seven).
+Two separate budgets, and the second one is the one that bites on phones.
+
+**Node count.** The meadow is one SVG whose children animate, so it repaints as a whole each
+frame. Currently ~590 nodes / ~106 animated groups. If you add to it, take something out — and
+spend detail by distance (far flowers are two nodes, near ones are seven). Touch devices freeze
+and partly hide the far row (`meadow-far` / `meadow-thin`).
+
+**Blend-mode area.** `mix-blend-mode` cannot be composited independently: the compositor resolves
+everything behind the layer into a texture, reads it back, blends, and redoes that over the
+layer's whole area whenever anything in its backdrop moves. The scene once stacked six
+viewport-sized blend layers, so one butterfly re-blended six full screens per frame — that was
+the Android lag, and freezing every animation only looked like a fix. Rules now:
+
+- **Put the blend on the mark, not on a full-viewport wrapper.** `LightRays` and `SunGlow` blend
+  per-ray and per-falloff for this reason.
+- **Nothing that loops forever may sit underneath a blend layer on touch.** `ambient-sky-warm`,
+  `ambient-sun*`, `ambient-ray`, `ambient-sparkle` are frozen under `(pointer: coarse)`.
+- Touch gets one paper pass instead of three, and the meadow sparkles unblended.
+
+All of it is in the `(pointer: coarse)` blocks at the bottom of `globals.css`, with the reasoning
+per rule.
 
 Narrow viewports show a horizontally *cropped slice* of the meadow rather than the squashed full
 width — see the comment in `Meadow.tsx`.
@@ -130,7 +160,8 @@ width — see the comment in `Meadow.tsx`.
 
 The single `[class*="ambient-"]` rule in `globals.css` kills every animation, which is why every
 animated element carries an `ambient-` class. Three things cover the rest: `useParallax` never
-attaches (so `--scroll` stays 0), `useAmbientLife` starts no timers, and `DistantFlock` renders
+attaches (so every layer keeps its resting `translate3d(0,0,0)`), `useAmbientLife` starts no
+timers, and `DistantFlock` renders
 two static flocks and two resting butterflies so the garden still looks inhabited when nothing
 moves.
 

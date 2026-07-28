@@ -6,6 +6,8 @@ not an edit to an old one.
 
 | Date | Title | File |
 |---|---|---|
+| 2026-07-28 | Parallax off on touch, chapter loading state, signed-URL cost | [`2026-07-28-scroll-parallax-off-on-touch-and-chapter-loading.md`](2026-07-28-scroll-parallax-off-on-touch-and-chapter-loading.md) |
+| 2026-07-28 | Backdrop perf: blend-mode area + parallax invalidation (keeps the motion) | [`2026-07-28-backdrop-compositing-and-parallax-cost.md`](2026-07-28-backdrop-compositing-and-parallax-cost.md) |
 | 2026-07-27 | Emoji reactions, notes, mobile perf chase, scroll-flash fix | [`2026-07-27-emoji-reactions-and-mobile-perf.md`](2026-07-27-emoji-reactions-and-mobile-perf.md) |
 | 2026-07-27 | Chapter gating corrected: monthsary count, not each chapter's own date | [`2026-07-27-chapter-gating-corrected-to-monthsary-count.md`](2026-07-27-chapter-gating-corrected-to-monthsary-count.md) |
 | 2026-07-27 | Chapters gated by their own reveal date (superseded) | [`2026-07-27-chapter-reveal-date-gating.md`](2026-07-27-chapter-reveal-date-gating.md) |

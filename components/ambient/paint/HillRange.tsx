@@ -1,4 +1,4 @@
-import { parallax, TRAVEL } from "@/lib/ambient/depth";
+import { TRAVEL } from "@/lib/ambient/depth";
 import { pathVerge } from "@/lib/ambient/flora";
 import { depthPigment, mix, pigment, species, veil } from "@/lib/ambient/palette";
 import type { Point } from "@/lib/ambient/path";
@@ -120,8 +120,9 @@ export function FarRange() {
         bottom: FRAME.bottom,
         height: FRAME.height,
         minHeight: FRAME.minHeight,
-        transform: parallax(TRAVEL.rangeFar),
+        transform: "translate3d(0, 0, 0)",
       }}
+      data-parallax={TRAVEL.rangeFar}
     >
       {sampled.map(({ spec, points }) => (
         <g key={spec.id}>
@@ -183,8 +184,9 @@ export function NearHills() {
         bottom: FRAME.bottom,
         height: FRAME.height,
         minHeight: FRAME.minHeight,
-        transform: parallax(TRAVEL.hillsNear),
+        transform: "translate3d(0, 0, 0)",
       }}
+      data-parallax={TRAVEL.hillsNear}
     >
       <g>
         <Ridge spec={sampled[0].spec} points={fold} />

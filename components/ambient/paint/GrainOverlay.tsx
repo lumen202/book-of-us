@@ -30,6 +30,16 @@ import { pigment, veil } from "@/lib/ambient/palette";
  * Both noise fields are `stitchTiles='stitch'` so they tile seamlessly, and
  * they are tiled at unrelated sizes (300px and 720px) so the repeat of one is
  * never visible against the repeat of the other.
+ *
+ * ## Why these carry classes
+ *
+ * Three stacked full-viewport `mix-blend-mode` layers are the most expensive
+ * thing in the scene on a phone — not to *paint* (they rasterise once) but to
+ * *composite*: a blended layer must re-resolve against its backdrop over its
+ * whole area every time anything behind it moves, and a butterfly crossing the
+ * meadow is enough to trigger all three. The `(pointer: coarse)` block in
+ * globals.css takes the stack down to one there, via the classes below. See
+ * that block for which passes go and why each is survivable.
  */
 
 const FINE_GRAIN =
@@ -42,7 +52,7 @@ export function GrainOverlay() {
   return (
     <>
       <div
-        className="absolute inset-0"
+        className="paper-mottle absolute inset-0"
         style={{
           backgroundImage: PAPER_MOTTLE,
           backgroundSize: "720px 720px",
@@ -51,7 +61,7 @@ export function GrainOverlay() {
         }}
       />
       <div
-        className="absolute inset-0"
+        className="paper-grain absolute inset-0"
         style={{
           backgroundImage: FINE_GRAIN,
           backgroundSize: "300px 300px",
@@ -60,7 +70,7 @@ export function GrainOverlay() {
         }}
       />
       <div
-        className="absolute inset-0"
+        className="paper-bloom absolute inset-0"
         style={{
           background: `radial-gradient(ellipse 96% 84% at 74% 22%, ${veil(
             pigment.sunGlow,
