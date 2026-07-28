@@ -22,10 +22,22 @@ export async function AppHeader() {
           of clumping every link side by side — see MobileNavMenu. */}
       <div className="hidden items-center gap-5 sm:flex">
         <Link
+          href="/"
+          className="ink-legible text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          Bookshelf
+        </Link>
+        <Link
           href="/bucket-list"
           className="ink-legible text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
         >
           Bucket list
+        </Link>
+        <Link
+          href="/vault"
+          className="ink-legible text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          Vault
         </Link>
         <Link
           href="/settings"
