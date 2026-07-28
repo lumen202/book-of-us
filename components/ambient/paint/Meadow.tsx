@@ -50,11 +50,12 @@ export function MeadowLayer() {
   return (
     <div
       className="absolute left-0 w-full overflow-hidden"
+      data-parallax={TRAVEL.meadow}
       style={{
         bottom: -56,
         height: "calc(27vh + 56px)",
         minHeight: 220,
-        transform: parallax(TRAVEL.meadow),
+        transform: "translate3d(0, 0, 0)",
       }}
     >
       {/*
@@ -96,7 +97,17 @@ export function MeadowLayer() {
           {field.tufts
             .filter((tuft) => tuft.row === row)
             .map((tuft, i) => (
-              <g key={i} transform={`translate(${tuft.x} ${tuft.y}) scale(${tuft.scale})`}>
+              <g
+                key={i}
+                // Far row, and every third one of it, are what the
+                // `(pointer: coarse)` meadow-thinning rule in globals.css takes
+                // out — the class goes on the outer group so hiding one removes
+                // its blades from the paint too, not just its animation.
+                className={
+                  row === 0 ? (i % 3 === 2 ? "meadow-far meadow-thin" : "meadow-far") : undefined
+                }
+                transform={`translate(${tuft.x} ${tuft.y}) scale(${tuft.scale})`}
+              >
                 <g
                   className="ambient-tuft"
                   style={{
@@ -142,7 +153,13 @@ export function MeadowLayer() {
       {field.flowers.map((flower, i) => {
         const tone = species[flower.species];
         return (
-          <g key={i} transform={`translate(${flower.x} ${flower.y}) scale(${flower.scale})`}>
+          <g
+            key={i}
+            // Far-row flowers are two nodes each and read as dots of colour;
+            // they keep their colour on touch devices but stop swaying.
+            className={flower.row === 0 ? "meadow-far" : undefined}
+            transform={`translate(${flower.x} ${flower.y}) scale(${flower.scale})`}
+          >
             <g
               className="ambient-tuft"
               style={{
@@ -174,7 +191,11 @@ export function MeadowLayer() {
        * ever pulsing together — the small, almost-imperceptible thing that
        * makes a still image feel like a place with air in it.
        */}
-      <g fill={pigment.sparkle} style={{ mixBlendMode: "screen" }}>
+      {/* `screen` here sits directly over the one part of the scene that never
+          stops moving, so it is re-resolved against the swaying grass every
+          frame whether or not the sparkles themselves are animating — the
+          `(pointer: coarse)` rule in globals.css unblends it. */}
+      <g className="meadow-sparkles" fill={pigment.sparkle} style={{ mixBlendMode: "screen" }}>
         {field.sparkles.map((sparkle, i) => (
           <circle
             key={i}
@@ -205,11 +226,16 @@ export function MeadowLayer() {
  */
 export function Pollen() {
   return (
-    <div className="absolute inset-0" style={{ transform: parallax(TRAVEL.motes) }}>
+    <div className="absolute inset-0" {...parallax(TRAVEL.motes)}>
       {motes().map((mote) => (
         <div
           key={mote.id}
-          className="ambient-mote absolute rounded-full"
+          // The blurred ones are the close, out-of-focus motes. Each is its own
+          // composited layer with a blur pass on it, which is cheap on a
+          // desktop GPU and not on a phone — `(pointer: coarse)` in globals.css
+          // drops them and keeps the sharp ones, so the light still has
+          // something floating in it.
+          className={`ambient-mote absolute rounded-full${mote.blur ? " mote-soft" : ""}`}
           style={{
             left: `${mote.left}%`,
             bottom: "-4vh",

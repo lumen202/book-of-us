@@ -21,17 +21,26 @@ export default async function ChapterPage({
   const chapter = await getChapterBySlug(slug);
   if (!chapter) notFound();
 
-  const memories = albumPrints(await resolveMemoryMedia(await getChapterMemories(chapter.id)));
-  const reactionsByMemory = groupReactionsByMemory(
-    await getReactionsForMemories(memories.map((memory) => memory.id)),
+  // `full: false` — the grid shows thumbnails, and the full-size URL for a
+  // print is signed when that print is lifted (see `getMemoryFullUrl`). Signing
+  // both here cost one extra Storage round trip per photo on every page open,
+  // for a URL most prints never use and which expires in five minutes anyway.
+  const memories = albumPrints(
+    await resolveMemoryMedia(await getChapterMemories(chapter.id), { full: false }),
   );
-  const commentsByMemory = groupCommentsByMemory(
-    await getCommentsForMemories(memories.map((memory) => memory.id)),
-  );
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const memoryIds = memories.map((memory) => memory.id);
+
+  // Reactions, notes and the viewer's identity have nothing to do with each
+  // other; awaiting them in sequence just stacked three round trips end to end
+  // in front of the first paint.
+  const [reactions, comments, auth] = await Promise.all([
+    getReactionsForMemories(memoryIds),
+    getCommentsForMemories(memoryIds),
+    createClient().then((supabase) => supabase.auth.getUser()),
+  ]);
+  const reactionsByMemory = groupReactionsByMemory(reactions);
+  const commentsByMemory = groupCommentsByMemory(comments);
+  const user = auth.data.user;
   const now = getAppNow();
   const nextChapterDate = getNextChapterDate(now);
 
@@ -62,6 +71,7 @@ export default async function ChapterPage({
 
         <MemoryGrid
           memories={memories}
+          chapterId={chapter.id}
           chapterSlug={chapter.slug}
           reactionsByMemory={reactionsByMemory}
           commentsByMemory={commentsByMemory}

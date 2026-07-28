@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { addComment as writeComment, removeComment as deleteComment } from "@/lib/comments/mutations";
 import { createMemory, softDeleteMemory, type NewMemoryInput } from "@/lib/memories/mutations";
+import { getMemoryFullUrl } from "@/lib/memories/queries";
 import { clearReaction, setReaction } from "@/lib/reactions/mutations";
 
 /**
@@ -22,6 +23,19 @@ export async function removeMemory(id: string, chapterSlug: string) {
   await softDeleteMemory(id);
   revalidatePath(`/chapters/${chapterSlug}`);
   revalidatePath("/");
+}
+
+/**
+ * The full-size signed URL for one print, asked for at the moment it is lifted.
+ *
+ * The chapter page signs thumbnails only — see the note on `resolveMemoryMedia`
+ * for why. This is a read, not a mutation, so there is nothing to revalidate;
+ * it is a Server Action purely because it has to run somewhere with the
+ * Storage client and the user's session, and a client component is the thing
+ * that knows when a print has been opened.
+ */
+export async function loadMemoryFullUrl(chapterId: string, memoryId: string) {
+  return getMemoryFullUrl(chapterId, memoryId);
 }
 
 /** Sets or changes the signed-in user's reaction on a memory. */

@@ -19,6 +19,14 @@ import { pigment, veil } from "@/lib/ambient/palette";
  * Softness comes from the gradients (transparent at both edges horizontally,
  * masked away at both ends vertically) rather than from a big `blur()`, which
  * on six full-height elements would be the most expensive thing in the scene.
+ *
+ * **The blend lives on each ray, not on a wrapper.** It used to sit on an
+ * `inset-0` container, which made the blended region the entire viewport: a
+ * `mix-blend-mode` element forces the compositor to resolve its backdrop over
+ * its own bounds, so anything moving anywhere behind the scene re-blended a
+ * full screen six-deep. Per-ray, the blended region is a 3–15vw strip. `screen`
+ * is associative and these opacities are low, so the only thing lost is the
+ * rays screening against *each other* where they overlap, which is not visible.
  */
 const RAYS = [
   { left: 76, width: 9, rotate: 17, opacity: 0.3, period: 13.7, delay: -2 },
@@ -31,7 +39,7 @@ const RAYS = [
 
 export function LightRays() {
   return (
-    <div className="absolute inset-0" style={{ mixBlendMode: "screen" }}>
+    <div className="absolute inset-0">
       {RAYS.map((ray) => (
         <div
           key={ray.left}
@@ -41,6 +49,7 @@ export function LightRays() {
             top: "-34vh",
             width: `${ray.width}vw`,
             height: "158vh",
+            mixBlendMode: "screen",
             transformOrigin: "top center",
             // Rotation lives on this wrapper so the animation below is free to
             // own `transform` on the child.

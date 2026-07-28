@@ -91,9 +91,6 @@ export function StorybookSky() {
         // Every blend mode in the scene has to resolve against the painting,
         // not against the page behind it.
         isolation: "isolate",
-        // Declared so the layers' `calc()` transforms are valid before the
-        // parallax hook runs — and so they stay valid when it never does.
-        ["--scroll" as string]: 0,
       }}
     >
       <PaintFilters />

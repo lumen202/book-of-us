@@ -19,12 +19,14 @@ import { MemoryDetail } from "./MemoryDetail";
  */
 export function MemoryGrid({
   memories,
+  chapterId,
   chapterSlug,
   reactionsByMemory,
   commentsByMemory,
   currentUserId,
 }: {
   memories: MemoryWithMedia[];
+  chapterId: string;
   chapterSlug: string;
   reactionsByMemory: Record<string, Reaction[]>;
   commentsByMemory: Record<string, Comment[]>;
@@ -108,6 +110,7 @@ export function MemoryGrid({
           <MemoryDetail
             key={selected.id}
             memory={selected}
+            chapterId={chapterId}
             chapterSlug={chapterSlug}
             reactions={reactionsByMemory[selected.id] ?? []}
             comments={commentsByMemory[selected.id] ?? []}

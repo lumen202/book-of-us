@@ -96,7 +96,7 @@ function Bough({ seed }: { seed: number }) {
 
 export function FramingBoughs() {
   return (
-    <div className="absolute inset-0" style={{ transform: parallax(TRAVEL.boughs) }}>
+    <div className="absolute inset-0" {...parallax(TRAVEL.boughs)}>
       {/* left — always present, larger on small screens where it is the only
           framing element */}
       <div

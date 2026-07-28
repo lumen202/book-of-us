@@ -33,7 +33,7 @@ export function BigTree() {
   const ropes = swing(tree.swingAnchor, { drop: 132, width: 44, seed: 1553 });
 
   return (
-    <div className="absolute inset-0" style={{ transform: parallax(TRAVEL.tree) }}>
+    <div className="absolute inset-0" {...parallax(TRAVEL.tree)}>
       <div
         className="absolute bottom-[16vh] left-[-6vw] w-[52vw] sm:bottom-[18vh] sm:left-[1vw] sm:w-[34vw] lg:w-[27vw]"
         style={{ aspectRatio: `${TREE_VIEW.width} / ${TREE_VIEW.height}` }}

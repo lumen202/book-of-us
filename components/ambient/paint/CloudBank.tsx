@@ -71,7 +71,7 @@ export function CloudBank() {
   return (
     <>
       {bands.map((travel, band) => (
-        <div key={band} className="absolute inset-0" style={{ transform: parallax(travel) }}>
+        <div key={band} className="absolute inset-0" {...parallax(travel)}>
           {CLOUDS.filter((cloud) => cloud.band === band).map((cloud) => (
             <div
               key={cloud.seed}
