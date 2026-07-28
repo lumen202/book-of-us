@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/app/(app)/actions";
 import { AdminMenuItems } from "@/components/nav/AdminMenuItems";
+import { useOpeningActive } from "@/lib/opening-sequence/useOpeningActive";
 
 /**
  * Everything in the header's right-hand nav, collapsed behind one hamburger
@@ -15,6 +16,10 @@ import { AdminMenuItems } from "@/components/nav/AdminMenuItems";
 export function MobileNavMenu({ isAdmin }: { isAdmin: boolean }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  // The ceremony's "Skip intro" button sits top-right, same corner as this
+  // hamburger — hide it for the ceremony's duration rather than let them
+  // overlap. See the hook for why this doesn't need lifted/shared state.
+  const openingActive = useOpeningActive();
 
   useEffect(() => {
     if (!open) return;
@@ -33,6 +38,8 @@ export function MobileNavMenu({ isAdmin }: { isAdmin: boolean }) {
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  if (openingActive) return null;
 
   return (
     <div ref={containerRef} className="relative sm:hidden">
