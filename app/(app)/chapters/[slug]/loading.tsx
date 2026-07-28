@@ -16,8 +16,12 @@
  *
  * Which is also why the layout below deliberately mirrors the real chapter
  * page's: same header block, same album sheet, same tilted prints in the same
- * three columns. Anything that shifts when the real content lands undoes the
- * illusion — the swap should look like developing, not like replacing.
+ * three columns — a real CSS grid, not `columns-*`. Anything that shifts when
+ * the real content lands undoes the illusion, so when `MemoryGrid` moved off
+ * CSS multi-column (it couldn't balance columns for a chapter with only one
+ * or two prints — see that file's comment), this had to move with it or the
+ * skeleton's three balanced columns would swap into the real page's lopsided
+ * one, which is a worse jump than showing no skeleton at all.
  *
  * Six placeholder prints, because that is a screenful; a chapter with fewer
  * simply resolves before anyone counts, and one with more grows into the sheet
@@ -51,9 +55,9 @@ export default function ChapterLoading() {
       </section>
 
       <div className="relative rounded-[2rem] bg-surface/75 px-5 py-8 shadow-[0_30px_60px_-45px_rgba(43,23,29,0.75)] sm:px-10 sm:py-12">
-        <div className="columns-1 gap-8 sm:columns-2 lg:columns-3 [&>*]:mb-9">
+        <div className="grid grid-cols-1 items-start gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {TILTS.map((tilt, index) => (
-            <div key={tilt} className="break-inside-avoid" style={{ rotate: `${tilt}deg` }}>
+            <div key={tilt} style={{ rotate: `${tilt}deg` }}>
               <div className="rounded-2xl bg-[#fffdf7] p-3 pb-4 shadow-[0_12px_24px_-14px_rgba(76,59,48,0.42)]">
                 <div
                   className="ambient-developing relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-ink/[0.07]"
