@@ -78,39 +78,75 @@ export type LifeEvent = {
  * enough to be a small event when it shows up. None of these ranges are
  * multiples of each other, which is what stops the kinds drifting into sync.
  *
- * **These were all roughly 1.5x longer, and the garden read as empty.** The
- * arithmetic that matters is `duration / mean interval` = how many of that kind
- * are on screen at once; summed across kinds it was ~6.6, which sounds
- * populated and did not look it, because most of those six are small, faint,
- * and deliberately near the edges. It now sums to ~10 against a cap of 14.
+ * These were all roughly 2.5x longer originally, and the garden read as
+ * empty. The arithmetic that matters is `duration / mean interval` = how many
+ * of that kind are on screen at once; summed across kinds it was ~6.6 to
+ * start, which sounds populated and did not look it, because most of those
+ * six are small, faint, and deliberately near the edges.
  *
- * The individual-rarity rule still holds: no single kind exceeds ~2 concurrent,
- * so a bird is still an event. What changed is how many *kinds* are present at
- * the same time, which is what "inhabited" actually reads as.
+ * The individual-rarity rule still holds for the creatures: a bird, a bee, a
+ * dragonfly are events, not flocks. **Petals, leaves and butterflies are the
+ * exception**, via `BURST` below — see that comment for why those three
+ * specifically are allowed to cluster.
  */
 const CADENCE: Record<LifeKind, [number, number]> = {
-  petal: [7, 17],
-  butterfly: [11, 25],
-  bee: [13, 31],
-  bird: [15, 29],
-  leaf: [23, 53],
-  dragonfly: [29, 61],
-  firefly: [37, 79],
-  ladybug: [59, 127],
+  petal: [4, 10],
+  butterfly: [6, 14],
+  bee: [9, 21],
+  bird: [10, 20],
+  leaf: [12, 28],
+  dragonfly: [20, 43],
+  firefly: [26, 55],
+  ladybug: [41, 89],
 };
+
+/**
+ * How many spawn together on one appearance, per kind. Absent = always 1.
+ *
+ * Everything else in this file treats one appearance as one creature, and
+ * that is correct for a bird or a dragonfly — the whole point of a bird is
+ * that it is *a* bird, singular, crossing the sky. It is the wrong model for
+ * weather. A single falling leaf or a single drifting petal reads as a prop;
+ * several at once, each on its own independent path (`spawn` is called once
+ * per member of the burst, so they get different heights, speeds and spins),
+ * reads as a breeze actually moving through the garden. Butterflies get the
+ * same treatment in miniature — a pair drifting past each other is a much
+ * livelier thing than the same two arriving eleven seconds apart ever was —
+ * capped at 2 so it stays a pair, not a hatch.
+ */
+const BURST: Partial<Record<LifeKind, [number, number]>> = {
+  petal: [1, 3],
+  leaf: [1, 2],
+  butterfly: [1, 2],
+};
+
+function burstCount(kind: LifeKind): number {
+  const range = BURST[kind];
+  if (!range) return 1;
+  const [min, max] = range;
+  return min + Math.floor(Math.random() * (max - min + 1));
+}
 
 /**
  * Anything more than this on screen at once stops being "occasional".
  *
- * Two caps, because the phone is where this gets expensive. Each creature is a
- * handful of nodes with an infinite wing animation, and on touch they are
- * running over a scene that has already given up its parallax and two of its
- * three paper passes to stay smooth (see the `(pointer: coarse)` block in
- * globals.css). Desktop can afford the fuller garden; the phone keeps roughly
- * the density it had.
+ * One cap, not split by device — deliberately. It would be natural to
+ * throttle this on touch the way `globals.css`'s `(pointer: coarse)` block
+ * throttles the paper grain and the meadow, but that block's own comment is
+ * explicit that creature life is exempt on purpose: every mark here animates
+ * only `transform`/`opacity`, nothing carries `mix-blend-mode`, so each one
+ * composites independently and cheaply regardless of device — "every creature
+ * in `LivingThings.tsx`... those are the point." The Android cost that block
+ * exists to fix was full-viewport blend layers re-resolving on every frame of
+ * *any* motion underneath them; it was never proportional to how many
+ * butterflies were on screen. So there is nothing here for a phone to be
+ * spared from.
+ *
+ * Sized with headroom above the steady-state estimate (~22, mostly petals and
+ * leaves now that they burst) rather than snug against it, so a burst landing
+ * while other kinds are already mid-crossing doesn't get silently clipped.
  */
-const MAX_CONCURRENT = 14;
-const MAX_CONCURRENT_TOUCH = 9;
+const MAX_CONCURRENT = 26;
 
 /** Five waypoints wandering across the frame, with the vertical meander scaled
  *  by `amplitude` and the whole thing biased in the direction of travel. */
@@ -233,10 +269,6 @@ export function useAmbientLife(): LifeEvent[] {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
-    const cap = window.matchMedia("(pointer: coarse)").matches
-      ? MAX_CONCURRENT_TOUCH
-      : MAX_CONCURRENT;
-
     const timers = new Set<ReturnType<typeof setTimeout>>();
 
     const later = (fn: () => void, seconds: number) => {
@@ -254,12 +286,20 @@ export function useAmbientLife(): LifeEvent[] {
         // A backgrounded tab would otherwise queue up a swarm to release all at
         // once when the reader comes back.
         if (!document.hidden) {
-          const event = spawn(kind, (nextId.current += 1));
-          setEvents((current) => (current.length >= cap ? current : [...current, event]));
-          later(
-            () => setEvents((current) => current.filter((e) => e.id !== event.id)),
-            event.duration + 1,
-          );
+          // One appearance can be several individuals — see `BURST`. Each
+          // gets its own id, its own `spawn()` (so its own height/speed/
+          // route), and its own removal timer, so a burst isn't one element
+          // repeated, it's several independent ones that happened together.
+          for (let i = 0; i < burstCount(kind); i++) {
+            const event = spawn(kind, (nextId.current += 1));
+            setEvents((current) =>
+              current.length >= MAX_CONCURRENT ? current : [...current, event],
+            );
+            later(
+              () => setEvents((current) => current.filter((e) => e.id !== event.id)),
+              event.duration + 1,
+            );
+          }
         }
 
         schedule(kind, min + Math.random() * (max - min));
@@ -268,31 +308,34 @@ export function useAmbientLife(): LifeEvent[] {
 
     /**
      * Staggered first appearances — and this stagger, not the cadence, was the
-     * thing that made the garden feel empty.
+     * thing that made the garden feel empty on arrival.
      *
-     * The steady state was always reasonably busy, but nothing reaches it for
+     * The steady state was always reasonably busy, but nothing reached it for
      * the first minute: a bird used to wait 19–37s for its *first* crossing, a
-     * dragonfly 52–86s, a firefly 61–101s. Plenty of visits are shorter than
-     * that, so the garden many arrivals actually saw was two petals and a
-     * butterfly. Every first delay is now roughly a third of what it was, and
-     * the whole cast has appeared at least once inside ~40 seconds.
+     * dragonfly 52–86s, a firefly 61–101s. The first impression — the thing
+     * that matters most, since it is what a new visit is actually judged on —
+     * was two petals and a butterfly. Delays are now cut hard: something is
+     * moving within 2 seconds of mount, a second kind within 5, and the whole
+     * cast has appeared at least once inside ~25 seconds.
      *
-     * They still arrive in the same order, and the rarer things still hold back
-     * — a ladybug turning up in the first two seconds would spend the one
-     * detail most visitors are never meant to consciously notice.
+     * They still arrive in the same order, so the rarer things still hold back
+     * relative to the common ones — a ladybug in the first two seconds would
+     * spend the one detail most visitors are never meant to consciously
+     * notice — but every gap has been compressed, not just scaled down evenly,
+     * because the whole point is the first several seconds specifically.
      *
      * Note that `StorybookSky` is mounted once in the app layout, so these
      * timers survive client-side navigation; the cold start is paid once per
      * full page load, not per page visited.
      */
-    schedule("petal", 1 + Math.random() * 3);
-    schedule("butterfly", 2 + Math.random() * 4);
-    schedule("bee", 5 + Math.random() * 7);
-    schedule("bird", 6 + Math.random() * 9);
-    schedule("leaf", 12 + Math.random() * 14);
-    schedule("dragonfly", 18 + Math.random() * 20);
-    schedule("firefly", 24 + Math.random() * 24);
-    schedule("ladybug", 30 + Math.random() * 30);
+    schedule("petal", 0.4 + Math.random() * 1.4);
+    schedule("butterfly", 1 + Math.random() * 2);
+    schedule("bee", 2.5 + Math.random() * 3.5);
+    schedule("bird", 3 + Math.random() * 4);
+    schedule("leaf", 6 + Math.random() * 7);
+    schedule("dragonfly", 9 + Math.random() * 10);
+    schedule("firefly", 13 + Math.random() * 13);
+    schedule("ladybug", 18 + Math.random() * 17);
 
     return () => {
       timers.forEach(clearTimeout);
