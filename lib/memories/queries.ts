@@ -120,6 +120,61 @@ export async function resolveMemoryMedia(
 }
 
 /**
+ * The photographs from one chapter, for Celebration Mode's look back — a small
+ * capped set of thumbnails, nothing else.
+ *
+ * Capped at `limit` deliberately. This runs on the home page, which every visit
+ * hits and which has no business signing thirty URLs to build a slideshow
+ * nobody watches to the end; six to eight prints is already longer than the
+ * beat it plays in. Newest last so the sequence walks *toward* the present,
+ * which is the direction a look back over a month wants to travel.
+ *
+ * Returns `[]` for a month with no photos in it — an early month, or one nobody
+ * has filled in — and the ceremony skips its look-back beat rather than showing
+ * an empty frame.
+ */
+export async function getChapterPrints(chapterId: string, limit = 7) {
+  const photos = albumPrints(
+    await resolveMemoryMedia(await getChapterMemories(chapterId), { full: false }),
+  );
+
+  return photos.slice(-limit).map((memory) => ({
+    id: memory.id,
+    // `albumPrints` has already guaranteed one of these resolved.
+    url: (memory.thumbnailUrl ?? memory.mediaUrl) as string,
+    title: memory.title,
+    occurredAt: memory.occurred_at,
+  }));
+}
+
+/**
+ * Photographs for Celebration Mode's look back — this month's if there are any,
+ * otherwise the most recent month that has some.
+ *
+ * The fallback is the point. The ceremony's look-back beat is the emotional
+ * centre of the 5th, and gating it on "did anyone add a photo since the last
+ * monthsary" means it silently disappears in exactly the months when the book
+ * has been quiet — which are the months someone most needs to be shown that the
+ * thing is still there. An older photograph is a far better answer than no beat
+ * at all.
+ *
+ * Bounded to `depth` chapters so a long-dormant book cannot turn one page load
+ * into a walk back through years of empty months.
+ *
+ * `chapters` must be newest-first, which is what `listChapters()` returns.
+ */
+export async function findLookBackPrints(
+  chapters: { id: string }[],
+  depth = 4,
+): Promise<Awaited<ReturnType<typeof getChapterPrints>>> {
+  for (const chapter of chapters.slice(0, depth)) {
+    const prints = await getChapterPrints(chapter.id);
+    if (prints.length > 0) return prints;
+  }
+  return [];
+}
+
+/**
  * The full-size signed URL for one memory, minted when a print is lifted.
  *
  * Goes back through `getChapterMemories` rather than reading the row directly,

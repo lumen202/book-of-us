@@ -8,6 +8,7 @@ import { FramingBoughs } from "./paint/FramingBoughs";
 import { GrainOverlay } from "./paint/GrainOverlay";
 import { FarRange, NearHills } from "./paint/HillRange";
 import { LightRays } from "./paint/LightRays";
+import { NightSky } from "./paint/NightSky";
 import { MeadowLayer, Pollen } from "./paint/Meadow";
 import { DistantFlock, LivingThings } from "./paint/LivingThings";
 import { PaintFilters } from "./paint/PaintFilters";
@@ -124,6 +125,9 @@ export function StorybookSky() {
       {/* far background */}
       <SkyLayer />
       <SunGlow />
+      {/* Hidden every day but the 5th, by CSS — see the file's own note on why
+          it is rendered rather than conditionally mounted. */}
+      <NightSky />
       <CloudBank />
       <DistantFlock />
 

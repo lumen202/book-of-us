@@ -28,6 +28,17 @@
   --color-lilac: #b7a9dc;
   --color-butter: #f8d98d;
   --color-sky: #9ecfec;
+
+  /*
+   * The colour the painted world's air dilutes into. Every sky, horizon, far
+   * hill and pale distance in `lib/ambient/palette.ts` mixes through it, so it
+   * is the one value that moves the whole scene's light at once.
+   *
+   * Identical to the page background on an ordinary day — but deliberately its
+   * own token, because on the 5th the world goes to night while the interface
+   * stays on cream. See the `data-celebration` block below.
+   */
+  --color-scene-paper: var(--color-background);
 }
 
 /* Philippine seasons — see the `Season` type in lib/theme/tokens.ts. Seasons
@@ -58,15 +69,133 @@
 }
 
 /*
- * Celebration Mode deliberately does NOT recolour the app.
+ * Celebration Mode: the garden goes to golden hour. The interface does not
+ * move at all.
  *
- * `data-celebration` is still set on <html> (see CelebrationProvider) and is
- * fine to hang behaviour off, but the 5th distinguishes itself through the
- * opening ceremony and its own illustrated scene — not by tinting every page
- * a different colour. The tinted variant existed and was dropped: it made the
- * site look like a different site rather than like a special day, and the base
- * palette is the one worth keeping.
+ * That split is the whole design, and it is worth being precise about, because
+ * an earlier version tinted *everything* on the 5th and was dropped for making
+ * the site look like a different site rather than like a special day.
+ *
+ * What changes below is only the six garden pigments — the ones
+ * `lib/ambient/palette.ts` mixes the painted world out of, which are already
+ * documented as backdrop-only and forbidden in UI. So the world outside the
+ * window shifts into late afternoon and every surface, button, border and
+ * letterform in the book stays exactly where it was. The base tokens
+ * (`--color-background`, `--color-ink`, `--color-accent`, ...) are deliberately
+ * absent from this block. Do not add them.
+ *
+ * Why this and not a bloom overlay: the experience-direction guardrail asks for
+ * Celebration Mode to be "a distinct atmosphere shift, not only a color tweak",
+ * and light is the difference between a place at 2pm and the same place at 5pm.
+ * Moving the pigments means the sun's own glow, the hills' aerial perspective,
+ * every flower and the light shafts all re-derive from the new light together,
+ * because they are all mixes of these six values. A wash laid over the top
+ * would tint them uniformly instead, which is what "recoloured" looks like.
+ *
+ * The one hard rule from `gardenTokens` still holds: nothing gets darker. This
+ * is a low warm sun, not dusk — see the note there about why the 5th must not
+ * become a night scene.
  */
+:root[data-celebration="true"] {
+  /* The air goes deep indigo. This is the value doing most of the work — sky,
+     far hills, distance and the pale grass all dilute into it, so the world
+     gets its night from one place rather than from a wash on top. Blue, never
+     grey or black: the palette's "no true grey" rule survives the dark. */
+  --color-scene-paper: #24305c;
+  /* A deep night blue for the sky itself. */
+  --color-sky: #1e2a55;
+  /* Grass by moonlight: green pushed cool and deep, still unmistakably green. */
+  --color-leaf: #4e7f6a;
+  --color-leaf-deep: #2f5348;
+  /* Light stays gold. At night it belongs to the lanterns rather than the sun,
+     which is exactly why it must not go silver — a warm point of light in a
+     blue field is the entire romance of the scene. */
+  --color-butter: #ffd79b;
+  /* The flowers keep their pink. They are what makes it this place, on the 5th
+     as much as any other day. */
+  --color-blossom: #e8a0b4;
+  --color-lilac: #9a92d6;
+}
+
+/*
+ * Text that sits directly on the scene has to invert with it.
+ *
+ * `.ink-legible` is the class for ink-coloured type with no card under it (the
+ * hero copy, the chapter covers, the closing reflection) — it normally paints a
+ * pale halo behind dark letterforms. Against a night meadow that is dark on
+ * dark, so on the 5th the letterforms go pale and the halo goes dark: the same
+ * mechanism, run the other way.
+ *
+ * `!important` because the colour it is overriding comes from a Tailwind
+ * `text-ink`/`text-accent` utility on the very same element.
+ *
+ * Everything else in the book is on a `bg-surface` card and needs no help —
+ * cream paper lit against a dark garden is, if anything, better. That is the
+ * whole reason the UI tokens stay put while only the scene moves.
+ */
+:root[data-celebration="true"] .ink-legible {
+  color: color-mix(in srgb, var(--color-surface) 92%, var(--color-butter)) !important;
+  text-shadow:
+    0 0 2px color-mix(in srgb, #10173a 80%, transparent),
+    0 0 10px color-mix(in srgb, #10173a 70%, transparent),
+    0 1px 3px color-mix(in srgb, #10173a 60%, transparent);
+}
+
+/*
+ * Translucent cards go opaque instead of inverting.
+ *
+ * There are two kinds of text in this book and they need opposite treatments on
+ * a night garden, which is the distinction to hold on to when adding anything
+ * new:
+ *
+ * 1. **Text on the bare sky** — the header, the hero lines, the closing
+ *    reflection. Nothing behind it but the world, so the letterforms go pale.
+ *    That is `.ink-legible`, above.
+ * 2. **Text on a card** — chapter covers, album sheets, every modal. These are
+ *    already paper; the fix is to make sure they still *read* as paper. A
+ *    `bg-surface/55` cover is 55% cream over a cream page by day and 55% cream
+ *    over deep indigo by night, which lands on a muddy midtone that neither
+ *    dark nor light type sits on well.
+ *
+ * So `.scene-card` opacifies rather than inverting, and dark ink on light paper
+ * survives untouched — the same reason the UI tokens never move. Reach for this
+ * on anything translucent that sits over the scene and contains type.
+ */
+:root[data-celebration="true"] .scene-card {
+  background-color: color-mix(in srgb, var(--color-surface) 94%, transparent);
+}
+
+/*
+ * The sun is down, so the things that are literally the sun go with it: its
+ * glow, and the shafts of afternoon light coming in over the right shoulder.
+ * Left in the DOM and faded rather than unmounted — whether today is a
+ * celebration is a client-only question, and the server must not try to answer
+ * it or the markup hydrates differently.
+ */
+:root[data-celebration="true"] .ambient-sun,
+:root[data-celebration="true"] .ambient-sun-wide,
+:root[data-celebration="true"] .ambient-ray {
+  opacity: 0 !important;
+}
+
+/* And the night sky comes up: stars, and the moon the lanterns were waiting
+   for. Same always-rendered, CSS-revealed treatment. */
+:root[data-celebration="true"] .night-sky {
+  opacity: 1;
+}
+
+/*
+ * And the lanterns on the fence are finally lit.
+ *
+ * They hang there unlit every other day of the month, which the painted-world
+ * doc calls "a promise about the evening" — the point of an unlit lantern is
+ * that someone means to light it. The 5th is when that promise is kept, and it
+ * is the single most legible "today is different" detail in the scene: a small
+ * warm point of light that simply was not there yesterday.
+ */
+:root[data-celebration="true"] .lantern-flame {
+  opacity: 1;
+}
 
 @theme inline {
   --color-background: var(--color-background);
@@ -423,6 +552,32 @@ body {
   }
   50% {
     opacity: 0.9;
+  }
+}
+
+/* Stars, breathing on unrelated periods so the sky never pulses together.
+   `--star-o` is each star's own brightness, so one keyframe serves all of them
+   and each dims to its own floor rather than to a shared one. */
+@keyframes star-shimmer {
+  0%,
+  100% {
+    opacity: calc(var(--star-o, 0.6) * 0.4);
+  }
+  50% {
+    opacity: var(--star-o, 0.6);
+  }
+}
+
+/* The moon, very slightly swelling. Ninety-six seconds: the same trick as the
+   sky's own breath — you can tell it is different from when you arrived, but
+   never catch it changing. */
+@keyframes moon-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.035);
   }
 }
 
