@@ -16,6 +16,17 @@ import { MemoryDetail } from "./MemoryDetail";
  * of album paper, prints mounted onto it at slight angles, captions written
  * underneath. Prints settle in one after another rather than all at once so
  * the page feels turned-to rather than loaded.
+ *
+ * The layout below is a plain grid, not CSS multi-column, despite every print
+ * being roughly the same height (fixed `aspect-[4/5]` photo + a short
+ * caption) — which made `columns-*` tempting for the masonry look. Don't go
+ * back to it: `column-fill` can only *balance* columns against a container
+ * with a determinate height, and this container's height is intrinsic (it
+ * grows with its content). With few prints — which is the common case for a
+ * chapter that's just been started — the browser fills column one completely
+ * and never spills into the others, so two photos rendered as one tall column
+ * with the whole right side of the page empty. A grid distributes left to
+ * right regardless of count, which is what actually fixes it.
  */
 export function MemoryGrid({
   memories,
@@ -78,11 +89,10 @@ export function MemoryGrid({
           }}
         />
 
-        <div className="relative columns-1 gap-8 sm:columns-2 lg:columns-3 [&>*]:mb-9">
+        <div className="relative grid grid-cols-1 items-start gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {memories.map((memory, index) => (
             <motion.div
               key={memory.id}
-              className="break-inside-avoid"
               initial={{ opacity: 0, y: 14 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-40px" }}
