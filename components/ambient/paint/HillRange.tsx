@@ -240,6 +240,31 @@ export function NearHills() {
           <g key={i}>
             <ellipse cx={lamp.x} cy={lamp.y} rx={lamp.r * 0.8} ry={lamp.r} fill={veil(pigment.lantern, 82)} />
             <ellipse cx={lamp.x} cy={lamp.y - lamp.r * 0.3} rx={lamp.r * 0.5} ry={lamp.r * 0.5} fill={veil(pigment.sparkle, 60)} />
+            {/*
+             * The flame, dark every day except the 5th — `opacity: 0` here and
+             * lit by the one `[data-celebration="true"] .lantern-flame` rule in
+             * globals.css. Rendered always rather than conditionally so it
+             * costs no re-render and cannot cause a hydration mismatch: whether
+             * today is a celebration is a client-only question (the dev
+             * override lives in localStorage) and the server must not try to
+             * answer it.
+             */}
+            <g className="lantern-flame" style={{ opacity: 0 }}>
+              <ellipse
+                cx={lamp.x}
+                cy={lamp.y}
+                rx={lamp.r * 2.6}
+                ry={lamp.r * 2.6}
+                fill={veil(pigment.sunGlow, 26)}
+              />
+              <ellipse
+                cx={lamp.x}
+                cy={lamp.y}
+                rx={lamp.r * 0.46}
+                ry={lamp.r * 0.62}
+                fill={veil(pigment.sparkle, 92)}
+              />
+            </g>
           </g>
         ))}
       </g>

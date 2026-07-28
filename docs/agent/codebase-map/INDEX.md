@@ -12,7 +12,7 @@ Table of contents only. Open just the row you need.
 | Experience direction + interaction choreography guardrails | [`experience-direction.md`](experience-direction.md) | current |
 | Chapter album pages, image weight, signed URLs | [`reading-experience.md`](reading-experience.md) | current |
 | Cinematic opening sequence engine | [`opening-sequence.md`](opening-sequence.md) | current |
-| Celebration Mode (5th of month) | `celebration-mode.md` | not yet built |
+| Celebration Mode (5th of month) | [`celebration-mode.md`](celebration-mode.md) | current |
 | Living timeline + stats derivation | `timeline-stats.md` | not yet built |
 | Time capsules (unlock filtering) | `time-capsules.md` | not yet built |
 | Composer (photo upload) | covered in [`reading-experience.md`](reading-experience.md) | current |

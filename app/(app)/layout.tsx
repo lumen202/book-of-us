@@ -3,8 +3,14 @@ import { ReducedMotionConfig } from "@/components/motion/ReducedMotionConfig";
 import { AppHeader } from "@/components/nav/AppHeader";
 import { StorybookSky } from "@/components/ambient/StorybookSky";
 import { CelebrationDevToggle } from "@/components/dev/CelebrationDevToggle";
+import { isCurrentUserAdmin } from "@/lib/auth/admin";
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  // Decided here because `isCurrentUserAdmin` is server-only and the toggle is
+  // a client component. Hiding the widget is tidiness, not access control —
+  // everything behind it is cosmetic (see the note in the component).
+  const isAdmin = await isCurrentUserAdmin();
+
   return (
     <CelebrationProvider>
       <ReducedMotionConfig>
@@ -13,7 +19,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <StorybookSky />
         <AppHeader />
         {children}
-        <CelebrationDevToggle />
+        <CelebrationDevToggle isAdmin={isAdmin} />
       </ReducedMotionConfig>
     </CelebrationProvider>
   );

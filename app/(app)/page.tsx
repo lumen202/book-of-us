@@ -1,6 +1,8 @@
 import { HomeCover } from "@/components/home/HomeCover";
 import { ChapterCover } from "@/components/chapter/ChapterCover";
 import { listChapters } from "@/lib/chapters/queries";
+import { isCelebrationDay } from "@/lib/celebration/isCelebrationDay";
+import { findLookBackPrints } from "@/lib/memories/queries";
 import { getRelationship } from "@/lib/relationship/queries";
 import { getMonthsaryNumber } from "@/lib/relationship/monthsary";
 import { pickMonthsaryMessage } from "@/lib/celebration/messages";
@@ -10,8 +12,16 @@ import { getAppNow } from "@/lib/relationship/devClock";
 import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
 import { ClosingReflection } from "@/components/story/ClosingReflection";
 
-export default async function HomePage() {
-  const [chapters, relationship] = await Promise.all([listChapters(), getRelationship()]);
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ celebrate?: string }>;
+}) {
+  const [chapters, relationship, params] = await Promise.all([
+    listChapters(),
+    getRelationship(),
+    searchParams,
+  ]);
   const subtitle = relationship
     ? `${relationship.partner_a_name} & ${relationship.partner_b_name}`
     : undefined;
@@ -33,8 +43,37 @@ export default async function HomePage() {
     : null;
   const celebrationLabel =
     monthsaryNumber !== null ? `Happy ${ordinal(monthsaryNumber)} Monthsary` : undefined;
-  const celebrationMessage = celebrationLabel ? pickMonthsaryMessage() : undefined;
+  const celebrationMessage = celebrationLabel
+    ? pickMonthsaryMessage(monthsaryNumber ?? undefined)
+    : undefined;
   const nextChapterDate = getNextChapterDate(now);
+
+  /**
+   * This month's photographs, for the ceremony's look back.
+   *
+   * Not fetched on every visit: it costs a signed Storage URL per print, and 29
+   * days in 30 nobody will see them. So it is gated on the same question the
+   * ceremony itself is gated on — but asked *server-side*, which is the part
+   * that needs care.
+   *
+   * `useCelebrating()` (client) answers from `isCelebrationDay()` **or** a dev
+   * override that lives in a query param and localStorage. The server can see
+   * `?celebrate=1` but not localStorage, so the two can disagree — and when
+   * they did, the whole preview path was broken in a way that looked like the
+   * feature was missing: `?celebrate=1` played the ceremony, the server had
+   * said "not the 5th" and sent no prints, and the look-back beat skipped
+   * itself silently. Reading the query param here is what keeps a preview
+   * honest. A localStorage-only override still gets an empty look back; use the
+   * query param — or the admin's "Play the ceremony" button, which navigates
+   * with it — to see this beat.
+   *
+   * `listChapters()` is newest-first, which is the order `findLookBackPrints`
+   * needs: this month if it has photographs, else the most recent month that
+   * does.
+   */
+  const previewing = params.celebrate === "1";
+  const monthPrints =
+    isCelebrationDay(now) || previewing ? await findLookBackPrints(chapters) : [];
 
   return (
     <HomeCover
@@ -42,6 +81,8 @@ export default async function HomePage() {
       subtitle={subtitle}
       celebrationLabel={celebrationLabel}
       celebrationMessage={celebrationMessage}
+      monthsaryNumber={monthsaryNumber ?? undefined}
+      monthPrints={monthPrints}
     >
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-14 px-6 pb-6 pt-8">
         <section className="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center">

@@ -1,5 +1,10 @@
 # Cinematic Opening
 
+> **Rebuilt 2026-07-28.** There is now **one** scene (`MonthsaryOpening`), it is staged inside the
+> real `StorybookSky` rather than its own scenery, and it has a look-back slideshow beat. Read
+> [`celebration-mode.md`](celebration-mode.md) alongside this. `EnvelopeOpening` and `GiftOpening`
+> are both gone; sections below describing them are historical.
+
 Not a random pool of ambient fade-ins. A small, deliberate set of tactile moments by context —
 she has to *do* something (click/tap an object) to open the book, not just watch text
 animate in. See `log/2026-07-27-creative-direction-reset.md` for why this replaced an

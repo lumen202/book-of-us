@@ -49,18 +49,18 @@ export default async function ChapterPage({
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 pt-8">
         <Link
           href="/"
-          className="w-fit text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink"
+          className="ink-legible w-fit text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink"
         >
           &larr; Back to the shelf
         </Link>
 
         {/* The album's title page, before any prints */}
         <section className="flex max-w-2xl flex-col gap-3">
-          <span className="text-[11px] uppercase tracking-[0.3em] text-accent">
+          <span className="ink-legible text-[11px] uppercase tracking-[0.3em] text-accent">
             {formatMonthYear(chapter.month)}
           </span>
-          <h1 className="font-serif text-4xl leading-tight text-ink sm:text-5xl">{chapter.title}</h1>
-          <p className="font-serif text-xl italic text-ink-muted">
+          <h1 className="ink-legible font-serif text-4xl leading-tight text-ink sm:text-5xl">{chapter.title}</h1>
+          <p className="ink-legible font-serif text-xl italic text-ink-muted">
             {memories.length === 0
               ? "Nothing on this page yet."
               : "Everything from this month, mounted one print at a time. Lift one to look closer."}

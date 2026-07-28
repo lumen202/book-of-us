@@ -27,7 +27,22 @@
  */
 
 const T = {
-  paper: "var(--color-background)",
+  /**
+   * What the world dilutes into — the colour of its air.
+   *
+   * Its own token rather than `--color-background` directly, and this is the
+   * single most load-bearing indirection in the palette: the sky, the far air,
+   * the pale grass at distance, the path and every horizon mix run through it,
+   * so moving this one value re-derives the entire scene's light together. It
+   * is how Celebration Mode takes the garden to night (see the
+   * `data-celebration` block in globals.css) without a wash laid over the top
+   * and without a second palette to maintain.
+   *
+   * It defaults to `--color-background`, so on any ordinary day this is exactly
+   * what it always was. Note it is *not* the same thing as the page background
+   * any more: the UI stays on `--color-background` while the world goes dark.
+   */
+  paper: "var(--color-scene-paper, var(--color-background))",
   surface: "var(--color-surface)",
   ink: "var(--color-ink)",
   inkMuted: "var(--color-ink-muted)",

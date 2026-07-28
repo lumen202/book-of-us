@@ -3,13 +3,16 @@
 import { AnimatePresence, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useCelebrating } from "@/lib/celebration/useCelebrating";
-import { GiftOpening, MonthsaryOpening } from "./sequences";
+import { MonthsaryOpening } from "./sequences";
+import type { MonthPrint } from "./types";
 
 type OpeningSequenceProps = {
   title: string;
   subtitle?: string;
   celebrationLabel?: string;
   celebrationMessage?: string;
+  monthsaryNumber?: number;
+  monthPrints?: MonthPrint[];
   /**
    * Called the moment the scene's story ends, while it's still dissolving.
    * The page should start appearing here so it comes up *through* the
@@ -25,6 +28,8 @@ export function OpeningSequence({
   subtitle,
   celebrationLabel,
   celebrationMessage,
+  monthsaryNumber,
+  monthPrints,
   onIntroComplete,
   onComplete,
 }: OpeningSequenceProps) {
@@ -47,22 +52,26 @@ export function OpeningSequence({
   if (!mounted) return null;
 
   // Only ever mounted on a celebration day (see HomeCover), so there is no
-  // everyday scene to pick — `GiftOpening` is the fallback for the case where
-  // there's no relationship row yet and therefore no "Happy Nth Monthsary"
-  // label to build the greeting from.
+  // everyday scene to pick.
+  //
+  // There used to be a second scene here — a wrapped-gift variant, chosen when
+  // there was no relationship row and therefore no "Happy Nth Monthsary" label
+  // to build a greeting from. It was deleted rather than rebuilt: it could only
+  // ever appear in a state the book is not really usable in, it was the plainest
+  // art in the project, and `MonthsaryOpening` already falls back to a generic
+  // "Happy Monthsary" when the label is missing. One ceremony, kept good.
   if (!celebrating) return null;
-
-  const Scene = celebrationLabel ? MonthsaryOpening : GiftOpening;
 
   return (
     <AnimatePresence onExitComplete={onComplete}>
       {!introDone && (
-        <Scene
-          key={celebrationLabel ? "monthsary" : "gift"}
+        <MonthsaryOpening
           title={title}
           subtitle={subtitle}
           celebrationLabel={celebrationLabel}
           celebrationMessage={celebrationMessage}
+          monthsaryNumber={monthsaryNumber}
+          monthPrints={monthPrints}
           reducedMotion={reducedMotion}
           onIntroComplete={() => {
             setIntroDone(true);

@@ -41,13 +41,13 @@ export default function ChapterLoading() {
       aria-busy="true"
       aria-label="Opening this chapter"
     >
-      <span className="w-fit text-sm text-ink-muted">&larr; Back to the shelf</span>
+      <span className="ink-legible w-fit text-sm text-ink-muted">&larr; Back to the shelf</span>
 
       {/* The title block, in the shape the real one will take. */}
       <section className="flex max-w-2xl flex-col gap-3">
         <span className="ambient-developing block h-3 w-28 rounded-full bg-accent/25" />
         <span className="ambient-developing block h-9 w-72 rounded-lg bg-ink/10 sm:h-11" />
-        <p className="font-serif text-xl italic text-ink-muted/70">Turning to this page…</p>
+        <p className="ink-legible font-serif text-xl italic text-ink-muted/70">Turning to this page…</p>
       </section>
 
       <div className="relative rounded-[2rem] bg-surface/75 px-5 py-8 shadow-[0_30px_60px_-45px_rgba(43,23,29,0.75)] sm:px-10 sm:py-12">
