@@ -1,8 +1,8 @@
 "use client";
 
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, type PanInfo } from "framer-motion";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { formatFullDate } from "@/lib/format/date";
 import type { MonthPrint } from "../types";
 
@@ -20,29 +20,35 @@ import type { MonthPrint } from "../types";
  * Each photo arrives as a *mounted print* — white mat, photo corners, a slight
  * tilt, settling into place — the same object the album pages are made of, so
  * the ceremony is showing her the book's own vocabulary rather than a widget
- * borrowed from a gallery app. There are no dots, no arrows, no counter and
- * nothing to swipe: it plays, at its own pace, like someone turning a stack of
- * prints toward you. Controls would make it a thing to operate.
+ * borrowed from a gallery app. There are no dots-as-buttons, no arrows, no
+ * counter: nothing to *look at* as a control.
  *
- * ## Pacing
+ * ## Pacing is now hers, not a timer's
  *
- * One print at a time, cross-fading, `HOLD_MS` each. Long enough to actually
- * look at a photograph and much longer than a slideshow would normally sit —
- * the guardrail is emotional pacing over feature density, and a fast cut
- * through eight photos communicates "here is a lot of content" rather than
- * "look at this one".
+ * This used to auto-advance on a fixed hold per print. It now waits: swipe the
+ * print in any direction — up or left brings the next one forward, down or
+ * right goes back — or scroll/wheel. The point of the change is that turning
+ * the page yourself is a small act of attention a timer can't replicate — you
+ * spend exactly as long on a photograph as it's worth to you, and the moment
+ * of pulling the next one into place is a beat of its own instead of scenery
+ * going by. Tapping the left or right half of the frame works too, for anyone
+ * who doesn't reach for the gesture — same split every story-style UI uses,
+ * so a tap's meaning never depends on exactly where it landed on the photo.
  *
  * The tilt alternates left/right by index rather than being random, so
  * consecutive prints visibly *replace* each other instead of appearing to
  * wobble in place, and so the sequence is the same every time it plays.
  */
 
-/** How long each print stays up. See the pacing note above. */
-const HOLD_MS = 2600;
-const HOLD_MS_REDUCED = 1100;
-
 /** Deterministic, alternating — never random. */
 const TILTS = [-2.2, 1.8, -1.2, 2.4, -1.9, 1.3, -2.6];
+
+/** How far a swipe/drag has to travel, in px, before it counts as a page turn rather than a wobble. */
+const DRAG_THRESHOLD = 70;
+/** How strong a wheel/trackpad gesture has to be before it counts, so an idle scroll doesn't skip a photo. */
+const WHEEL_THRESHOLD = 24;
+/** Guards against one gesture firing more than one advance while state/animation catches up. */
+const GESTURE_COOLDOWN_MS = 380;
 
 export function MonthInReview({
   prints,
@@ -54,31 +60,56 @@ export function MonthInReview({
   onComplete: () => void;
 }) {
   const [index, setIndex] = useState(0);
-  const hold = reducedMotion ? HOLD_MS_REDUCED : HOLD_MS;
+  const cooling = useRef(false);
 
-  /**
-   * A timer is right here, unlike everywhere else in the opening sequence.
-   *
-   * The other scenes chain on `onAnimationComplete` because they are waiting
-   * for *animations* to finish and a parallel `setTimeout` would drift out of
-   * sync with them. This beat is waiting for a **reading duration** — how long
-   * a person needs to look at a photograph — which is not the length of any
-   * animation and has nothing to advance off. So it is an interval, and the
-   * cleanup is what keeps it honest if the reader skips out mid-sequence.
-   */
   useEffect(() => {
-    if (prints.length === 0) {
-      onComplete();
-      return;
-    }
+    if (prints.length === 0) onComplete();
+    // Only ever relevant on mount — `prints` is a fixed prop for the life of the ceremony.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    const timer = window.setTimeout(() => {
-      if (index >= prints.length - 1) onComplete();
-      else setIndex((current) => current + 1);
-    }, hold);
+  function cool() {
+    cooling.current = true;
+    window.setTimeout(() => {
+      cooling.current = false;
+    }, GESTURE_COOLDOWN_MS);
+  }
 
-    return () => window.clearTimeout(timer);
-  }, [index, prints.length, hold, onComplete]);
+  function goNext() {
+    if (cooling.current) return;
+    cool();
+    if (index >= prints.length - 1) onComplete();
+    else setIndex((current) => current + 1);
+  }
+
+  function goPrev() {
+    if (cooling.current) return;
+    if (index === 0) return;
+    cool();
+    setIndex((current) => Math.max(0, current - 1));
+  }
+
+  function handleWheel(event: React.WheelEvent) {
+    if (Math.abs(event.deltaY) < WHEEL_THRESHOLD) return;
+    if (event.deltaY > 0) goNext();
+    else goPrev();
+  }
+
+  /** Whichever axis moved further decides the direction, so a mostly-diagonal drag doesn't fire both. Up/left = forward, down/right = back — matching the same "right is forward" sense the tap zones use. */
+  function handleDragEnd(_: unknown, info: PanInfo) {
+    const { x, y } = info.offset;
+    const offset = Math.abs(x) > Math.abs(y) ? x : y;
+    if (offset < -DRAG_THRESHOLD) goNext();
+    else if (offset > DRAG_THRESHOLD) goPrev();
+  }
+
+  /** Left half of the frame goes back, right half goes forward — the same split every story-style UI uses, so a tap always has an unambiguous meaning regardless of where on the photo it lands. */
+  function handleTap(event: React.MouseEvent<HTMLDivElement>) {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const tappedLeftHalf = event.clientX - rect.left < rect.width / 2;
+    if (tappedLeftHalf) goPrev();
+    else goNext();
+  }
 
   if (prints.length === 0) return null;
 
@@ -86,7 +117,11 @@ export function MonthInReview({
   const tilt = TILTS[index % TILTS.length];
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-center gap-6 px-6">
+    <div
+      className="absolute inset-0 flex flex-col items-center justify-center gap-6 px-6"
+      onWheel={handleWheel}
+      onClick={handleTap}
+    >
       <div className="relative flex h-[54vh] w-full max-w-sm items-center justify-center">
         {/* `mode="popLayout"` so the outgoing print keeps its place while the
             incoming one settles — with the default mode they briefly stack and
@@ -94,7 +129,12 @@ export function MonthInReview({
         <AnimatePresence mode="popLayout">
           <motion.div
             key={print.id}
-            className="absolute w-full rounded-2xl bg-surface p-3 pb-5 shadow-[0_30px_50px_-28px_color-mix(in_srgb,var(--color-ink)_55%,transparent)]"
+            className="absolute w-full cursor-grab rounded-2xl bg-surface p-3 pb-5 shadow-[0_30px_50px_-28px_color-mix(in_srgb,var(--color-ink)_55%,transparent)] active:cursor-grabbing"
+            drag={reducedMotion ? false : true}
+            dragElastic={0.6}
+            dragConstraints={{ top: 0, bottom: 0, left: 0, right: 0 }}
+            onDragEnd={handleDragEnd}
+            style={{ touchAction: "none" }}
             initial={{
               opacity: 0,
               scale: reducedMotion ? 1 : 0.94,
@@ -163,6 +203,20 @@ export function MonthInReview({
           />
         ))}
       </div>
+
+      {/* A one-time nudge toward the gesture, gone the moment she's used it —
+          reappearing on every photo would turn a hint into an instruction. */}
+      {index === 0 && (
+        <motion.p
+          className="ink-legible text-[11px] uppercase tracking-[0.24em] text-ink-muted"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.6, delay: 1.2 }}
+        >
+          Swipe, scroll, or tap either side
+        </motion.p>
+      )}
     </div>
   );
 }

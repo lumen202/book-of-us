@@ -192,11 +192,30 @@
   opacity: 0 !important;
 }
 
-/* And the night sky comes up: stars, and the moon the lanterns were waiting
-   for. Same always-rendered, CSS-revealed treatment. */
+/*
+ * And the clouds go with it too. A cloud is weather passing through this
+ * afternoon; a cloud sitting in a clear night sky reads as a storm blowing
+ * in, which is the opposite mood from a starry evening. Same always-rendered,
+ * CSS-hidden treatment as the sun above.
+ */
+:root[data-celebration="true"] .ambient-cloud,
+:root[data-night-preview="true"] .ambient-cloud {
+  opacity: 0 !important;
+}
+
+/*/
+ * And the night sky comes up: stars, and the moon the lanterns were waiting
+ * for. Same always-rendered, CSS-revealed treatment.
+ *
+ * `!important` because `.night-sky`'s own element carries `opacity: 0` as an
+ * *inline* style (`NightSky.tsx`) — inline styles outrank any stylesheet rule
+ * that isn't `!important`, regardless of that rule's own specificity, so
+ * without it this selector can never actually win and the sky stays hidden
+ * forever, celebration or not.
+ */
 :root[data-celebration="true"] .night-sky,
 :root[data-night-preview="true"] .night-sky {
-  opacity: 1;
+  opacity: 1 !important;
 }
 
 /*
@@ -207,10 +226,13 @@
  * that someone means to light it. The 5th is when that promise is kept, and it
  * is the single most legible "today is different" detail in the scene: a small
  * warm point of light that simply was not there yesterday.
+ *
+ * `!important` for the same reason as `.night-sky` above — the flame group
+ * also starts from an inline `opacity: 0` in `HillRange.tsx`.
  */
 :root[data-celebration="true"] .lantern-flame,
 :root[data-night-preview="true"] .lantern-flame {
-  opacity: 1;
+  opacity: 1 !important;
 }
 
 @theme inline {
@@ -594,6 +616,31 @@ body {
   }
   50% {
     transform: scale(1.035);
+  }
+}
+
+/*
+ * A falling star, once. `--meteor-travel` is how far it goes; the streak's
+ * own fall *angle* comes from a static `rotate()` on its parent (see
+ * NightSky.tsx), so translating along the local X axis here is enough to
+ * travel along that already-rotated diagonal without a separate x/y pair.
+ * `scaleX` from the streak's near end is what makes it read as arriving out
+ * of nothing rather than sliding a full-length line into frame.
+ */
+@keyframes meteor-fall {
+  0% {
+    transform: translate3d(0, 0, 0) scaleX(0.35);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 0.85;
+  }
+  100% {
+    transform: translate3d(var(--meteor-travel, 20vw), 0, 0) scaleX(1);
+    opacity: 0;
   }
 }
 
