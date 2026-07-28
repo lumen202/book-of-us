@@ -1,6 +1,11 @@
+"use client";
+
 import { TRAVEL } from "@/lib/ambient/depth";
+import { useMeteors } from "@/lib/ambient/useMeteors";
 import { pigment, veil } from "@/lib/ambient/palette";
 import { makeRng } from "@/lib/ambient/rng";
+import { useCelebrating } from "@/lib/celebration/useCelebrating";
+import { useNightPreview } from "@/lib/night-preview/NightPreviewProvider";
 
 /**
  * The stars and the moon — the 5th only.
@@ -30,6 +35,18 @@ import { makeRng } from "@/lib/ambient/rng";
  * `makeRng`, never `Math.random()` — the stars have to survive the server/client
  * boundary identically, and it should be the same sky every 5th. The
  * irregularity is the point; novelty is not.
+ *
+ * ## Meteors are the one thing here that isn't always-rendered
+ *
+ * Unlike the stars/moon (static, free while hidden), meteors are occasional
+ * timed events — see `useMeteors`. Running those timers every day, hidden or
+ * not, would cost nothing to look at but would still be live JS timers ticking
+ * in the background of every ordinary visit, so they're gated on `active`
+ * (Celebration Mode or the Settings night-view preview) rather than rendered
+ * unconditionally like everything else in this file. That gate is decided
+ * entirely inside `useMeteors`'s effect, after mount, so it introduces no
+ * hydration risk of its own — first paint always shows zero meteors, server
+ * and client alike.
  */
 
 const STAR_SEED = 50505;
@@ -54,6 +71,9 @@ function stars() {
 
 export function NightSky() {
   const field = stars();
+  const celebrating = useCelebrating();
+  const { enabled: nightPreview } = useNightPreview();
+  const meteors = useMeteors(celebrating || nightPreview);
 
   return (
     <div
@@ -84,9 +104,8 @@ export function NightSky() {
         />
       ))}
 
-      {/* The moon, opposite the sun's usual corner so the composition doesn't
-          simply swap one bright spot for another in the same place. */}
-      <div className="absolute left-[14vw] top-[9vh]">
+      {/* The moon, upper right. */}
+      <div className="absolute right-[10vw] top-[9vh]">
         <div
           className="absolute -left-[9vh] -top-[9vh] h-[26vh] w-[26vh] rounded-full"
           style={{
@@ -118,6 +137,32 @@ export function NightSky() {
           />
         </div>
       </div>
+
+      {/* Falling stars. The outer element only rotates — a static transform —
+          so the inner streak's `translate3d` runs along that already-rotated
+          axis instead of needing its own separately-computed x/y pair. */}
+      {meteors.map((meteor) => (
+        <div
+          key={meteor.id}
+          className="absolute"
+          style={{
+            top: `${meteor.top}vh`,
+            left: `${meteor.left}vw`,
+            transform: `rotate(${meteor.angle}deg)`,
+            transformOrigin: "left center",
+          }}
+        >
+          <div
+            className="ambient-meteor h-[2px] rounded-full"
+            style={{
+              width: `${meteor.length}vw`,
+              background: `linear-gradient(to right, transparent, ${pigment.sparkle})`,
+              ["--meteor-travel" as string]: `${meteor.travel}vw`,
+              animation: `meteor-fall ${meteor.duration}s ease-in forwards`,
+            }}
+          />
+        </div>
+      ))}
     </div>
   );
 }

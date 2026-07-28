@@ -105,11 +105,26 @@ export const pigment = {
   sparkle: mix(T.surface, 62, T.butter),
 
   /* clouds --------------------------------------------------------------- */
-  cloudBody: mix(T.surface, 92, T.sky),
+  /**
+   * `T.paper`, not `T.surface` — clouds are part of the *world*, not the UI,
+   * so they have to run through the same token everything else in the scene
+   * re-tints from at night (see the note on `paper` above). Mixed through
+   * `T.surface` (a fixed token, deliberately exempt from the celebration
+   * block) these stayed almost exactly as pale at night as by day, while
+   * every other pigment went to deep indigo — a mismatch that read as a
+   * flat, washed-out gap in the night sky rather than as clouds in it.
+   * `T.paper` defaults to `--color-background`, close enough to `--color-
+   * surface` that the ordinary-day look is unchanged.
+   */
+  cloudBody: mix(T.paper, 92, T.sky),
+  /** Stays on `T.surface` deliberately — this is the lit edge, and a bright
+   *  rim surviving on an otherwise dark cloud reads as moonlight catching it,
+   *  the same "small warm point of light against a dark field" the moon's
+   *  halo and the lanterns already use. */
   cloudLit: mix(T.surface, 62, T.butter),
   /** Cloud undersides are lavender-blue. Grey undersides make a sky look like
    *  weather is coming, which is the wrong afternoon entirely. */
-  cloudShade: mix(T.lilac, 46, mix(T.sky, 50, T.surface)),
+  cloudShade: mix(T.lilac, 46, mix(T.sky, 50, T.paper)),
 
   /* land ----------------------------------------------------------------- */
   grass,

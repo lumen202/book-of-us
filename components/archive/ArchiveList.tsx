@@ -93,7 +93,7 @@ export function ArchiveList({ memories }: { memories: MemoryWithMedia[] }) {
 
   if (memories.length === 0) {
     return (
-      <p className="font-serif text-xl italic text-ink-muted">
+      <p className="ink-legible font-serif text-xl italic text-ink-muted">
         Nothing has been removed. The trash is empty.
       </p>
     );
