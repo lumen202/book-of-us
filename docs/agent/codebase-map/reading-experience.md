@@ -85,7 +85,7 @@ Phone photos are 4–8 MB and no view in this app shows more than ~1600px of one
 handled, and they compose:
 
 1. **Write side** — `lib/media/downscaleImage.ts` downsizes in the browser *before* upload
-   (original ≤2000px, thumb ≤720px, WebP where supported, EXIF orientation applied via
+   (original ≤1600px, thumb ≤720px, WebP where supported, EXIF orientation applied via
    `createImageBitmap(…, { imageOrientation: "from-image" })`). The full-size original never
    reaches the bucket. This runs client-side because a Server Action body cap sits well below
    phone-photo size.
@@ -94,6 +94,39 @@ handled, and they compose:
    errors, the call **falls back to the untransformed original** rather than returning null, so
    the page gets heavier but never breaks. Only pass a rendition for images — video/audio would
    take the fallback path on every request.
+
+### On the free plan, layer 2 is inactive — layer 1 is doing all the work
+
+Image transformations are a **Pro+ add-on and are not included on the Supabase free plan**, which
+is the plan this project runs on. So *every* `rendition` request errors and takes the fallback
+path described above. Nothing is broken and nothing looks wrong — that graceful fallback is
+precisely what's holding the pages up — but it means **`rendition` currently has no observable
+effect, and `downscaleImage` is the only thing controlling image weight.** Don't spend a debugging
+session working out why `thumb` and `full` seem to produce identical bytes; they do, and this is
+why.
+
+Two consequences worth keeping in mind:
+
+- `ORIGINAL_MAX_EDGE` is now **1600**, matched exactly to `RENDITIONS.full`. It was 2000, and those
+  extra 400px were never displayed by anything — with transforms on they'd be downsampled away,
+  and with transforms off (here) the whole file went over the wire to be drawn at 1600. Area scales
+  with the square, so this took roughly a third off every original in both bucket and egress.
+  Existing photos keep their old size; this only applies to new uploads.
+- **There is no server-side media processing available at all on this plan.** Any future
+  optimisation — audio, video, anything — has to happen in the browser before upload, the way
+  `downscaleImage` does. See `docs/plans/audio-memories.md` §0.4, where this was first worked out.
+
+### Signed URLs live an hour, and the reason is caching
+
+`SIGNED_URL_TTL_SECONDS` is `60 * 60`. It was five minutes, which quietly cost most of the free
+plan's *cached* egress allowance: caches key on the URL, every render mints a fresh signature, so
+every visit to an album page re-downloaded every thumbnail it had already fetched. An hour also
+matches the default `Cache-Control: max-age=3600` Storage puts on objects, so the signature and
+the cache entry now expire together.
+
+Cheap here because the bucket is private and a signed URL only ever reaches an authenticated
+session of a two-person book. **Time-capsule media is the exception** and must get its own short
+TTL when that feature lands — see `docs/plans/time-capsule.md`.
 
 `next/image` is still `unoptimized` throughout. Deliberate: Supabase already returns a
 correctly-sized image, and signed URLs rotate every 5 minutes, so routing them through the
