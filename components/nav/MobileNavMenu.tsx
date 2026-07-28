@@ -60,11 +60,25 @@ export function MobileNavMenu({ isAdmin }: { isAdmin: boolean }) {
         <div className="absolute right-0 top-full z-10 mt-2 flex w-56 flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-[0_20px_40px_-24px_rgba(76,59,48,0.45)]">
           <div className="flex flex-col gap-1">
             <Link
+              href="/"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:bg-accent-muted/40 hover:text-ink"
+            >
+              Bookshelf
+            </Link>
+            <Link
               href="/bucket-list"
               onClick={() => setOpen(false)}
               className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:bg-accent-muted/40 hover:text-ink"
             >
               Bucket list
+            </Link>
+            <Link
+              href="/vault"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:bg-accent-muted/40 hover:text-ink"
+            >
+              Vault
             </Link>
             <Link
               href="/settings"

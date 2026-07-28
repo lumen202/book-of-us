@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { listDeletedMemories, resolveMemoryMedia } from "@/lib/memories/queries";
+import { listDeletedVaultItems } from "@/lib/vault/queries";
 import { ArchiveList } from "@/components/archive/ArchiveList";
+import { VaultArchiveList } from "@/components/archive/VaultArchiveList";
 
 /**
  * The admin's trash.
@@ -18,10 +20,14 @@ import { ArchiveList } from "@/components/archive/ArchiveList";
 export default async function ArchivePage() {
   if (!(await isCurrentUserAdmin())) notFound();
 
-  const memories = await resolveMemoryMedia(await listDeletedMemories());
+  const [deletedMemories, vaultItems] = await Promise.all([
+    listDeletedMemories(),
+    listDeletedVaultItems(),
+  ]);
+  const memories = await resolveMemoryMedia(deletedMemories);
 
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-8 px-6 pb-24 pt-8">
+    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-12 px-6 pb-24 pt-8">
       <Link
         href="/"
         className="ink-legible w-fit text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink"
@@ -29,16 +35,29 @@ export default async function ArchivePage() {
         &larr; Back to the shelf
       </Link>
 
-      <header className="flex flex-col gap-2">
-        <span className="ink-legible text-[11px] uppercase tracking-[0.3em] text-accent">Keeper only</span>
-        <h1 className="ink-legible font-serif text-4xl leading-tight text-ink">Removed photos</h1>
-        <p className="ink-legible max-w-xl text-sm leading-relaxed text-ink-muted">
-          Everything taken off a page still lives here. Put one back whenever you like — or delete
-          it for good, which erases the row and its files and cannot be undone.
-        </p>
-      </header>
+      <section className="flex flex-col gap-8">
+        <header className="flex flex-col gap-2">
+          <span className="ink-legible text-[11px] uppercase tracking-[0.3em] text-accent">Keeper only</span>
+          <h1 className="ink-legible font-serif text-4xl leading-tight text-ink">Removed photos</h1>
+          <p className="ink-legible max-w-xl text-sm leading-relaxed text-ink-muted">
+            Everything taken off a page still lives here. Put one back whenever you like — or delete
+            it for good, which erases the row and its files and cannot be undone.
+          </p>
+        </header>
 
-      <ArchiveList memories={memories} />
+        <ArchiveList memories={memories} />
+      </section>
+
+      <section className="flex flex-col gap-8 border-t border-border pt-12">
+        <header className="flex flex-col gap-2">
+          <h2 className="ink-legible font-serif text-3xl leading-tight text-ink">Removed from the vault</h2>
+          <p className="ink-legible max-w-xl text-sm leading-relaxed text-ink-muted">
+            Same rules — put one back, or delete it for good.
+          </p>
+        </header>
+
+        <VaultArchiveList items={vaultItems} />
+      </section>
     </main>
   );
 }
