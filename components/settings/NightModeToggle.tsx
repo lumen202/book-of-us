@@ -21,7 +21,7 @@ export function NightModeToggle() {
         role="switch"
         aria-checked={enabled}
         onClick={() => setEnabled(!enabled)}
-        className={`relative h-7 w-12 shrink-0 rounded-full border border-border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+        className={`relative h-7 w-12 shrink-0 cursor-pointer rounded-full border border-border transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
           enabled ? "bg-accent" : "bg-surface"
         }`}
       >
