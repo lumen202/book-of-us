@@ -1,6 +1,28 @@
 import { createClient } from "@/lib/supabase/server";
 
-const SIGNED_URL_TTL_SECONDS = 60 * 5;
+/**
+ * One hour, not five minutes — and the reason is egress, not convenience.
+ *
+ * Browser and CDN caches key on the URL. Every mint produces a *different*
+ * signature, so a short TTL means opening the same album page twice downloads
+ * the same thirty thumbnails twice: a guaranteed cache miss, every visit,
+ * forever. The Supabase free plan grants 5 GB of *cached* egress alongside its
+ * 5 GB of egress, and at five minutes this app earned almost none of it.
+ *
+ * An hour also lines up with the 3600s `Cache-Control` Storage puts on objects
+ * by default, so the signature and the cache entry now expire together instead
+ * of the signature killing a still-warm cache.
+ *
+ * The security cost is close to zero here: the bucket is private, a signed URL
+ * is only ever handed to an authenticated session of a two-person book, and
+ * the row it points at is already visible to both of them.
+ *
+ * **The one place this must NOT be reused is time-capsule media.** A URL minted
+ * near an unlock boundary and valid for an hour is exactly the leak the capsule
+ * design exists to prevent — see docs/plans/time-capsule.md. When that lands,
+ * it gets its own short TTL rather than this one.
+ */
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 /**
  * Named image sizes. Originals are whatever came off a phone camera (often

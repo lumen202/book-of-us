@@ -8,8 +8,23 @@ import { formatMonthDay } from "@/lib/format/date";
 import { downscaleImage } from "@/lib/media/downscaleImage";
 import { createClient } from "@/lib/supabase/client";
 
-/** Roughly 2x the largest box a photo is ever shown in. */
-const ORIGINAL_MAX_EDGE = 2000;
+/**
+ * The largest box a photo is ever shown in — matched exactly to
+ * `RENDITIONS.full` in `lib/storage/getSignedUrl.ts`, which asks for 1600px
+ * and is the biggest rendition anything in this app requests, `PhotoLightbox`
+ * included.
+ *
+ * It was 2000. Those extra 400px were never displayed by any view on any plan:
+ * with the Storage image transform enabled they'd be downsampled to 1600 on
+ * the way out, and without it (the free plan — the transform is a Pro+ add-on)
+ * the untransformed original is served as-is, so the whole 2000px file went
+ * over the wire to be drawn at 1600. Area scales with the square, so this is
+ * roughly a third off every original, both in the 1 GB bucket and in egress.
+ *
+ * Only affects uploads from here on; photos already in the bucket keep their
+ * size until something re-processes them.
+ */
+const ORIGINAL_MAX_EDGE = 1600;
 const THUMB_MAX_EDGE = 720;
 
 function todayIso(): string {
