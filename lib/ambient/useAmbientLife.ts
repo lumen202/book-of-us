@@ -77,20 +77,40 @@ export type LifeEvent = {
  * for a world that always feels alive — while any *individual* kind stays rare
  * enough to be a small event when it shows up. None of these ranges are
  * multiples of each other, which is what stops the kinds drifting into sync.
+ *
+ * **These were all roughly 1.5x longer, and the garden read as empty.** The
+ * arithmetic that matters is `duration / mean interval` = how many of that kind
+ * are on screen at once; summed across kinds it was ~6.6, which sounds
+ * populated and did not look it, because most of those six are small, faint,
+ * and deliberately near the edges. It now sums to ~10 against a cap of 14.
+ *
+ * The individual-rarity rule still holds: no single kind exceeds ~2 concurrent,
+ * so a bird is still an event. What changed is how many *kinds* are present at
+ * the same time, which is what "inhabited" actually reads as.
  */
 const CADENCE: Record<LifeKind, [number, number]> = {
-  petal: [11, 26],
-  butterfly: [17, 39],
-  bee: [21, 47],
-  bird: [24, 43],
-  leaf: [35, 79],
-  dragonfly: [46, 97],
-  firefly: [53, 121],
-  ladybug: [71, 149],
+  petal: [7, 17],
+  butterfly: [11, 25],
+  bee: [13, 31],
+  bird: [15, 29],
+  leaf: [23, 53],
+  dragonfly: [29, 61],
+  firefly: [37, 79],
+  ladybug: [59, 127],
 };
 
-/** Anything more than this on screen at once stops being "occasional". */
-const MAX_CONCURRENT = 9;
+/**
+ * Anything more than this on screen at once stops being "occasional".
+ *
+ * Two caps, because the phone is where this gets expensive. Each creature is a
+ * handful of nodes with an infinite wing animation, and on touch they are
+ * running over a scene that has already given up its parallax and two of its
+ * three paper passes to stay smooth (see the `(pointer: coarse)` block in
+ * globals.css). Desktop can afford the fuller garden; the phone keeps roughly
+ * the density it had.
+ */
+const MAX_CONCURRENT = 14;
+const MAX_CONCURRENT_TOUCH = 9;
 
 /** Five waypoints wandering across the frame, with the vertical meander scaled
  *  by `amplitude` and the whole thing biased in the direction of travel. */
@@ -213,6 +233,10 @@ export function useAmbientLife(): LifeEvent[] {
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
+    const cap = window.matchMedia("(pointer: coarse)").matches
+      ? MAX_CONCURRENT_TOUCH
+      : MAX_CONCURRENT;
+
     const timers = new Set<ReturnType<typeof setTimeout>>();
 
     const later = (fn: () => void, seconds: number) => {
@@ -231,9 +255,7 @@ export function useAmbientLife(): LifeEvent[] {
         // once when the reader comes back.
         if (!document.hidden) {
           const event = spawn(kind, (nextId.current += 1));
-          setEvents((current) =>
-            current.length >= MAX_CONCURRENT ? current : [...current, event],
-          );
+          setEvents((current) => (current.length >= cap ? current : [...current, event]));
           later(
             () => setEvents((current) => current.filter((e) => e.id !== event.id)),
             event.duration + 1,
@@ -244,17 +266,33 @@ export function useAmbientLife(): LifeEvent[] {
       }, firstDelay);
     };
 
-    // Staggered first appearances. A butterfly and a petal turn up early —
-    // the garden should feel inhabited within the first few seconds — and the
-    // rarer things hold back so they stay finds rather than furniture.
-    schedule("petal", 3 + Math.random() * 7);
-    schedule("butterfly", 5 + Math.random() * 9);
-    schedule("bee", 14 + Math.random() * 14);
-    schedule("bird", 19 + Math.random() * 18);
-    schedule("leaf", 36 + Math.random() * 28);
-    schedule("dragonfly", 52 + Math.random() * 34);
-    schedule("firefly", 61 + Math.random() * 40);
-    schedule("ladybug", 84 + Math.random() * 50);
+    /**
+     * Staggered first appearances — and this stagger, not the cadence, was the
+     * thing that made the garden feel empty.
+     *
+     * The steady state was always reasonably busy, but nothing reaches it for
+     * the first minute: a bird used to wait 19–37s for its *first* crossing, a
+     * dragonfly 52–86s, a firefly 61–101s. Plenty of visits are shorter than
+     * that, so the garden many arrivals actually saw was two petals and a
+     * butterfly. Every first delay is now roughly a third of what it was, and
+     * the whole cast has appeared at least once inside ~40 seconds.
+     *
+     * They still arrive in the same order, and the rarer things still hold back
+     * — a ladybug turning up in the first two seconds would spend the one
+     * detail most visitors are never meant to consciously notice.
+     *
+     * Note that `StorybookSky` is mounted once in the app layout, so these
+     * timers survive client-side navigation; the cold start is paid once per
+     * full page load, not per page visited.
+     */
+    schedule("petal", 1 + Math.random() * 3);
+    schedule("butterfly", 2 + Math.random() * 4);
+    schedule("bee", 5 + Math.random() * 7);
+    schedule("bird", 6 + Math.random() * 9);
+    schedule("leaf", 12 + Math.random() * 14);
+    schedule("dragonfly", 18 + Math.random() * 20);
+    schedule("firefly", 24 + Math.random() * 24);
+    schedule("ladybug", 30 + Math.random() * 30);
 
     return () => {
       timers.forEach(clearTimeout);
