@@ -65,8 +65,13 @@ that wrapper they're dead code — this was silently the case before 2026-07-27.
   room than a grid print has). Attributed as "You" / "Your partner" rather than a name — there's
   no reliable mapping anywhere from an auth account to "Joshua" or "Liezel", so the component only
   ever asserts the one thing it can know for certain (`comment.userId === currentUserId`), and
-  that's also what gates the remove control. `MemoryCard` shows a small "N notes" count next to
+  that's also what gates the remove control (and now the edit control, same gate) — see
+  `editComment` in `lib/comments/mutations.ts`. `MemoryCard` shows a small "N notes" count next to
   the date so a print with notes is discoverable from the grid without opening it.
+- The caption itself (`memory.title`) is editable from the detail view's heading — click it, it
+  becomes an input, same "tap it, it becomes an input" pattern used everywhere else edits happen
+  in this app. Unlike a note, this isn't gated to whoever added the print: a caption is a shared
+  label on a shared print. See `updateMemoryCaption` in `lib/memories/mutations.ts`.
 
 ## Photos only, for now
 
@@ -88,7 +93,10 @@ handled, and they compose:
    (original ≤1600px, thumb ≤720px, WebP where supported, EXIF orientation applied via
    `createImageBitmap(…, { imageOrientation: "from-image" })`). The full-size original never
    reaches the bucket. This runs client-side because a Server Action body cap sits well below
-   phone-photo size.
+   phone-photo size. `lib/media/uploadMemoryMedia.ts` wraps the whole downscale-then-upload
+   sequence (both renditions, both storage objects) as the one path from a picked `File` to two
+   objects in the bucket — `MemoryComposer` and the bucket list's `CompletionModal`
+   (`codebase-map/bucket-list.md`) both call it rather than each inlining their own copy.
 2. **Read side** — `lib/storage/getSignedUrl.ts` takes an optional `rendition` (`thumb`/`full`)
    and asks Supabase to resize as it serves. That transform is a paid Storage add-on; if it
    errors, the call **falls back to the untransformed original** rather than returning null, so

@@ -53,6 +53,29 @@ export async function createMemory(input: NewMemoryInput): Promise<void> {
 }
 
 /**
+ * Editing a print's caption after the fact.
+ *
+ * Unlike `editComment`, there's no "mine" restriction here: a caption is a
+ * shared label on a shared print, the same way removing a print isn't
+ * restricted to whoever added it (see `MemoryCard`'s always-visible ×).
+ * `title` is `not null` in the schema, so an attempt to blank it is refused
+ * here rather than silently falling back to a placeholder.
+ */
+export async function updateMemoryCaption(id: string, title: string): Promise<void> {
+  const trimmed = title.trim();
+  if (!trimmed) throw new Error("A caption can't be blank.");
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("memories")
+    .update({ title: trimmed })
+    .eq("id", id)
+    .is("deleted_at", null);
+
+  if (error) throw error;
+}
+
+/**
  * Removing a print from the album.
  *
  * A soft delete, always — `deleted_at` is stamped and `get_chapter_memories`

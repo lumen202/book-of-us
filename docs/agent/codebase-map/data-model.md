@@ -24,6 +24,11 @@ everything else.
 **`unlock_at`** on `memories` makes *any* memory a potential time capsule, not just letters —
 see `time-capsules.md`.
 
+`title` (the caption) is editable after the fact via `updateMemoryCaption` in
+`lib/memories/mutations.ts`, wired to the h2 in `MemoryDetail`. Not restricted to whoever added the
+print — a caption is a shared label, the same reasoning as why removing a print isn't restricted to
+its creator either.
+
 - **`memory_reactions`** — emoji reactions on memories, one row per `(memory_id, user_id)` (that
   pair is the primary key). Not time-capsule-gated content, so `lib/reactions/queries.ts` reads
   the table directly rather than through an RPC — the "no raw memory reads" rule below is scoped
@@ -32,6 +37,16 @@ see `time-capsules.md`.
   reactions, since a memory can have any number of notes from the same person). Same direct-read
   reasoning as `memory_reactions`. No column ties a row to "Joshua" or "Liezel" by name — the UI
   only ever knows a note is "yours" (`user_id = auth.uid()`) or not; see `reading-experience.md`.
+  Editable (`editComment` in `lib/comments/mutations.ts`) — the RLS policy allows either account to
+  update any row, so "your own" is a UI-level restriction (`MemoryComments` only shows Edit/Remove
+  where `userId === currentUserId`), not a database one.
+- **`bucket_list_items`** — promises that convert into memories when kept. `memory_id` points at
+  `memories.id`, nullable (an open item, or one completed without a photo, both have no memory).
+  `category` is a check constraint of a fixed handful of values, same modelling choice as
+  `memories.type` — not a join table. No raw-read restriction (same direct-read reasoning as
+  reactions/comments above) — bucket list items have no unlock semantics. See
+  `codebase-map/bucket-list.md` for the full design, especially the chapter-resolution trap a kept
+  promise's photo has to avoid.
 
 ## Soft delete
 

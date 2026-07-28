@@ -57,6 +57,33 @@ export async function getAllMemories(): Promise<Memory[]> {
   return (data ?? []) as Memory[];
 }
 
+export type MemoryChapterLink = { memoryId: string; chapterSlug: string; chapterTitle: string };
+
+/**
+ * Where a set of memories live, for the bucket list's "there's a
+ * photograph" link on a kept promise — see
+ * `supabase/functions/get_chapter_memories.sql` for why this is its own RPC
+ * rather than a raw `chapter_id` select: a locked or deleted memory must not
+ * even have its existence confirmed by this lookup.
+ */
+export async function getMemoryChapterLinks(memoryIds: string[]): Promise<MemoryChapterLink[]> {
+  if (memoryIds.length === 0) return [];
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_memory_chapter_links", {
+    p_memory_ids: memoryIds,
+  });
+
+  if (error) throw error;
+  return (data ?? []).map(
+    (row: { memory_id: string; chapter_slug: string; chapter_title: string }) => ({
+      memoryId: row.memory_id,
+      chapterSlug: row.chapter_slug,
+      chapterTitle: row.chapter_title,
+    }),
+  );
+}
+
 /**
  * What the album page is allowed to show: photos that actually resolved to an
  * image. Other memory types (letters, notes, songs…) still exist in the schema

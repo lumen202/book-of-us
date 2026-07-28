@@ -6,6 +6,7 @@ not an edit to an old one.
 
 | Date | Title | File |
 |---|---|---|
+| 2026-07-28 | Bucket list implemented, plus caption/comment editing | [`2026-07-28-bucket-list-and-inline-editing.md`](2026-07-28-bucket-list-and-inline-editing.md) |
 | 2026-07-28 | Ambient life density — the stagger, not the cadence | [`2026-07-28-ambient-life-density.md`](2026-07-28-ambient-life-density.md) |
 | 2026-07-28 | Free-tier storage & egress tuning (signed-URL TTL, 1600px originals) + three feature plans | [`2026-07-28-free-tier-storage-and-egress-tuning.md`](2026-07-28-free-tier-storage-and-egress-tuning.md) |
 | 2026-07-28 | Celebration Mode rebuilt: night garden, look-back slideshow, heart firework | [`2026-07-28-celebration-mode-night-rebuild.md`](2026-07-28-celebration-mode-night-rebuild.md) |

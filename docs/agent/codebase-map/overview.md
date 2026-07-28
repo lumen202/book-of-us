@@ -26,6 +26,9 @@ lib/                  All bespoke domain logic — the actual custom "framework"
                        Pages compose these modules; logic is never duplicated per-page.
   supabase/           Client/server Supabase instances
   memories/           Data access for chapters/memories — always via the get_chapter_memories RPC
+  media/              uploadMemoryMedia — the one browser→Storage upload pipeline, shared by the
+                       chapter composer and the bucket list's completion flow
+  bucket-list/        Promises that convert into memories when kept — see codebase-map/bucket-list.md
   storage/            Signed URL generation for private Supabase Storage objects
   opening-sequence/   Generative, non-repeating cinematic opening system for the cover page
   celebration/        Date-driven "Celebration Mode" (5th of every month) theme/context

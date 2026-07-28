@@ -2,8 +2,9 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
-import { loadMemoryFullUrl } from "@/app/(app)/chapters/[slug]/actions";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { editMemoryCaption, loadMemoryFullUrl } from "@/app/(app)/chapters/[slug]/actions";
 import { PhotoLightbox } from "./PhotoLightbox";
 import type { Comment } from "@/lib/comments/types";
 import { formatFullDate } from "@/lib/format/date";
@@ -29,7 +30,27 @@ export function MemoryDetail({
   currentUserId: string | null;
   onClose: () => void;
 }) {
+  const router = useRouter();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  const [editingCaption, setEditingCaption] = useState(false);
+  const [captionDraft, setCaptionDraft] = useState(memory.title);
+  const [savingCaption, startCaptionTransition] = useTransition();
+
+  function startEditCaption() {
+    setCaptionDraft(memory.title);
+    setEditingCaption(true);
+  }
+
+  function saveCaption() {
+    const trimmed = captionDraft.trim();
+    if (!trimmed) return;
+    startCaptionTransition(async () => {
+      await editMemoryCaption(memory.id, trimmed, chapterSlug);
+      setEditingCaption(false);
+      router.refresh();
+    });
+  }
 
   /**
    * The chapter page only signs thumbnails, so the full-size URL is fetched
@@ -147,9 +168,55 @@ export function MemoryDetail({
             </button>
           </div>
         )}
-        <h2 id="memory-detail-title" className="font-serif text-4xl leading-tight text-ink">
-          {memory.title}
-        </h2>
+        {editingCaption ? (
+          <div>
+            <input
+              autoFocus
+              type="text"
+              value={captionDraft}
+              disabled={savingCaption}
+              onChange={(event) => setCaptionDraft(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") saveCaption();
+                if (event.key === "Escape") setEditingCaption(false);
+              }}
+              id="memory-detail-title"
+              className="w-full border-b border-accent bg-transparent font-serif text-4xl leading-tight text-ink focus:outline-none"
+            />
+            <div className="mt-2 flex items-center gap-4">
+              <button
+                type="button"
+                onClick={saveCaption}
+                disabled={savingCaption || captionDraft.trim().length === 0}
+                className="text-[11px] uppercase tracking-[0.22em] text-accent disabled:opacity-60"
+              >
+                {savingCaption ? "Saving…" : "Save"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingCaption(false)}
+                disabled={savingCaption}
+                className="text-[11px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={startEditCaption}
+            aria-label="Edit this caption"
+            className="group/caption block text-left focus-visible:outline-none"
+          >
+            <h2
+              id="memory-detail-title"
+              className="font-serif text-4xl leading-tight text-ink underline decoration-transparent decoration-2 underline-offset-4 transition group-hover/caption:decoration-border"
+            >
+              {memory.title}
+            </h2>
+          </button>
+        )}
         <div className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-ink-muted">
           <time dateTime={memory.occurred_at}>{formatFullDate(memory.occurred_at)}</time>
           {/*

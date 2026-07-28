@@ -17,6 +17,7 @@ Table of contents only. Open just the row you need.
 | Time capsules (unlock filtering) | `time-capsules.md` | not yet built |
 | Composer (photo upload) | covered in [`reading-experience.md`](reading-experience.md) | current |
 | Composer (new *chapter*) | `composer.md` | not yet built |
+| Bucket list (promises → memories) | [`bucket-list.md`](bucket-list.md) | current |
 | Surprise engine | `surprises.md` | not yet built |
 | Backup/export script | `backups.md` | not yet built |
 

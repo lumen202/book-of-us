@@ -1,8 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { addComment as writeComment, removeComment as deleteComment } from "@/lib/comments/mutations";
-import { createMemory, softDeleteMemory, type NewMemoryInput } from "@/lib/memories/mutations";
+import {
+  addComment as writeComment,
+  editComment as editCommentBody,
+  removeComment as deleteComment,
+} from "@/lib/comments/mutations";
+import {
+  createMemory,
+  softDeleteMemory,
+  updateMemoryCaption,
+  type NewMemoryInput,
+} from "@/lib/memories/mutations";
 import { getMemoryFullUrl } from "@/lib/memories/queries";
 import { clearReaction, setReaction } from "@/lib/reactions/mutations";
 
@@ -60,4 +69,17 @@ export async function addComment(memoryId: string, body: string, chapterSlug: st
 export async function removeMemoryComment(commentId: string, chapterSlug: string) {
   await deleteComment(commentId);
   revalidatePath(`/chapters/${chapterSlug}`);
+}
+
+/** Editing your own note — see `editComment` in `lib/comments/mutations.ts`. */
+export async function editMemoryComment(commentId: string, body: string, chapterSlug: string) {
+  await editCommentBody(commentId, body);
+  revalidatePath(`/chapters/${chapterSlug}`);
+}
+
+/** Editing a print's caption — see `updateMemoryCaption` in `lib/memories/mutations.ts`. */
+export async function editMemoryCaption(id: string, title: string, chapterSlug: string) {
+  await updateMemoryCaption(id, title);
+  revalidatePath(`/chapters/${chapterSlug}`);
+  revalidatePath("/");
 }

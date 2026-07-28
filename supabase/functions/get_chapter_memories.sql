@@ -32,3 +32,25 @@ as $$
     and (unlock_at is null or unlock_at <= now())
   order by occurred_at asc, created_at asc;
 $$;
+
+-- Lets a kept bucket-list promise say "there's a photograph, in <chapter>"
+-- and link to it, without the bucket list ever reading the memories table
+-- itself (see lib/bucket-list/queries.ts). Same filtering as above: a
+-- memory that's locked or has been removed simply doesn't come back, so a
+-- kept promise can never leak the existence of content it shouldn't be able
+-- to see. A bucket-list completion photo is never itself time-capsuled
+-- (completeItem never sets unlock_at), so this only ever matters for the
+-- edge case of a memory later locked or deleted by hand.
+create or replace function get_memory_chapter_links(p_memory_ids uuid[])
+returns table (memory_id uuid, chapter_slug text, chapter_title text)
+language sql
+stable
+as $$
+  select m.id, c.slug, c.title
+  from memories m
+  join chapters c on c.id = m.chapter_id
+  where m.id = any(p_memory_ids)
+    and m.deleted_at is null
+    and (m.unlock_at is null or m.unlock_at <= now())
+    and c.deleted_at is null;
+$$;

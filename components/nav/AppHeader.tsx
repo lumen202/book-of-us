@@ -16,6 +16,12 @@ export async function AppHeader() {
         </span>
       </Link>
       <div className="flex items-center gap-5">
+        <Link
+          href="/bucket-list"
+          className="ink-legible text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+        >
+          Bucket list
+        </Link>
         {isAdmin && (
           <Link
             href="/archive"

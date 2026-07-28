@@ -4,35 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { addMemory } from "@/app/(app)/chapters/[slug]/actions";
-import { formatMonthDay } from "@/lib/format/date";
-import { downscaleImage } from "@/lib/media/downscaleImage";
-import { createClient } from "@/lib/supabase/client";
-
-/**
- * The largest box a photo is ever shown in — matched exactly to
- * `RENDITIONS.full` in `lib/storage/getSignedUrl.ts`, which asks for 1600px
- * and is the biggest rendition anything in this app requests, `PhotoLightbox`
- * included.
- *
- * It was 2000. Those extra 400px were never displayed by any view on any plan:
- * with the Storage image transform enabled they'd be downsampled to 1600 on
- * the way out, and without it (the free plan — the transform is a Pro+ add-on)
- * the untransformed original is served as-is, so the whole 2000px file went
- * over the wire to be drawn at 1600. Area scales with the square, so this is
- * roughly a third off every original, both in the 1 GB bucket and in egress.
- *
- * Only affects uploads from here on; photos already in the bucket keep their
- * size until something re-processes them.
- */
-const ORIGINAL_MAX_EDGE = 1600;
-const THUMB_MAX_EDGE = 720;
-
-function todayIso(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
-  return `${now.getFullYear()}-${month}-${day}`;
-}
+import { formatMonthDay, todayIso } from "@/lib/format/date";
+import { uploadMemoryMedia } from "@/lib/media/uploadMemoryMedia";
 
 /**
  * Adding to the album.
@@ -83,8 +56,6 @@ export function MemoryComposer({
     }
     setError(null);
 
-    const supabase = createClient();
-
     try {
       for (const [index, file] of files.entries()) {
         setProgress(
@@ -92,26 +63,10 @@ export function MemoryComposer({
         );
 
         const id = crypto.randomUUID();
-        const folder = `chapters/${chapterId}/${id}`;
-
-        const original = await downscaleImage(file, {
-          maxEdge: ORIGINAL_MAX_EDGE,
-          quality: 0.85,
+        const { storagePath, thumbnailPath, meta } = await uploadMemoryMedia(file, {
+          chapterId,
+          memoryId: id,
         });
-        const thumb = await downscaleImage(file, { maxEdge: THUMB_MAX_EDGE, quality: 0.72 });
-
-        const storagePath = `${folder}/original.${original.extension}`;
-        const thumbnailPath = `${folder}/thumb.${thumb.extension}`;
-
-        for (const [path, blob] of [
-          [storagePath, original.blob],
-          [thumbnailPath, thumb.blob],
-        ] as const) {
-          const { error: uploadError } = await supabase.storage
-            .from("memories")
-            .upload(path, blob, { contentType: blob.type, upsert: false });
-          if (uploadError) throw uploadError;
-        }
 
         await addMemory({
           id,
@@ -126,7 +81,7 @@ export function MemoryComposer({
           occurredAt: todayIso(),
           storagePath,
           thumbnailPath,
-          meta: { width: original.width, height: original.height },
+          meta,
         });
       }
 
