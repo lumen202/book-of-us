@@ -3,8 +3,11 @@
 import { useActionState, useRef, useState } from "react";
 import { login } from "./actions";
 
-const DEV_LOGIN_EMAIL = "jdiniega202@gmail.com";
-const DEV_LOGIN_PASSWORD = "6/5/2026";
+// Read from .env.local, not hardcoded — see .env.local.example. Keeps this
+// page from needing an edit every time the real password changes through
+// Keeper -> Passwords.
+const DEV_LOGIN_EMAIL = process.env.NEXT_PUBLIC_DEV_LOGIN_EMAIL;
+const DEV_LOGIN_PASSWORD = process.env.NEXT_PUBLIC_DEV_LOGIN_PASSWORD;
 
 function EyeIcon() {
   return (
@@ -33,10 +36,11 @@ export default function LoginPage() {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
-  const canShowDevAutofill = process.env.NODE_ENV === "development";
+  const canShowDevAutofill =
+    process.env.NODE_ENV === "development" && Boolean(DEV_LOGIN_EMAIL) && Boolean(DEV_LOGIN_PASSWORD);
 
   function autofillDevLogin() {
-    if (!emailRef.current || !passwordRef.current) return;
+    if (!emailRef.current || !passwordRef.current || !DEV_LOGIN_EMAIL || !DEV_LOGIN_PASSWORD) return;
 
     emailRef.current.value = DEV_LOGIN_EMAIL;
     passwordRef.current.value = DEV_LOGIN_PASSWORD;
