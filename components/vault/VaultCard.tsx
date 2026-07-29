@@ -29,12 +29,14 @@ export function VaultCard({
   currentUserId,
   onSelect,
   onRemove,
+  onReactionChange,
 }: {
   item: VaultItemView;
   tilt: number;
   currentUserId: string | null;
   onSelect: () => void;
   onRemove: () => void;
+  onReactionChange: (emoji: string | null) => void;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -128,6 +130,7 @@ export function VaultCard({
         currentUserId={currentUserId}
         open={pickerOpen}
         onOpenChange={setPickerOpen}
+        onReacted={onReactionChange}
       />
     </div>
   );

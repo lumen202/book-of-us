@@ -23,12 +23,23 @@ export function VaultReactions({
   currentUserId,
   open: controlledOpen,
   onOpenChange,
+  onReacted,
 }: {
   vaultItemId: string;
   reactions: VaultReaction[];
   currentUserId: string | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  /**
+   * Fired once the server action confirms the change, with the new emoji (or
+   * `null` for a removal). `VaultGrid` uses this to write the reaction back
+   * into its own `items` state — this component's `useOptimistic` reconciles
+   * against the `reactions` prop the instant the transition settles, and
+   * without a caller keeping that prop current the optimistic value flashes
+   * back to the pre-click emoji (the vault page is client-only and one-shot,
+   * so nothing else ever refreshes it). See `VaultGrid.updateReaction`.
+   */
+  onReacted?: (emoji: string | null) => void;
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const open = controlledOpen ?? uncontrolledOpen;
@@ -77,6 +88,7 @@ export function VaultReactions({
       setOptimisticReaction(nextEmoji);
       if (nextEmoji === null) await unreactToVaultItem(vaultItemId);
       else await reactToVaultItem(vaultItemId, emoji);
+      onReacted?.(nextEmoji);
     });
   }
 

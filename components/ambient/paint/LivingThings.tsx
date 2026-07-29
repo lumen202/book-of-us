@@ -143,6 +143,81 @@ function Dragonfly({ event }: { event: LifeEvent }) {
   );
 }
 
+/** A coffee cup with a moth's wings, steam still trailing behind it —
+ *  the one fantastical creature the garden allows itself, and as common as
+ *  the butterflies it shares a wing rig with (see `CADENCE`/`BURST` in
+ *  `useAmbientLife.ts`), so it reads as a population, not a single easter
+ *  egg. */
+function FlyingCoffee({ event }: { event: LifeEvent }) {
+  const rand = makeRng(event.id * 7411 + 53);
+
+  return (
+    <svg width="33" height="39" viewBox="-16.5 -22.5 33 39" fill="none" style={{ overflow: "visible" }}>
+      <g
+        className="ambient-wing"
+        style={{
+          transformBox: "fill-box",
+          transformOrigin: "center",
+          animation: `wing-beat ${rand.float(0.3, 0.46)}s ease-in-out infinite`,
+        }}
+      >
+        {/* `cloudShade`/`cloudBody` are built from the same tokens the sky
+            itself swings on between day and night, which is fine for an
+            actual cloud (it's meant to dissolve) but left these wings nearly
+            invisible against both. `shadow` doesn't touch those tokens and is
+            the pigment already trusted elsewhere in this file (the bird's
+            wingbeat stroke) to hold contrast against the open sky at any
+            hour. */}
+        {[-1, 1].map((side) => (
+          <ellipse key={side} cx={side * 9} cy={-1.5} rx={6.6} ry={4.8} fill={veil(pigment.shadow, 46)} />
+        ))}
+      </g>
+      {/* Ceramic in `lantern`, not `wood` — `wood` is an ink/warm mix that
+          never shifts between day and night, and against a night sky (or
+          this creature's own wood-toned handle right next to it) a
+          same-toned cup body read as a dark, shapeless blot rather than a
+          mug. `lantern` stays a bright warm cream/gold at every hour (see
+          the note in `HillRange.tsx`'s bench mug, same reasoning), so the
+          cup keeps its shape regardless of what it's flying over. `wood`
+          stays on the handle only, for a dark line of definition against the
+          now-pale body. */}
+      <path d="M-6.75 -3 Q-7.05 6.9 0 7.2 Q7.05 6.9 6.75 -3 Z" fill={veil(pigment.lantern, 86)} />
+      <path d="M-6.75 -3 Q0 -6.3 6.75 -3 Q0 -0.3 -6.75 -3 Z" fill={veil(pigment.lantern, 96)} />
+      <path
+        d="M6.45 -1.05 Q10.8 0.45 6.45 3.6"
+        stroke={veil(pigment.wood, 66)}
+        strokeWidth="1.5"
+        fill="none"
+        strokeLinecap="round"
+      />
+      {/* Same halo trick as the bench mug's steam: a dark `bark` halo behind
+          a pale `lantern` core, so one of the two always contrasts with
+          whatever this creature happens to be flying over — open sky, grass,
+          day or night. A single flat colour (tried `light`, then `shadow`)
+          kept disappearing against one backdrop or the other. */}
+      <g
+        className="ambient-steam"
+        style={{ animation: `steam-curl ${rand.float(2.4, 3.4)}s ease-in-out infinite` }}
+      >
+        <path
+          d="M0 -6.3 Q2.4 -11.4 0 -15.6 Q-2.4 -19.5 0.9 -22.5"
+          stroke={veil(pigment.bark, 42)}
+          strokeWidth="2.6"
+          fill="none"
+          strokeLinecap="round"
+        />
+        <path
+          d="M0 -6.3 Q2.4 -11.4 0 -15.6 Q-2.4 -19.5 0.9 -22.5"
+          stroke={veil(pigment.lantern, 94)}
+          strokeWidth="1"
+          fill="none"
+          strokeLinecap="round"
+        />
+      </g>
+    </svg>
+  );
+}
+
 function Ladybug() {
   return (
     <svg width="12" height="10" viewBox="-6 -5 12 10" fill="none" style={{ overflow: "visible" }}>
@@ -215,6 +290,7 @@ const SHAPES = {
   firefly: Firefly,
   petal: Drifting,
   leaf: Drifting,
+  coffee: FlyingCoffee,
 } as const;
 
 export function LivingThings() {

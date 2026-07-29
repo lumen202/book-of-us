@@ -90,6 +90,33 @@ export function VaultGrid({
     }
   }
 
+  /**
+   * Writes a settled reaction back into `items` once the server action
+   * confirms it, so the next render hands `VaultReactions` a `reactions` prop
+   * that already agrees with what its own `useOptimistic` predicted.
+   *
+   * Without this, `reactions` never changes after the initial `unlockVault`
+   * fetch — the vault page is client-only and one-shot, unlike the main
+   * book's chapter pages, so there's no server re-render to revalidate into.
+   * `useOptimistic` reconciles its optimistic value against this same `items`
+   * state as its "base" the moment the transition settles; if the base is
+   * still the pre-click reaction, that's what briefly flashes back before the
+   * next interaction happens to paper over it. See the log entry on this fix.
+   */
+  function updateReaction(itemId: string, emoji: string | null) {
+    setItems((current) =>
+      current.map((item) => {
+        if (item.id !== itemId) return item;
+        const withoutMine = item.reactions.filter((r) => r.userId !== currentUserId);
+        const reactions =
+          emoji && currentUserId
+            ? [...withoutMine, { vaultItemId: itemId, userId: currentUserId, emoji }]
+            : withoutMine;
+        return { ...item, reactions };
+      }),
+    );
+  }
+
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 pb-24 pt-8">
       <Link
@@ -144,6 +171,7 @@ export function VaultGrid({
               currentUserId={currentUserId}
               onSelect={() => openLightbox(item)}
               onRemove={() => setPendingRemoveId(item.id)}
+              onReactionChange={(emoji) => updateReaction(item.id, emoji)}
             />
           ))}
         </div>

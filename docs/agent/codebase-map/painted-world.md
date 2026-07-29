@@ -53,7 +53,7 @@ read as one painting rather than as assembled parts.
 | The tree with the swing | `paint/BigTree.tsx` |
 | Meadow, flowers, pollen | `paint/Meadow.tsx` |
 | Framing boughs | `paint/FramingBoughs.tsx` |
-| Creatures | `paint/LivingThings.tsx` |
+| Creatures (incl. the flying coffee cup) | `paint/LivingThings.tsx` |
 | Paper texture and bloom | `paint/GrainOverlay.tsx` |
 
 Generation lives in `lib/ambient/` (invariant: no logic outside `lib/`):
