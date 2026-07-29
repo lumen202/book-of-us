@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
+import { useCloseOnBack } from "@/lib/navigation/useCloseOnBack";
 
 /**
  * The photograph on its own, filling the screen.
@@ -35,6 +36,10 @@ export function PhotoLightbox({
   onClose: () => void;
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Its own layer on top of the detail modal's — back closes just the photo
+  // first, the same way Escape already does (see MemoryDetail).
+  useCloseOnBack(onClose);
 
   useEffect(() => {
     closeButtonRef.current?.focus();

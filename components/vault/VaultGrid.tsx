@@ -7,6 +7,7 @@ import {
   getVaultItemFullUrl,
   removeVaultItem,
 } from "@/app/(app)/vault/actions";
+import { useCloseOnBack } from "@/lib/navigation/useCloseOnBack";
 import { uploadVaultMedia } from "@/lib/vault/uploadVaultMedia";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { VaultCard } from "@/components/vault/VaultCard";
@@ -177,25 +178,7 @@ export function VaultGrid({
         </div>
       )}
 
-      {lightbox && (
-        <div
-          role="dialog"
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-6"
-          onClick={() => setLightbox(null)}
-        >
-          {lightbox.url ? (
-            <img
-              src={lightbox.url}
-              alt=""
-              className="max-h-full max-w-full rounded-lg object-contain"
-              onClick={(event) => event.stopPropagation()}
-            />
-          ) : (
-            <p className="text-sm uppercase tracking-[0.2em] text-surface">Loading…</p>
-          )}
-        </div>
-      )}
+      {lightbox && <VaultLightbox url={lightbox.url} onClose={() => setLightbox(null)} />}
 
       {pendingRemoveId && (
         <ConfirmDialog
@@ -206,6 +189,31 @@ export function VaultGrid({
           onConfirm={confirmRemove}
           onCancel={() => setPendingRemoveId(null)}
         />
+      )}
+    </div>
+  );
+}
+
+/** Its own component so it only claims a history entry while it's actually mounted — see `useCloseOnBack`. */
+function VaultLightbox({ url, onClose }: { url: string | null; onClose: () => void }) {
+  useCloseOnBack(onClose);
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/70 p-6"
+      onClick={onClose}
+    >
+      {url ? (
+        <img
+          src={url}
+          alt=""
+          className="max-h-full max-w-full rounded-lg object-contain"
+          onClick={(event) => event.stopPropagation()}
+        />
+      ) : (
+        <p className="text-sm uppercase tracking-[0.2em] text-surface">Loading…</p>
       )}
     </div>
   );

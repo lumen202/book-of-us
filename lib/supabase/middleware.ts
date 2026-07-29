@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { recordPartnerVisit, VISIT_COOKIE } from "@/lib/visits/mutations";
 
 /**
  * Refreshes the Supabase session on every request and gates every route
@@ -46,6 +47,16 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
     return NextResponse.redirect(url);
+  }
+
+  if (user) {
+    const alreadyMarkedThisSession = request.cookies.has(VISIT_COOKIE);
+    const recorded = await recordPartnerVisit(supabase, user.email, alreadyMarkedThisSession);
+    if (recorded) {
+      // No maxAge — a session cookie, cleared when the browser itself closes,
+      // which is what makes this mean "a new sitting" rather than every page.
+      supabaseResponse.cookies.set(VISIT_COOKIE, "1", { path: "/" });
+    }
   }
 
   return supabaseResponse;

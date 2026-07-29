@@ -12,6 +12,7 @@ import { CelebrationControls } from "@/components/dev/CelebrationControls";
 export const ADMIN_LINKS = [
   { href: "/archive", label: "Removed" },
   { href: "/keeper/passwords", label: "Passwords" },
+  { href: "/keeper/visits", label: "Visits" },
 ];
 
 export function AdminMenuItems({ onNavigate }: { onNavigate?: () => void }) {
