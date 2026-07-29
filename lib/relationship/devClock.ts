@@ -2,9 +2,10 @@
  * The app's notion of "today" — real time, with a dev-only escape hatch.
  *
  * `relationship.started_at` is 2026-06-05, so the first monthsary (2026-07-05)
- * is already behind the real calendar date, and chapter gating
- * (`getElapsedMonthsaries`) needs no help from a fixed anchor any more — the
- * real clock already demonstrates one unlocked chapter today. (An earlier
+ * is already behind the real calendar date, and chapter gating (calendar-
+ * month reveal in `lib/chapters/queries.ts`'s `listRevealedChapters`) needs no
+ * help from a fixed anchor any more — the real clock already demonstrates one
+ * unlocked chapter today. (An earlier
  * version of this file *did* pin a fixed date, back when the seeded start was
  * 2026-07-05 and the first monthsary hadn't happened yet locally. That's gone
  * now that the start date moved earlier — nothing to preview ahead of.)

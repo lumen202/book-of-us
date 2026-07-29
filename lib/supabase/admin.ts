@@ -14,8 +14,12 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  * Rules for touching this file:
  *
  * - Only ever import it from a Server Action or Route Handler that has already
- *   called `requireAdmin()`. Never from a Server Component that renders for
- *   any signed-in user, and never from anything under `components/`.
+ *   called `requireAdmin()` — or, for the one context with no signed-in user
+ *   at all, a Route Handler gated on the `CRON_SECRET` shared secret instead
+ *   (`app/api/cron/create-chapter/route.ts`; see `lib/chapters/mutations.ts`
+ *   for why chapter creation needs this client). Never from a Server
+ *   Component that renders for any signed-in user, and never from anything
+ *   under `components/`.
  * - `server-only` above makes an accidental client import a build error rather
  *   than a leaked key.
  * - Anything that isn't a permanent delete belongs on `lib/supabase/server.ts`,

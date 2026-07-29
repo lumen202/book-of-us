@@ -60,9 +60,13 @@ conditional render would hydrate differently than it server-rendered.
 own `StorybookSky` shows through it, and `HomeCover` veils the shelf rather than covering the
 world. Beats: `arriving` → `sealed` → `letter` → `review` → `whisper` → `revealed`.
 
-`review` is the look back — this month's photographs, one at a time, as mounted album prints
-(`art/MonthInReview.tsx`). `revealed` fires one heart firework (`art/HeartFirework.tsx`) on the
-greeting. One, not a volley — see that file for why.
+`review` is the look back — **last** month's photographs, one at a time, as mounted album prints
+(`art/MonthInReview.tsx`), never the current calendar month's even though it's already on the
+shelf (chapters are created and revealed on the 1st now — see
+`codebase-map/reading-experience.md` — so the current month may already hold a few days of photos
+by the 5th; `findLookBackPrints` in `lib/memories/queries.ts` explicitly excludes it so those can't
+leak into the celebration for the month that just finished). `revealed` fires one heart firework
+(`art/HeartFirework.tsx`) on the greeting. One, not a volley — see that file for why.
 
 ## Previewing it on any other day
 
@@ -76,3 +80,10 @@ Flipping only the localStorage override turns the ceremony on client-side while 
 believing it is an ordinary day, sends no photographs — and the look-back beat skips itself
 silently, which looks exactly like the feature not existing. This cost a debugging round; don't
 reintroduce it.
+
+**Previewing also disables the current-month exclusion.** `findLookBackPrints` normally refuses to
+look back at the current calendar month (see `reading-experience.md`) so a real celebration can't
+show an in-progress month as if it were the finished one. But the preview button is used precisely
+*before* a real "last month" exists — its whole purpose is showing photos just added to the
+current month — so `app/(app)/page.tsx` passes `excludeCurrentMonth: !previewing`, turning that
+protection off only for the manual preview path.

@@ -2,30 +2,46 @@
 
 How a chapter is read, and how photos get in and out of it.
 
-## Chapters unlock one per monthsary
+## Chapters are created on the 1st, revealed the moment they exist
 
-Chapter one is the month the relationship started (`relationship.started_at`) — visible from day
-one, not gated behind waiting for a monthsary to pass. Each monthsary after that unlocks one more,
-oldest-first. The total unlocked is `getElapsedMonthsaries(relationship.started_at, now) + 1`
-(`lib/relationship/nextChapter.ts` for `getElapsedMonthsaries`, `lib/chapters/queries.ts` for the
-`+ 1`) — `getElapsedMonthsaries` counts how many 5ths have passed *after* the start month, day-
-of-month aware (unlike `getMonthsaryNumber` in `monthsary.ts`, which is a raw year/month
-subtraction only safe to call *on* the 5th; this one is safe on any day).
+A cron job (Vercel Cron, `vercel.json` → `app/api/cron/create-chapter/route.ts` →
+`lib/chapters/mutations.ts`'s `ensureCurrentMonthChapter`) creates the current month's chapter row
+automatically on the 1st of every month, so there's somewhere to add a photo all month — chapters
+are no longer manually inserted the way `supabase/seed.sql` does it for the seeded first chapter.
+The cron route has no signed-in user to act as, so it writes through `lib/supabase/admin.ts`'s
+service-role client rather than the normal RLS-scoped one, gated by a `CRON_SECRET` shared-secret
+header instead of a session.
 
-**A chapter's own `month` field is a label, not an unlock date.** Nothing compares it to today.
-This matters because a chapter could in principle predate the relationship's official start (a
-"how we met" backstory) — an earlier version of this seed data did exactly that and it was wrong
-for a different reason: it's confusing to see a chapter "unlock" that's dated before the
-relationship existed. The current seed has exactly one chapter, for the start month itself, titled
-with the date rather than a phrase (`"June 2026"`, not `"Where It Began"`) — see
-`supabase/seed.sql`. Future chapters get added for real as they're written, not pre-seeded
-speculatively; nothing pre-generates placeholder rows for months that haven't happened.
+**Reveal is a plain calendar check, not a monthsary count**: `lib/chapters/queries.ts`'s
+`listRevealedChapters()` shows a chapter once `chapter.month <= start of this calendar month` —
+nothing more. This used to be gated by counting elapsed monthsaries since
+`relationship.started_at` instead (one reveal per monthsary, oldest-first) — see
+`docs/agent/log/2026-07-27-chapter-gating-corrected-to-monthsary-count.md` — which existed to
+survive chapters bulk-seeded with dates arbitrarily far from "today". Now that the 1st-of-month
+cron is the only creation path, every chapter's own `month` already agrees with when it should
+reveal, so the simpler calendar check is correct: **a new month's chapter is visible on the shelf,
+and open for uploads, immediately on the 1st — not on its own monthsary.** The 5th only changes the
+*atmosphere* (Celebration Mode, see `celebration-mode.md`), not visibility.
+
+The calendar check still matters, though: it's what stops a chapter dated in the future (a
+"how we met" backstory chapter authored ahead of time, say) from leaking onto the shelf early. It's
+a real design tradeoff to keep in mind — a manually-inserted chapter dated in the past will now
+appear immediately too, since nothing paces it against monthsaries any more.
 
 `lib/chapters/queries.ts`'s `listRevealedChapters()` is the single gate: `listChapters()` (shelf)
-and `getChapterBySlug()` (direct route) both go through it, so an unlocked-later chapter is
+and `getChapterBySlug()` (direct route) both go through it, so a not-yet-revealed chapter is
 invisible on the shelf *and* 404s if its slug is guessed or bookmarked ahead of time. It's
 application-code filtering, not RLS/RPC-enforced like memory time capsules (see `data-model.md`)
 — this is pacing between two people who already see the same shared book, not a security boundary.
+
+### Celebration's look-back always skips the current month
+
+Because the current month's chapter is now visible (and uploadable) well before its own monthsary,
+it may already hold a few days of photos by the time the 5th arrives for the *previous* month's
+celebration. `lib/memories/queries.ts`'s `findLookBackPrints` explicitly filters out whatever
+chapter matches the reference date's year/month before searching for prints — see that function's
+doc comment. This is what keeps an in-progress current month from leaking into the completed
+month's look-back.
 
 ## The dev clock
 

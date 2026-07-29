@@ -1,7 +1,5 @@
 import { parseDateOnly, toLocalDate } from "@/lib/format/date";
 import { getAppNow } from "@/lib/relationship/devClock";
-import { getElapsedMonthsaries } from "@/lib/relationship/nextChapter";
-import { getRelationship } from "@/lib/relationship/queries";
 import { createClient } from "@/lib/supabase/server";
 import type { Chapter } from "./types";
 
@@ -10,39 +8,47 @@ import type { Chapter } from "./types";
  * memories lock/unlock), so a plain RLS-protected select is fine here —
  * unlike lib/memories/queries.ts, which must go through an RPC.
  *
- * They do unlock one at a time, though. Chapter 1 is the month the
- * relationship started (`relationship.started_at`) — visible from day one,
- * not gated behind waiting for a monthsary to pass — and each monthsary after
- * that unlocks one more, oldest-first: `getElapsedMonthsaries(...) + 1`
- * chapters unlocked in total. Deliberately **not** gated by comparing each
- * chapter's own `month` field to today: that field can predate the
- * relationship's official start (a "how we met" backstory chapter, say), so
- * it's a narrative label, not an unlock date. What unlocks a chapter is
- * simply being next in line.
+ * A chapter is revealed once its own calendar month has arrived —
+ * `chapter.month <= start of this calendar month` — full stop. Chapters are
+ * auto-created for the current month on its 1st (`lib/chapters/mutations.ts`
+ * + the cron route that calls it), so in the normal case this check passes
+ * the instant a chapter exists at all. It stays a real check rather than
+ * "just show everything that exists" so a chapter dated in the future (a
+ * backstory chapter authored ahead of time, say) still can't leak onto the
+ * shelf early.
+ *
+ * This used to be gated by counting elapsed monthsaries since
+ * `relationship.started_at` instead (one reveal per monthsary, oldest chapter
+ * first) — see `docs/agent/log/2026-07-27-chapter-gating-corrected-to-monthsary-count.md`.
+ * That model existed to survive bulk-seeded chapters dated arbitrarily far
+ * from "today"; now that the only creation path is the 1st-of-month cron,
+ * every chapter's own `month` already agrees with when it should reveal, so
+ * the simpler calendar check is correct and the monthsary-count machinery
+ * (`getElapsedMonthsaries`) was removed as dead code.
  *
  * Filtered here in application code rather than in SQL — this is pacing, not
  * a security boundary (both partners already see the same shared book), so
  * there's no need for the RPC-enforced pattern memories use. Both entry
- * points below go through `listRevealedChapters`, so a not-yet-unlocked
+ * points below go through `listRevealedChapters`, so a not-yet-revealed
  * chapter is invisible on the shelf *and* 404s if its slug is guessed or
  * bookmarked in advance.
  */
 
 async function listRevealedChapters(): Promise<Chapter[]> {
   const supabase = await createClient();
-  const [{ data, error }, relationship] = await Promise.all([
-    supabase.from("chapters").select("*").is("deleted_at", null).order("month", { ascending: true }),
-    getRelationship(),
-  ]);
+  const { data, error } = await supabase
+    .from("chapters")
+    .select("*")
+    .is("deleted_at", null)
+    .order("month", { ascending: true });
 
   if (error) throw error;
-  if (!relationship) return []; // no start date yet — nothing has unlocked
 
-  const oldestFirst = (data ?? []) as Chapter[];
-  // +1: the start month itself is chapter one, on day one — it doesn't wait
-  // for a monthsary. getElapsedMonthsaries only counts monthsaries *after* that.
-  const unlockedCount = getElapsedMonthsaries(toLocalDate(relationship.started_at), getAppNow()) + 1;
-  return oldestFirst.slice(0, unlockedCount);
+  const now = getAppNow();
+  const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  return ((data ?? []) as Chapter[]).filter(
+    (chapter) => toLocalDate(chapter.month) <= startOfCurrentMonth,
+  );
 }
 
 export async function listChapters(): Promise<Chapter[]> {

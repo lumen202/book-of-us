@@ -6,6 +6,8 @@ not an edit to an old one.
 
 | Date | Title | File |
 |---|---|---|
+| 2026-07-29 | Preview button broke under the current-month look-back exclusion | [`2026-07-29-preview-button-broke-under-current-month-exclusion.md`](2026-07-29-preview-button-broke-under-current-month-exclusion.md) |
+| 2026-07-29 | Chapters auto-created on the 1st, decoupled from Celebration Mode | [`2026-07-29-auto-chapter-creation-decoupled-from-celebration.md`](2026-07-29-auto-chapter-creation-decoupled-from-celebration.md) |
 | 2026-07-29 | Coffee mug/creature in the garden, header night-mode icon toggle | [`2026-07-29-coffee-easter-eggs.md`](2026-07-29-coffee-easter-eggs.md) |
 | 2026-07-28 | Bucket list implemented, plus caption/comment editing | [`2026-07-28-bucket-list-and-inline-editing.md`](2026-07-28-bucket-list-and-inline-editing.md) |
 | 2026-07-28 | Ambient life density — the stagger, not the cadence | [`2026-07-28-ambient-life-density.md`](2026-07-28-ambient-life-density.md) |

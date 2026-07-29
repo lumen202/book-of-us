@@ -27,7 +27,7 @@ export function ClosingReflection({
       ? "The next chapter arrives today."
       : daysUntilNextChapter === 1
         ? "The next chapter arrives tomorrow."
-        : `The next chapter arrives on the 5th — ${nextChapterLabel}.`;
+        : `The next chapter arrives on the 1st — ${nextChapterLabel}.`;
 
   return (
     <motion.section

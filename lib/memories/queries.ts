@@ -1,3 +1,5 @@
+import { toLocalDate } from "@/lib/format/date";
+import { getAppNow } from "@/lib/relationship/devClock";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/storage/getSignedUrl";
 import type { Memory } from "./types";
@@ -175,26 +177,54 @@ export async function getChapterPrints(chapterId: string, limit = 7) {
 }
 
 /**
- * Photographs for Celebration Mode's look back — this month's if there are any,
- * otherwise the most recent month that has some.
+ * Photographs for Celebration Mode's look back — last month's if there are
+ * any, otherwise the most recent month before that which has some.
  *
- * The fallback is the point. The ceremony's look-back beat is the emotional
- * centre of the 5th, and gating it on "did anyone add a photo since the last
- * monthsary" means it silently disappears in exactly the months when the book
- * has been quiet — which are the months someone most needs to be shown that the
- * thing is still there. An older photograph is a far better answer than no beat
- * at all.
+ * **On a real celebration, never the current calendar month, even though
+ * it's on the shelf by now.** Chapters are created and made visible on the
+ * 1st (see `lib/chapters/queries.ts`), well before their own monthsary — so
+ * on any given real 5th, the current month's chapter may already hold four
+ * or five days of photos nobody has "finished" adding for the month yet.
+ * Showing those in the same celebration that's supposed to be looking back
+ * at *last* month would leak an in-progress month into a completed one. So
+ * by default this skips whatever chapter matches `now`'s year/month before
+ * looking for prints, regardless of what `chapters` contains.
  *
- * Bounded to `depth` chapters so a long-dormant book cannot turn one page load
- * into a walk back through years of empty months.
+ * **`excludeCurrentMonth: false` for the dev/admin preview button.** That
+ * button plays the ceremony on an arbitrary day, usually *before* a real
+ * "last month" with photos exists — the entire point of previewing early is
+ * to see photos just added to the current, in-progress month. Excluding it
+ * there would make the preview show nothing (or a stale older month) instead
+ * of what was actually just added, which defeats the button. The exclusion
+ * exists to protect the automatic real celebration, not manual preview.
+ *
+ * The fallback past the current-month exclusion is the point of the rest of
+ * the search. The ceremony's look-back beat is the emotional centre of the
+ * 5th, and gating it on "did anyone add a photo last month" means it
+ * silently disappears in exactly the months when the book has been quiet —
+ * which are the months someone most needs to be shown that the thing is
+ * still there. An older photograph is a far better answer than no beat at
+ * all.
+ *
+ * Bounded to `depth` eligible chapters so a long-dormant book cannot turn one
+ * page load into a walk back through years of empty months.
  *
  * `chapters` must be newest-first, which is what `listChapters()` returns.
  */
 export async function findLookBackPrints(
-  chapters: { id: string }[],
+  chapters: { id: string; month: string }[],
   depth = 4,
+  { now = getAppNow(), excludeCurrentMonth = true }: { now?: Date; excludeCurrentMonth?: boolean } = {},
 ): Promise<Awaited<ReturnType<typeof getChapterPrints>>> {
-  for (const chapter of chapters.slice(0, depth)) {
+  const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
+  const eligible = excludeCurrentMonth
+    ? chapters.filter((chapter) => {
+        const chapterDate = toLocalDate(chapter.month);
+        return `${chapterDate.getFullYear()}-${chapterDate.getMonth()}` !== currentMonthKey;
+      })
+    : chapters;
+
+  for (const chapter of eligible.slice(0, depth)) {
     const prints = await getChapterPrints(chapter.id);
     if (prints.length > 0) return prints;
   }
