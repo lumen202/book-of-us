@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { editMemoryCaption, loadMemoryFullUrl } from "@/app/(app)/chapters/[slug]/actions";
+import { useCloseOnBack } from "@/lib/navigation/useCloseOnBack";
 import { PhotoLightbox } from "./PhotoLightbox";
 import type { Comment } from "@/lib/comments/types";
 import { formatFullDate } from "@/lib/format/date";
@@ -32,6 +33,11 @@ export function MemoryDetail({
 }) {
   const router = useRouter();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
+
+  // This modal is only ever mounted while it's open (see MemoryGrid), so it
+  // can claim a history entry for its whole lifetime — back closes it instead
+  // of leaving the chapter page it was opened over.
+  useCloseOnBack(onClose);
 
   const [editingCaption, setEditingCaption] = useState(false);
   const [captionDraft, setCaptionDraft] = useState(memory.title);
