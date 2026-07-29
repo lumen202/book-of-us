@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/create-chapter",
+      "schedule": "0 0 1 * *"
+    }
+  ]
+}

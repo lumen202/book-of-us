@@ -49,7 +49,13 @@ export default async function HomePage({
   const nextChapterDate = getNextChapterDate(now);
 
   /**
-   * This month's photographs, for the ceremony's look back.
+   * Last month's photographs, for the ceremony's look back (never the current
+   * calendar month's on a *real* celebration — see `findLookBackPrints` for
+   * why that chapter is excluded even though it's already on the shelf by the
+   * 5th). Previewing is the deliberate exception: `excludeCurrentMonth: false`
+   * below, because the preview button is used *before* a real "last month"
+   * exists — the whole point is seeing photos just added to the current,
+   * in-progress month, not last month's.
    *
    * Not fetched on every visit: it costs a signed Storage URL per print, and 29
    * days in 30 nobody will see them. So it is gated on the same question the
@@ -68,12 +74,13 @@ export default async function HomePage({
    * with it — to see this beat.
    *
    * `listChapters()` is newest-first, which is the order `findLookBackPrints`
-   * needs: this month if it has photographs, else the most recent month that
-   * does.
+   * needs.
    */
   const previewing = params.celebrate === "1";
   const monthPrints =
-    isCelebrationDay(now) || previewing ? await findLookBackPrints(chapters) : [];
+    isCelebrationDay(now) || previewing
+      ? await findLookBackPrints(chapters, undefined, { excludeCurrentMonth: !previewing })
+      : [];
 
   return (
     <HomeCover
