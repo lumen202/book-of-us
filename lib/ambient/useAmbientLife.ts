@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 
 /**
  * The things that live here: butterflies, bees, birds, dragonflies, ladybugs,
- * fireflies, blossom petals and leaves.
+ * fireflies, blossom petals, leaves, and flying coffee cups — as common as
+ * the butterflies, not a rare sighting.
  *
  * The point of this hook is what it *refuses* to do. An infinite CSS animation
  * gives you a butterfly every N seconds forever, and a viewer works out the
@@ -44,7 +45,8 @@ export type LifeKind =
   | "ladybug"
   | "firefly"
   | "petal"
-  | "leaf";
+  | "leaf"
+  | "coffee";
 
 export type Waypoint = { x: number; y: number };
 
@@ -84,10 +86,10 @@ export type LifeEvent = {
  * start, which sounds populated and did not look it, because most of those
  * six are small, faint, and deliberately near the edges.
  *
- * The individual-rarity rule still holds for the creatures: a bird, a bee, a
- * dragonfly are events, not flocks. **Petals, leaves and butterflies are the
- * exception**, via `BURST` below — see that comment for why those three
- * specifically are allowed to cluster.
+ * The individual-rarity rule still holds for most of the creatures: a bird, a
+ * bee, a dragonfly are events, not flocks. **Petals, leaves, butterflies and
+ * coffee cups are the exception**, via `BURST` below — see that comment for
+ * why those specifically are allowed to cluster.
  */
 const CADENCE: Record<LifeKind, [number, number]> = {
   petal: [4, 10],
@@ -98,6 +100,9 @@ const CADENCE: Record<LifeKind, [number, number]> = {
   dragonfly: [20, 43],
   firefly: [26, 55],
   ladybug: [41, 89],
+  // As common as the butterflies, deliberately — this reader should see one
+  // of these on almost every visit, not stumble on it once in a while.
+  coffee: [6, 14],
 };
 
 /**
@@ -112,12 +117,15 @@ const CADENCE: Record<LifeKind, [number, number]> = {
  * reads as a breeze actually moving through the garden. Butterflies get the
  * same treatment in miniature — a pair drifting past each other is a much
  * livelier thing than the same two arriving eleven seconds apart ever was —
- * capped at 2 so it stays a pair, not a hatch.
+ * capped at 2 so it stays a pair, not a hatch. Coffee cups get the same
+ * treatment for the same reason — one at a time reads as a single sighting,
+ * a pair drifting past together reads as a small population.
  */
 const BURST: Partial<Record<LifeKind, [number, number]>> = {
   petal: [1, 3],
   leaf: [1, 2],
   butterfly: [1, 2],
+  coffee: [1, 2],
 };
 
 function burstCount(kind: LifeKind): number {
@@ -142,11 +150,14 @@ function burstCount(kind: LifeKind): number {
  * butterflies were on screen. So there is nothing here for a phone to be
  * spared from.
  *
- * Sized with headroom above the steady-state estimate (~22, mostly petals and
- * leaves now that they burst) rather than snug against it, so a burst landing
- * while other kinds are already mid-crossing doesn't get silently clipped.
+ * Sized with headroom above the steady-state estimate rather than snug
+ * against it, so a burst landing while other kinds are already mid-crossing
+ * doesn't get silently clipped. Petals and leaves account for most of it
+ * (~22, now that they burst); raised again when `coffee` was made as common
+ * as the butterflies and given the same burst treatment, which adds several
+ * more long-lived (26-44s) creatures to the steady state.
  */
-const MAX_CONCURRENT = 26;
+const MAX_CONCURRENT = 34;
 
 /** Five waypoints wandering across the frame, with the vertical meander scaled
  *  by `amplitude` and the whole thing biased in the direction of travel. */
@@ -247,6 +258,18 @@ function spawn(kind: LifeKind, id: number): LifeEvent {
         spin: (r() < 0.5 ? -1 : 1) * (180 + r() * 620),
       };
 
+    case "coffee":
+      // Wanders like a butterfly, but higher and lazier — a cup has nowhere
+      // to be. Frequent by design, not a rarity — see CADENCE.
+      return {
+        ...base, motion: "wander",
+        top: 40 + r() * 30,
+        scale: 0.7 + r() * 0.4,
+        duration: 26 + r() * 18,
+        route: route(direction, 4 + r() * 6, (r() - 0.55) * 12),
+        opacity: 0.7 + r() * 0.25,
+      };
+
     case "petal":
     default:
       return {
@@ -330,6 +353,7 @@ export function useAmbientLife(): LifeEvent[] {
      */
     schedule("petal", 0.4 + Math.random() * 1.4);
     schedule("butterfly", 1 + Math.random() * 2);
+    schedule("coffee", 1.8 + Math.random() * 2.4);
     schedule("bee", 2.5 + Math.random() * 3.5);
     schedule("bird", 3 + Math.random() * 4);
     schedule("leaf", 6 + Math.random() * 7);

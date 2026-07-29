@@ -480,6 +480,26 @@ body {
   }
 }
 
+/* Steam off the mug on the bench. Deliberately tiny next to mote-rise (14px,
+   not 86vh) and looping rather than a single crossing — steam off a hot cup
+   doesn't stop. */
+@keyframes steam-curl {
+  0% {
+    transform: translate3d(0, 0, 0) scale(0.7);
+    opacity: 0;
+  }
+  22% {
+    opacity: 0.5;
+  }
+  70% {
+    opacity: 0.25;
+  }
+  100% {
+    transform: translate3d(0, -14px, 0) scale(1.15);
+    opacity: 0;
+  }
+}
+
 /*
  * One crossing of the frame by one bird, butterfly, petal or leaf.
  *
