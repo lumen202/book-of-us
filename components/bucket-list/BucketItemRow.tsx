@@ -65,6 +65,7 @@ export function BucketItemRow({
   item,
   memoryLink,
   isCompleting,
+  currentUserId,
   onTick,
   onReopen,
   onAttachPhoto,
@@ -76,6 +77,8 @@ export function BucketItemRow({
   memoryLink: { chapterSlug: string; chapterTitle: string } | null;
   /** True while the completion modal is open (or working) for this item. */
   isCompleting: boolean;
+  /** Whose promise this is shows as "you" / "your partner" — see `MemoryCard` for why not a name. */
+  currentUserId: string | null;
   onTick: () => void;
   onReopen: () => void;
   onAttachPhoto: () => void;
@@ -83,6 +86,11 @@ export function BucketItemRow({
   onAskRemove: () => void;
 }) {
   const isDone = item.status === "done";
+  const addedBy = item.createdBy && (
+    <span className="normal-case tracking-normal text-ink-muted">
+      · added by {item.createdBy === currentUserId ? "you" : "your partner"}
+    </span>
+  );
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(item.title);
   const [note, setNote] = useState(item.note ?? "");
@@ -179,22 +187,25 @@ export function BucketItemRow({
           <p className="font-serif text-lg italic leading-snug text-ink-muted line-through decoration-border">
             {item.title}
           </p>
-          {memoryLink ? (
-            <Link
-              href={`/chapters/${memoryLink.chapterSlug}`}
-              className="text-[11px] uppercase tracking-[0.2em] text-accent underline decoration-border underline-offset-4 transition hover:text-ink"
-            >
-              there&apos;s a photograph
-            </Link>
-          ) : (
-            <button
-              type="button"
-              onClick={onAttachPhoto}
-              className="text-[11px] uppercase tracking-[0.2em] text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink"
-            >
-              add the photograph when you find it
-            </button>
-          )}
+          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] uppercase tracking-[0.2em]">
+            {memoryLink ? (
+              <Link
+                href={`/chapters/${memoryLink.chapterSlug}`}
+                className="text-accent underline decoration-border underline-offset-4 transition hover:text-ink"
+              >
+                there&apos;s a photograph
+              </Link>
+            ) : (
+              <button
+                type="button"
+                onClick={onAttachPhoto}
+                className="text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink"
+              >
+                add the photograph when you find it
+              </button>
+            )}
+            {addedBy}
+          </div>
         </div>
         <RemoveButton label={`Remove "${item.title}" from the list`} onClick={onAskRemove} />
       </motion.div>
@@ -228,6 +239,9 @@ export function BucketItemRow({
           {item.title}
         </p>
         {item.note && <p className="mt-0.5 text-sm text-ink-muted">({item.note})</p>}
+        {addedBy && (
+          <p className="mt-0.5 text-[11px] uppercase tracking-[0.2em]">{addedBy}</p>
+        )}
       </button>
       <RemoveButton label={`Remove "${item.title}" from the list`} onClick={onAskRemove} />
     </motion.div>
