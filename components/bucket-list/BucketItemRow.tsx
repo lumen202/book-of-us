@@ -216,9 +216,9 @@ export function BucketItemRow({
       <span className="mt-1.5 h-4 w-4 shrink-0 text-ink-muted">
         <CategoryGlyph category={item.category} className="h-4 w-4" />
       </span>
-      {/* The whole line is the edit target — same "tap it, it becomes an
-          input" pattern as AddPromiseLine, rather than a gesture (long-press)
-          that turned out to be hard to find on a desktop pointer. */}
+      {/* The whole line is the edit target — tap it, it becomes an input,
+          rather than a gesture (long-press) that turned out to be hard to
+          find on a desktop pointer. */}
       <button
         type="button"
         onClick={startEditing}
@@ -227,7 +227,7 @@ export function BucketItemRow({
         <p className="font-serif text-lg italic leading-snug text-ink underline decoration-transparent decoration-2 underline-offset-4 transition hover:decoration-border">
           {item.title}
         </p>
-        {item.note && <p className="mt-0.5 text-sm text-ink-muted">{item.note}</p>}
+        {item.note && <p className="mt-0.5 text-sm text-ink-muted">({item.note})</p>}
       </button>
       <RemoveButton label={`Remove "${item.title}" from the list`} onClick={onAskRemove} />
     </motion.div>
