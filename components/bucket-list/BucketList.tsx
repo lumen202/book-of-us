@@ -26,9 +26,11 @@ import { CompletionModal } from "./CompletionModal";
 export function BucketList({
   items,
   memoryLinks,
+  currentUserId,
 }: {
   items: BucketListItem[];
   memoryLinks: MemoryChapterLink[];
+  currentUserId: string | null;
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -118,6 +120,7 @@ export function BucketList({
                     item={item}
                     memoryLink={null}
                     isCompleting={completingId === item.id}
+                    currentUserId={currentUserId}
                     onTick={() => setCompletingId(item.id)}
                     onReopen={() => {}}
                     onAttachPhoto={() => {}}
@@ -166,6 +169,7 @@ export function BucketList({
                         item={item}
                         memoryLink={item.memoryId ? linksByMemory.get(item.memoryId) ?? null : null}
                         isCompleting={false}
+                        currentUserId={currentUserId}
                         onTick={() => {}}
                         onReopen={() => handleReopen(item.id)}
                         onAttachPhoto={() => setAttachingId(item.id)}

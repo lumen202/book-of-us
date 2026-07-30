@@ -4,6 +4,7 @@ import { listBucketItems } from "@/lib/bucket-list/queries";
 import { getMemoryChapterLinks } from "@/lib/memories/queries";
 import { getAppNow } from "@/lib/relationship/devClock";
 import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
+import { createClient } from "@/lib/supabase/server";
 import { BucketList } from "@/components/bucket-list/BucketList";
 import { ClosingReflection } from "@/components/story/ClosingReflection";
 
@@ -22,7 +23,11 @@ export default async function BucketListPage() {
   const memoryIds = items
     .map((item) => item.memoryId)
     .filter((id): id is string => Boolean(id));
-  const memoryLinks = await getMemoryChapterLinks(memoryIds);
+  const [memoryLinks, auth] = await Promise.all([
+    getMemoryChapterLinks(memoryIds),
+    createClient().then((supabase) => supabase.auth.getUser()),
+  ]);
+  const currentUserId = auth.data.user?.id ?? null;
 
   const now = getAppNow();
   const nextChapterDate = getNextChapterDate(now);
@@ -51,7 +56,7 @@ export default async function BucketListPage() {
           </p>
         </section>
 
-        <BucketList items={items} memoryLinks={memoryLinks} />
+        <BucketList items={items} memoryLinks={memoryLinks} currentUserId={currentUserId} />
       </main>
 
       <ClosingReflection
