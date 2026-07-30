@@ -7,7 +7,7 @@ import { editPromise, removePromise, reopenPromise } from "@/app/(app)/bucket-li
 import type { BucketListItem, BucketCategory } from "@/lib/bucket-list/types";
 import type { MemoryChapterLink } from "@/lib/memories/queries";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { AddPromiseLine } from "./AddPromiseLine";
+import { AddPromiseModal } from "./AddPromiseModal";
 import { BucketItemRow } from "./BucketItemRow";
 import { CompletionModal } from "./CompletionModal";
 
@@ -37,6 +37,7 @@ export function BucketList({
   const [attachingId, setAttachingId] = useState<string | null>(null);
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
+  const [adding, setAdding] = useState(false);
 
   const linksByMemory = useMemo(() => {
     const map = new Map<string, { chapterSlug: string; chapterTitle: string }>();
@@ -129,7 +130,21 @@ export function BucketList({
           )}
 
           <div className="py-1">
-            <AddPromiseLine />
+            <button
+              type="button"
+              onClick={() => setAdding(true)}
+              className="group flex w-full items-center gap-3 py-2 text-left focus-visible:outline-none"
+            >
+              <span
+                aria-hidden
+                className="text-lg leading-none text-ink-muted transition group-hover:text-accent"
+              >
+                +
+              </span>
+              <span className="font-serif text-lg italic text-ink-muted transition group-hover:text-ink">
+                and one day, we&apos;ll…
+              </span>
+            </button>
           </div>
 
           {done.length > 0 && (
@@ -202,6 +217,17 @@ export function BucketList({
             busy={removing}
             onConfirm={confirmRemoval}
             onCancel={() => !removing && setPendingRemovalId(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {adding && (
+          <AddPromiseModal
+            onClose={() => {
+              setAdding(false);
+              router.refresh();
+            }}
           />
         )}
       </AnimatePresence>

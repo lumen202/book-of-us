@@ -22,7 +22,7 @@ export type CompletionPhoto = {
 };
 
 /**
- * Adding a promise. One line, one tap — see `components/bucket-list/AddPromiseLine.tsx`.
+ * Adding a promise — see `components/bucket-list/AddPromiseModal.tsx`.
  * New promises go to the end of the open list.
  */
 export async function addItem(input: {
