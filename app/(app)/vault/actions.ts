@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { getActiveProjectFromCookies } from "@/lib/supabase/project.server";
 import { getVaultSignedUrl } from "@/lib/vault/getVaultSignedUrl";
 import { insertVaultItem, softDeleteVaultItem, type NewVaultItemInput } from "@/lib/vault/mutations";
 import { listVaultItems } from "@/lib/vault/queries";
@@ -42,6 +43,37 @@ export async function unlockVault(
 
   const items = await listVaultItems();
   return { ok: true, items, currentUserId: user.id };
+}
+
+/**
+ * The demo's own front door into the vault — no password to hand out for a
+ * public/portfolio visit, so this signs in with `DEMO_ACCOUNT_EMAIL`/
+ * `PASSWORD` itself (server-only, same credentials `/demo`'s own route
+ * already uses) instead of asking a stranger for one. Refuses outright
+ * unless `bou_project` is already `"demo"` — this can't become a backdoor
+ * for the real vault no matter what a client sends, since a real session
+ * never has that cookie set.
+ */
+export async function unlockVaultAsDemo(
+  _prevState: UnlockResult | null,
+  _formData: FormData,
+): Promise<UnlockResult> {
+  const project = await getActiveProjectFromCookies();
+  if (project !== "demo") return { ok: false, message: "That's demo-only." };
+
+  const email = process.env.DEMO_ACCOUNT_EMAIL;
+  const password = process.env.DEMO_ACCOUNT_PASSWORD;
+  if (!email || !password) return { ok: false, message: "The demo isn't set up yet." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) return { ok: false, message: "Could not open the demo vault." };
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const items = await listVaultItems();
+  return { ok: true, items, currentUserId: user?.id ?? null };
 }
 
 export async function addVaultItem(input: NewVaultItemInput): Promise<void> {

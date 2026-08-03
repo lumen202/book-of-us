@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { unlockVault } from "@/app/(app)/vault/actions";
+import { unlockVault, unlockVaultAsDemo } from "@/app/(app)/vault/actions";
 import { VaultGrid } from "@/components/vault/VaultGrid";
 
 /**
@@ -11,13 +11,21 @@ import { VaultGrid } from "@/components/vault/VaultGrid";
  * persists the unlocked state anywhere (no storage, just React state that
  * resets on remount). See `unlockVault`'s own comment for why this is a UX
  * gate rather than a second security boundary.
+ *
+ * `isDemo` adds a second, password-free way through — there's no login
+ * password to hand a demo visitor, and asking for one would just be a dead
+ * end for the one audience this page is public for. See
+ * `unlockVaultAsDemo`'s own comment for why that button can't unlock the
+ * real vault no matter what.
  */
-export function VaultGate() {
+export function VaultGate({ isDemo = false }: { isDemo?: boolean }) {
   const [state, formAction, pending] = useActionState(unlockVault, null);
+  const [demoState, demoFormAction, demoPending] = useActionState(unlockVaultAsDemo, null);
   const [showPassword, setShowPassword] = useState(false);
 
-  if (state?.ok) {
-    return <VaultGrid initialItems={state.items} currentUserId={state.currentUserId} />;
+  const unlocked = state?.ok ? state : demoState?.ok ? demoState : null;
+  if (unlocked) {
+    return <VaultGrid initialItems={unlocked.items} currentUserId={unlocked.currentUserId} />;
   }
 
   return (
@@ -83,6 +91,31 @@ export function VaultGate() {
           {pending ? "Checking…" : "Unlock"}
         </button>
       </form>
+
+      {isDemo && (
+        <>
+          <div className="flex w-full items-center gap-3 text-[11px] uppercase tracking-[0.2em] text-ink-muted/60">
+            <span className="h-px flex-1 bg-border" aria-hidden />
+            or
+            <span className="h-px flex-1 bg-border" aria-hidden />
+          </div>
+
+          <form action={demoFormAction} className="flex w-full flex-col gap-2">
+            <button
+              type="submit"
+              disabled={demoPending}
+              className="w-full cursor-pointer rounded-full border border-accent px-5 py-2.5 text-[11px] uppercase tracking-[0.22em] text-accent transition hover:bg-accent hover:text-surface disabled:cursor-default disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              {demoPending ? "Opening…" : "Peek inside — no password needed"}
+            </button>
+            {demoState && !demoState.ok && (
+              <p role="alert" className="text-center text-sm text-red-600">
+                {demoState.message}
+              </p>
+            )}
+          </form>
+        </>
+      )}
     </div>
   );
 }

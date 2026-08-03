@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/admin";
+import { getActiveProjectFromCookies } from "@/lib/supabase/project.server";
 
 export type PasswordActionState = { status: "success" | "error"; message: string } | null;
 
@@ -38,9 +39,21 @@ export async function changeMyPassword(
   return { status: "success", message: "Your password has been changed." };
 }
 
-/** Admin-only lookup so the settings page can label whose password the form below changes. */
+/**
+ * Admin-only lookup so the settings page can label whose password the form
+ * below changes.
+ *
+ * **Never for the demo account.** `auth.users` is global — not scoped by
+ * Postgres schema the way every other table is (see
+ * `lib/supabase/project.ts`) — so `listUsers()` here would otherwise return
+ * the *real* couple's accounts too, and hand a demo visitor a real email
+ * address. There is no legitimate "partner" for a lone demo account anyway,
+ * so this refuses outright rather than trying to filter the real accounts
+ * back out of a list that should never have been fetched for this session.
+ */
 export async function getPartnerEmail(): Promise<string | null> {
   await requireAdmin();
+  if ((await getActiveProjectFromCookies()) === "demo") return null;
 
   const supabase = await createClient();
   const {
@@ -63,6 +76,15 @@ export async function changePartnerPassword(
   formData: FormData,
 ): Promise<PasswordActionState> {
   await requireAdmin();
+
+  // Same reasoning as `getPartnerEmail`: `auth.users` is global, so without
+  // this the demo account — which is admin/keeper by design (see
+  // `ADMIN_USERNAMES`) — could overwrite a *real* account's actual sign-in
+  // password. The demo has no partner to manage a password for in the first
+  // place, so this refuses before ever calling `listUsers()`.
+  if ((await getActiveProjectFromCookies()) === "demo") {
+    return { status: "error", message: "Not available in the demo." };
+  }
 
   const newPassword = String(formData.get("newPassword") ?? "");
   if (newPassword.length < 8) {
