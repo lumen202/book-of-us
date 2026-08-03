@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import type { Schema } from "./project";
 
 /**
  * Service-role Supabase client. **Bypasses RLS entirely.**
@@ -24,8 +25,15 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
  *   than a leaked key.
  * - Anything that isn't a permanent delete belongs on `lib/supabase/server.ts`,
  *   where RLS still applies.
+ *
+ * `schema` defaults to `"public"` (the real project) — the safe choice for
+ * the one caller with no signed-in user at all (the cron route). Callers
+ * that already know they're acting on behalf of the demo account (
+ * `purgeMemory`/`purgeVaultItem`, `scripts/seed-demo.ts`) pass `"demo"`
+ * explicitly instead of inferring it here, since this file has no request
+ * context of its own to read `bou_project` from.
  */
-export function createAdminClient() {
+export function createAdminClient(schema: Schema = "public") {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -36,6 +44,7 @@ export function createAdminClient() {
   }
 
   return createSupabaseClient(url, serviceRoleKey, {
+    db: { schema },
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }

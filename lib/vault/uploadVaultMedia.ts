@@ -1,5 +1,6 @@
 import { downscaleImage } from "@/lib/media/downscaleImage";
 import { createClient } from "@/lib/supabase/client";
+import { resolveBucketName, resolveProjectFromDocumentCookie } from "@/lib/supabase/project";
 
 /** Matched to `lib/storage/getVaultSignedUrl.ts`'s renditions. */
 const ORIGINAL_MAX_EDGE = 1600;
@@ -23,6 +24,7 @@ export async function uploadVaultMedia(
   { itemId }: { itemId: string },
 ): Promise<UploadedVaultMedia> {
   const supabase = createClient();
+  const bucket = resolveBucketName(resolveProjectFromDocumentCookie(), "vault");
   const folder = `vault/${itemId}`;
 
   const original = await downscaleImage(file, { maxEdge: ORIGINAL_MAX_EDGE, quality: 0.85 });
@@ -36,7 +38,7 @@ export async function uploadVaultMedia(
     [thumbnailPath, thumb.blob],
   ] as const) {
     const { error } = await supabase.storage
-      .from("vault")
+      .from(bucket)
       .upload(path, blob, { contentType: blob.type, upsert: false });
     if (error) throw error;
   }

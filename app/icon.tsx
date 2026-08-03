@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { renderBookGlyph } from "@/lib/icon/bookGlyph";
 
 export const size = { width: 32, height: 32 };
 export const contentType = "image/png";
@@ -10,37 +11,10 @@ export const contentType = "image/png";
  * starter favicon. Kept as plain shapes, not the illustrated painted-world
  * style — a favicon is read at 16-32px, where brushwork and gradients wash
  * out to noise; a book and a heart are what still reads at that size.
+ *
+ * See `app/apple-icon.tsx` and `app/manifest.ts` for the larger sizes this
+ * same mark scales up to for home-screen installs.
  */
 export default function Icon() {
-  return new ImageResponse(
-    (
-      <div
-        style={{
-          width: "100%",
-          height: "100%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "#4c3b30",
-          borderRadius: 7,
-        }}
-      >
-        <div
-          style={{
-            width: 20,
-            height: 24,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            background: "#fffdf7",
-            borderRadius: "1px 3px 3px 1px",
-            borderLeft: "2px solid #e7d5bb",
-          }}
-        >
-          <span style={{ fontSize: 11, lineHeight: 1, color: "#e8a06b" }}>♥</span>
-        </div>
-      </div>
-    ),
-    { ...size },
-  );
+  return new ImageResponse(renderBookGlyph(32), { ...size });
 }

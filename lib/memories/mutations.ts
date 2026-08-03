@@ -1,6 +1,8 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveProjectFromCookies } from "@/lib/supabase/project.server";
+import { resolveBucketName, resolveSchema } from "@/lib/supabase/project";
 import type { MemoryType } from "./types";
 
 export type NewMemoryInput = {
@@ -140,7 +142,9 @@ export async function restoreMemory(id: string): Promise<void> {
 export async function purgeMemory(id: string): Promise<void> {
   await requireAdmin();
 
-  const admin = createAdminClient();
+  const project = await getActiveProjectFromCookies();
+  const admin = createAdminClient(resolveSchema(project));
+  const bucketName = resolveBucketName(project, "memories");
 
   const { data: memory, error: readError } = await admin
     .from("memories")
@@ -158,7 +162,7 @@ export async function purgeMemory(id: string): Promise<void> {
     (path): path is string => Boolean(path),
   );
   if (paths.length > 0) {
-    const { error: storageError } = await admin.storage.from("memories").remove(paths);
+    const { error: storageError } = await admin.storage.from(bucketName).remove(paths);
     if (storageError) throw storageError;
   }
 
