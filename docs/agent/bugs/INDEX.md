@@ -10,6 +10,7 @@ the code. One file per bug, created lazily — don't pre-create placeholders.
 | BUG-003 | Unpainted strip at screen bottom while scrolling on Android | fixed | [`BUG-003-android-toolbar-uncovered-strip.md`](BUG-003-android-toolbar-uncovered-strip.md) |
 | BUG-004 | Desktop inline nav reads as utility chrome, not part of the experience | fixed | [`BUG-004-desktop-nav-reads-as-utility-chrome.md`](BUG-004-desktop-nav-reads-as-utility-chrome.md) |
 | BUG-005 | Painted-world backdrop laggy on desktop, smooth on mobile | fixed, unverified | [`BUG-005-desktop-backdrop-lag.md`](BUG-005-desktop-backdrop-lag.md) |
+| BUG-006 | Android "Add to Home Screen" shortcut used a generic icon, not the app's favicon | fixed | [`BUG-006-android-shortcut-icon-not-favicon.md`](BUG-006-android-shortcut-icon-not-favicon.md) |
 
 **To file a bug:** create `BUG-NNN-short-slug.md` in this folder (sequential ID, never reused,
 even for invalidated bugs) with:

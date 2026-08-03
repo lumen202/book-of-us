@@ -1,5 +1,6 @@
 import { downscaleImage } from "./downscaleImage";
 import { createClient } from "@/lib/supabase/client";
+import { resolveBucketName, resolveProjectFromDocumentCookie } from "@/lib/supabase/project";
 
 /**
  * The largest box a photo is ever shown in — matched exactly to
@@ -43,6 +44,7 @@ export async function uploadMemoryMedia(
   { chapterId, memoryId }: { chapterId: string; memoryId: string },
 ): Promise<UploadedMemoryMedia> {
   const supabase = createClient();
+  const bucket = resolveBucketName(resolveProjectFromDocumentCookie(), "memories");
   const folder = `chapters/${chapterId}/${memoryId}`;
 
   const original = await downscaleImage(file, { maxEdge: ORIGINAL_MAX_EDGE, quality: 0.85 });
@@ -56,7 +58,7 @@ export async function uploadMemoryMedia(
     [thumbnailPath, thumb.blob],
   ] as const) {
     const { error } = await supabase.storage
-      .from("memories")
+      .from(bucket)
       .upload(path, blob, { contentType: blob.type, upsert: false });
     if (error) throw error;
   }

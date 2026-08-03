@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { getActiveProjectFromCookies } from "@/lib/supabase/project.server";
+import { resolveBucketName } from "@/lib/supabase/project";
 
 /**
  * One hour, not five minutes — and the reason is egress, not convenience.
@@ -58,7 +60,8 @@ export async function getSignedUrl(
   rendition?: ImageRendition,
 ): Promise<string | null> {
   const supabase = await createClient();
-  const bucket = supabase.storage.from("memories");
+  const bucketName = resolveBucketName(await getActiveProjectFromCookies(), "memories");
+  const bucket = supabase.storage.from(bucketName);
 
   if (rendition) {
     const { data, error } = await bucket.createSignedUrl(path, SIGNED_URL_TTL_SECONDS, {

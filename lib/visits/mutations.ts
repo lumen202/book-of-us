@@ -15,7 +15,11 @@ export const VISIT_COOKIE = "bou_visited";
  * and can set the session cookie before a page renders.
  */
 export async function recordPartnerVisit(
-  supabase: SupabaseClient,
+  // Schema-generic: middleware.ts's client may be typed for either the real
+  // (`public`) or demo schema depending on which is active, and this
+  // function works identically against both.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: SupabaseClient<any, any, any>,
   email: string | null | undefined,
   alreadyMarkedThisSession: boolean,
 ): Promise<boolean> {

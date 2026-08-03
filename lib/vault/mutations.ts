@@ -1,6 +1,8 @@
 import { requireAdmin } from "@/lib/auth/admin";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { getActiveProjectFromCookies } from "@/lib/supabase/project.server";
+import { resolveBucketName, resolveSchema } from "@/lib/supabase/project";
 
 export type NewVaultItemInput = {
   /** Chosen client-side so the storage path can be built before the row exists — same convention as `createMemory`. */
@@ -62,7 +64,9 @@ export async function restoreVaultItem(id: string): Promise<void> {
 export async function purgeVaultItem(id: string): Promise<void> {
   await requireAdmin();
 
-  const admin = createAdminClient();
+  const project = await getActiveProjectFromCookies();
+  const admin = createAdminClient(resolveSchema(project));
+  const bucketName = resolveBucketName(project, "vault");
 
   const { data: item, error: readError } = await admin
     .from("vault_items")
@@ -80,7 +84,7 @@ export async function purgeVaultItem(id: string): Promise<void> {
     (path): path is string => Boolean(path),
   );
   if (paths.length > 0) {
-    const { error: storageError } = await admin.storage.from("vault").remove(paths);
+    const { error: storageError } = await admin.storage.from(bucketName).remove(paths);
     if (storageError) throw storageError;
   }
 

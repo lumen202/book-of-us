@@ -12,9 +12,14 @@ import { createClient } from "@/lib/supabase/server";
  *
  * Matched on the email's local part (case-insensitively) so it doesn't matter
  * which mail host the account uses. `ADMIN_EMAILS` (comma-separated, full
- * addresses) overrides the list entirely when set.
+ * addresses) overrides the list entirely when set — if that's ever
+ * configured, the demo account's email needs adding to it too, or the demo
+ * loses its keeper view. It's a pure string match with no awareness of which
+ * Supabase project authenticated the request, so listing the real keeper and
+ * the demo account side by side here is safe: their emails only ever exist
+ * in their own separate projects to begin with.
  */
-const ADMIN_USERNAMES = ["jdiniega202"];
+const ADMIN_USERNAMES = ["jdiniega202", "demo"];
 
 function adminEmailsFromEnv(): string[] | null {
   const raw = process.env.ADMIN_EMAILS?.trim();

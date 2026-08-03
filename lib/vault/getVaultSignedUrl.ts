@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { getActiveProjectFromCookies } from "@/lib/supabase/project.server";
+import { resolveBucketName } from "@/lib/supabase/project";
 
 /**
  * Five minutes, not the hour `lib/storage/getSignedUrl.ts` uses for the main
@@ -32,7 +34,8 @@ export type VaultRendition = keyof typeof RENDITIONS;
  */
 export async function getVaultSignedUrl(path: string, rendition: VaultRendition): Promise<string | null> {
   const supabase = await createClient();
-  const bucket = supabase.storage.from("vault");
+  const bucketName = resolveBucketName(await getActiveProjectFromCookies(), "vault");
+  const bucket = supabase.storage.from(bucketName);
 
   const { data, error } = await bucket.createSignedUrl(path, VAULT_SIGNED_URL_TTL_SECONDS, {
     transform: RENDITIONS[rendition],
