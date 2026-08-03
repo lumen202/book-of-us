@@ -734,7 +734,7 @@ body {
 
 /*
  * ===========================================================================
- * Touch devices (read: Android phones, the primary target)
+ * Compositing cost: blend layers and filter raster
  * ===========================================================================
  *
  * Everything below is about one cost, and it is not the one it looks like.
@@ -749,34 +749,38 @@ body {
  * The scene used to stack six viewport-sized blend layers (sky wash, sun glow,
  * light rays, and three passes of paper grain), all inside one
  * `isolation: isolate` root. So one butterfly crossing the meadow re-resolved
- * six full screens of blending, every frame, at ~3x device pixel ratio. That is
- * the whole story of "laggy on Android", and it is why the first attempt at a
- * fix — freezing every animation — was the only thing that appeared to help,
- * and why it cost the garden its life to get there.
+ * six full screens of blending, every frame, at ~3x device pixel ratio. That
+ * was the whole story of "laggy on Android" — the fixes below were originally
+ * shipped touch-only (`(pointer: coarse)`) on the assumption that desktop's
+ * larger GPU budget could absorb the same cost. Reported laggy on desktop
+ * too, across Safari/Chrome/Firefox alike, which points at the raw cost
+ * itself (a desktop browser window is a much larger blend *area* than a phone
+ * screen, often at the same ~2x device pixel ratio on a Retina display) rather
+ * than an engine-specific quirk. So most of these are unconditional now —
+ * see each block for what's still touch-exclusive and why.
  *
  * The fix is to make the blending small rather than to stop the movement:
  *
  * 1. In the components, `screen` moved off the `inset-0` wrappers of
  *    `LightRays` and `SunGlow` and onto the individual rays and falloffs, so
  *    those blend a few narrow strips and a corner instead of the viewport.
- *    That one is unconditional — desktop gets it too, it has no downside.
- * 2. Here, the three-pass paper grain drops to one pass on touch.
+ * 2. Here, the three-pass paper grain drops to one pass.
  * 3. Here, the handful of animations that sit *underneath* the remaining blend
  *    layers and never stop stay frozen — they are what was keeping the
  *    compositor permanently busy.
  *
- * What stays running on a phone is everything that reads as life: the grass
- * wave, the clouds, the boughs, the swing, pollen, and every creature in
+ * What keeps running everywhere is what reads as life: the grass wave, the
+ * clouds, the boughs, the swing, pollen, and every creature in
  * `LivingThings.tsx` — butterflies, bees, dragonflies, fireflies, birds,
  * drifting petals. Those are the point. `useParallax` and `useAmbientLife` gate
  * on reduced-motion only, to match.
  */
 
 /*
- * Frozen on touch. Each of these is *underneath* a blend layer and loops
+ * Frozen everywhere. Each of these is *underneath* a blend layer and loops
  * forever, so each one on its own is enough to keep a full-screen blend
- * re-resolving at 60fps for as long as the page is open — for motion nobody on
- * a phone can perceive anyway:
+ * re-resolving at 60fps for as long as the page is open — motion nobody
+ * consciously perceives anyway, at a cost paid regardless of device:
  *
  * - `ambient-sky-warm` — the sky's 210s warm/cool breath. A seven-minute
  *   opacity ramp on a viewport-sized div sitting under the entire blend stack:
@@ -786,24 +790,26 @@ body {
  * - `ambient-sun` / `ambient-sun-wide` — inside `SunGlow`'s `screen` falloffs.
  * - `ambient-ray` — blended, plus its own `blur(5px)`, times six.
  * - `ambient-sparkle` — inside the meadow's `screen` group.
+ *
+ * Was touch-only; made unconditional after desktop lag was reported across
+ * all three major engines, not just Safari's known weak spot for animated
+ * SVG filters — see the section header above.
  */
-@media (pointer: coarse) {
-  .ambient-sky-warm,
-  .ambient-sun,
-  .ambient-sun-wide,
-  .ambient-ray,
-  .ambient-sparkle {
-    animation: none !important;
-  }
+.ambient-sky-warm,
+.ambient-sun,
+.ambient-sun-wide,
+.ambient-ray,
+.ambient-sparkle {
+  animation: none !important;
 }
 
 /*
- * Paper grain: three blend passes down to one.
+ * Paper grain: three blend passes down to one, everywhere.
  *
  * - **Fine grain (multiply, 0.09) is dropped.** It is a 300px noise tile at 9%
- *   opacity; on a phone at 2.5–3x DPR one noise pixel lands well inside one
- *   device pixel and the whole field averages out to a flat 9% darkening. It
- *   was costing a full-viewport `multiply` to render nothing.
+ *   opacity; at 2–3x DPR one noise pixel lands well inside one device pixel
+ *   and the whole field averages out to a flat 9% darkening. It was costing a
+ *   full-viewport `multiply` to render nothing.
  * - **The bloom stops blending.** It is a warm radial lift over sky and hills,
  *   which are light and warm already, so `screen` and `normal` land within a
  *   few percent of each other here. Opacity comes down slightly to compensate
@@ -813,40 +819,45 @@ body {
  *   work: it is what stops the large calm areas, the open sky above all,
  *   reading as a flat fill. Losing it would cost the painting its paper, which
  *   is the thing this whole layer exists for.
+ *
+ * Was touch-only; made unconditional after desktop lag was reported (see the
+ * section header above) — the visual trade here was already judged
+ * imperceptible enough to ship on phones, so there's no reason to keep paying
+ * three blend passes on a desktop window, which has a larger blend area than
+ * a phone screen to begin with.
  */
-@media (pointer: coarse) {
-  .paper-grain {
-    display: none;
-  }
+.paper-grain {
+  display: none;
+}
 
-  /* `!important` because both properties are inline styles on the element —
-     the gradient next to them is built from JS pigments, so the whole
-     declaration block has to live there. */
-  .paper-bloom {
-    mix-blend-mode: normal !important;
-    opacity: 0.55 !important;
-  }
-
-  /*
-   * The reasoning above ("screen and normal land within a few percent of each
-   * other") only holds against the *daytime* backdrop it was written for — a
-   * light, warm sky. At night the backdrop is deep indigo, so a `normal`-blend
-   * warm wash at 0.55 opacity paints directly over the stars and moon instead
-   * of only lightening past them, washing the whole night sky out. Worth the
-   * extra compositing cost `screen` brings back here: this only runs on the
-   * real celebration day, or when the Settings night-view toggle is
-   * deliberately on — never during ordinary scrolling, which is the case this
-   * file's touch-device rules above are otherwise built to protect.
-   */
-  :root[data-celebration="true"] .paper-bloom,
-  :root[data-night-preview="true"] .paper-bloom {
-    mix-blend-mode: screen !important;
-    opacity: 0.7 !important;
-  }
+/* `!important` because both properties are inline styles on the element —
+   the gradient next to them is built from JS pigments, so the whole
+   declaration block has to live there. */
+.paper-bloom {
+  mix-blend-mode: normal !important;
+  opacity: 0.55 !important;
 }
 
 /*
- * Meadow thinning on touch.
+ * The reasoning above ("screen and normal land within a few percent of each
+ * other") only holds against the *daytime* backdrop it was written for — a
+ * light, warm sky. At night the backdrop is deep indigo, so a `normal`-blend
+ * warm wash at 0.55 opacity paints directly over the stars and moon instead
+ * of only lightening past them, washing the whole night sky out. Worth the
+ * extra compositing cost `screen` brings back here: this only runs on the
+ * real celebration day, or when the Settings night-view toggle is
+ * deliberately on — never during ordinary scrolling or ordinary browsing,
+ * which is the case the rules above are otherwise built to protect.
+ */
+:root[data-celebration="true"] .paper-bloom,
+:root[data-night-preview="true"] .paper-bloom {
+  mix-blend-mode: screen !important;
+  opacity: 0.7 !important;
+}
+
+/*
+ * Meadow thinning on touch — deliberately still touch-exclusive, unlike the
+ * blend/grain/filter rules above.
  *
  * Every tuft and flower is a separately animated group inside one SVG, and SVG
  * transform animation is not composited — the meadow's band repaints wholesale
@@ -864,6 +875,12 @@ body {
  * `mote-soft` is the same trade one layer forward: the deliberately
  * out-of-focus pollen, each grain its own composited layer with a blur pass on
  * it. The sharp motes stay, so there is still something floating in the light.
+ *
+ * Unlike the rules above, this one is a real, visible reduction in density —
+ * "desktop can afford the fuller garden" (see `ambient-life-density.md`), not
+ * an imperceptible trade — so it stayed touch-only in the desktop-lag pass
+ * that made the rest of this section unconditional. If desktop is still heavy
+ * after that pass, this is the next lever, not the first one.
  */
 @media (pointer: coarse) {
   .meadow-far .ambient-tuft {
@@ -889,43 +906,52 @@ body {
 }
 
 /*
- * Cheaper brushes for touch devices — independent of the motion switch above,
+ * Cheaper brushes, everywhere — independent of the motion switch above,
  * because this is about raster cost, not animation. The ridge, cloud, leaf
  * and meadow filters in PaintFilters.tsx each run the noise-warp displacement
  * *twice*: once to wobble the shape's edge, once more (the "tooth" pass —
  * feTurbulence → feColorMatrix → feComposite → feBlend) to texture the fill.
  * feTurbulence is the single most expensive SVG filter primitive, and these
  * regions cover a large fraction of the viewport (the ridges nearly all of
- * it), so on a phone GPU this is real cost even with every animation frozen —
- * it is why the scene was still heavy after the `(pointer: coarse)` rule
- * above landed. Each `*-lite` filter in PaintFilters.tsx keeps the same warp
- * and blur (the silhouette is unchanged) and drops only the second
- * `feTurbulence` pass. Desktop keeps the full brushwork; this rule only
- * matters on the devices where it was actually a problem.
+ * it), so this is real cost even with every animation frozen — it is why the
+ * scene was still heavy on touch after the freeze/grain rules above landed.
+ * Each `*-lite` filter in PaintFilters.tsx keeps the same warp and blur (the
+ * silhouette is unchanged) and drops only the second `feTurbulence` pass.
+ *
+ * Was touch-only ("desktop keeps the full brushwork"); made unconditional
+ * after desktop lag was reported. Two reasons this one matters more on
+ * desktop than the phone-vs-desktop framing suggested: a desktop browser
+ * window covers more raster area than a phone screen to begin with, and the
+ * `.brush-far`/`.brush-near`/`.brush-meadow` groups sit *inside* the very
+ * `<svg data-parallax>` roots that `useParallax` transforms every scroll
+ * frame on desktop only (parallax is off on touch) — some engines can't
+ * cheaply recomposite a filtered SVG subtree under a changing transform
+ * without re-rasterizing the filter, which would make this pass doubly
+ * expensive on desktop specifically. The `-lite` pass halves that raster
+ * cost; if desktop is still heavy after this, decoupling parallax from the
+ * filtered layers is the next lever (see `useParallax`'s doc comment).
  */
-@media (pointer: coarse) {
-  .brush-far {
-    filter: url(#brush-far-lite) !important;
-  }
-  .brush-middle {
-    filter: url(#brush-middle-lite) !important;
-  }
-  .brush-knoll {
-    filter: url(#brush-knoll-lite) !important;
-  }
-  .brush-near {
-    filter: url(#brush-near-lite) !important;
-  }
-  .brush-bank {
-    filter: url(#brush-bank-lite) !important;
-  }
-  .brush-cloud {
-    filter: url(#brush-cloud-lite) !important;
-  }
-  .brush-leaf {
-    filter: url(#brush-leaf-lite) !important;
-  }
-  .brush-meadow {
-    filter: url(#brush-meadow-lite) !important;
-  }
+.brush-far {
+  filter: url(#brush-far-lite) !important;
+}
+.brush-middle {
+  filter: url(#brush-middle-lite) !important;
+}
+.brush-knoll {
+  filter: url(#brush-knoll-lite) !important;
+}
+.brush-near {
+  filter: url(#brush-near-lite) !important;
+}
+.brush-bank {
+  filter: url(#brush-bank-lite) !important;
+}
+.brush-cloud {
+  filter: url(#brush-cloud-lite) !important;
+}
+.brush-leaf {
+  filter: url(#brush-leaf-lite) !important;
+}
+.brush-meadow {
+  filter: url(#brush-meadow-lite) !important;
 }
