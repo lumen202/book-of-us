@@ -24,6 +24,7 @@ import {
   unreactToAlbumPhoto,
 } from "@/app/(app)/bucket-list/actions";
 import type { Comment } from "@/lib/comments/types";
+import type { BucketCategory } from "@/lib/bucket-list/types";
 import type { MemoryWithMedia } from "@/lib/memories/queries";
 import type { Reaction } from "@/lib/reactions/types";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -102,12 +103,22 @@ export function MemoryGrid({
   reactionsByMemory,
   commentsByMemory,
   currentUserId,
+  albumInfoByItemId,
 }: {
   memories: MemoryWithMedia[];
   context: MemoryGridContext;
   reactionsByMemory: Record<string, Reaction[]>;
   commentsByMemory: Record<string, Comment[]>;
   currentUserId: string | null;
+  /**
+   * Category + title for whichever promises have a photo on this page —
+   * only meaningful from a chapter (`context.kind === "chapter"`), since
+   * that's the only place a print can belong to a promise without every
+   * other print on the page belonging to the same one. Absent entirely from
+   * an album page's own call — inside an album, every photo already shares
+   * one promise, so badging each one would be noise, not information.
+   */
+  albumInfoByItemId?: Map<string, { category: BucketCategory; title: string }>;
 }) {
   const router = useRouter();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -171,6 +182,11 @@ export function MemoryGrid({
                 reactions={reactionsByMemory[memory.id] ?? []}
                 commentCount={(commentsByMemory[memory.id] ?? []).length}
                 currentUserId={currentUserId}
+                album={
+                  context.kind === "chapter" && memory.bucket_list_item_id
+                    ? (albumInfoByItemId?.get(memory.bucket_list_item_id) ?? null)
+                    : null
+                }
                 onSelect={() => {
                   // A promise's cover print opens its whole album, not just
                   // itself as an isolated photo — the chapter is one page of

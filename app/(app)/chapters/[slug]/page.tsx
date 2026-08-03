@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { formatMonthDay, formatMonthYear } from "@/lib/format/date";
+import { getBucketItemCategories } from "@/lib/bucket-list/queries";
 import { getChapterBySlug } from "@/lib/chapters/queries";
 import { getCommentsForMemories, groupCommentsByMemory } from "@/lib/comments/queries";
 import { albumPrints, getChapterMemories, resolveMemoryMedia } from "@/lib/memories/queries";
@@ -25,18 +26,33 @@ export default async function ChapterPage({
   // print is signed when that print is lifted (see `getMemoryFullUrl`). Signing
   // both here cost one extra Storage round trip per photo on every page open,
   // for a URL most prints never use and which expires in five minutes anyway.
+  // A kept promise's cover leads the page regardless of its own occurred_at —
+  // it's the one print here that's also a link to a whole album, so it reads
+  // as this chapter's headline rather than getting lost wherever its date
+  // happens to fall. `sort`'s stable, so within "is a cover" / "isn't" the
+  // existing occurred_at order (oldest first, from get_chapter_memories) is
+  // untouched — this only ever reorders across that boolean line.
   const memories = albumPrints(
     await resolveMemoryMedia(await getChapterMemories(chapter.id), { full: false }),
-  );
+  ).sort((a, b) => (b.bucket_list_item_id ? 1 : 0) - (a.bucket_list_item_id ? 1 : 0));
   const memoryIds = memories.map((memory) => memory.id);
+  const albumItemIds = Array.from(
+    new Set(
+      memories
+        .map((memory) => memory.bucket_list_item_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
 
-  // Reactions, notes and the viewer's identity have nothing to do with each
-  // other; awaiting them in sequence just stacked three round trips end to end
-  // in front of the first paint.
-  const [reactions, comments, auth] = await Promise.all([
+  // Reactions, notes, the viewer's identity, and which prints are actually a
+  // kept promise's cover have nothing to do with each other; awaiting them in
+  // sequence just stacked four round trips end to end in front of the first
+  // paint.
+  const [reactions, comments, auth, albumInfoByItemId] = await Promise.all([
     getReactionsForMemories(memoryIds),
     getCommentsForMemories(memoryIds),
     createClient().then((supabase) => supabase.auth.getUser()),
+    getBucketItemCategories(albumItemIds),
   ]);
   const reactionsByMemory = groupReactionsByMemory(reactions);
   const commentsByMemory = groupCommentsByMemory(comments);
@@ -75,6 +91,7 @@ export default async function ChapterPage({
           reactionsByMemory={reactionsByMemory}
           commentsByMemory={commentsByMemory}
           currentUserId={user?.id ?? null}
+          albumInfoByItemId={albumInfoByItemId}
         />
       </main>
 

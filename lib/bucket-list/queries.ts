@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { BucketListItem } from "./types";
+import type { BucketCategory, BucketListItem } from "./types";
 
 /**
  * Reads go straight to the table rather than through an RPC, and that's
@@ -66,6 +66,33 @@ export async function getBucketItem(id: string): Promise<BucketListItem | null> 
 
   if (error) throw error;
   return data ? toItem(data) : null;
+}
+
+/**
+ * Category + title for a batch of promises, keyed by id — lets the chapter
+ * grid badge a promise's cover photo as "an album" (see `MemoryCard`'s
+ * `album` prop) without the grid ever reading `bucket_list_items` itself.
+ * A plain `.in("id", ids)` select, not an RPC: same reasoning as `toItem`'s
+ * comment above — no unlock semantics to protect here.
+ */
+export async function getBucketItemCategories(
+  ids: string[],
+): Promise<Map<string, { category: BucketCategory; title: string }>> {
+  if (ids.length === 0) return new Map();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bucket_list_items")
+    .select("id, category, title")
+    .in("id", ids);
+
+  if (error) throw error;
+  return new Map(
+    (data ?? []).map((row: { id: string; category: string; title: string }) => [
+      row.id,
+      { category: row.category as BucketCategory, title: row.title },
+    ]),
+  );
 }
 
 /**

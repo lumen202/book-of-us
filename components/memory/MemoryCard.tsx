@@ -3,8 +3,10 @@
 import Image from "next/image";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatFullDate, formatMonthDay, toLocalDate } from "@/lib/format/date";
+import type { BucketCategory } from "@/lib/bucket-list/types";
 import type { MemoryWithMedia } from "@/lib/memories/queries";
 import type { Reaction } from "@/lib/reactions/types";
+import { CategoryGlyph } from "@/components/bucket-list/CategoryGlyph";
 import { MemoryReactions } from "./MemoryReactions";
 
 /**
@@ -61,6 +63,7 @@ export function MemoryCard({
   reactions,
   commentCount,
   currentUserId,
+  album,
   onSelect,
   onRemove,
   removeLabel,
@@ -72,6 +75,14 @@ export function MemoryCard({
   reactions: Reaction[];
   commentCount: number;
   currentUserId: string | null;
+  /**
+   * Set when this print is a kept promise's cover, showing on its chapter
+   * page — never set inside the album itself. Turns the plain print into a
+   * small stack with a tag pinned across the top, so a promise's photo reads
+   * as "there's more behind this one" at a glance rather than looking like
+   * any other single print on the page.
+   */
+  album?: { category: BucketCategory; title: string } | null;
   onSelect: () => void;
   /** Asks to remove this print — the caller confirms in a dialog first. */
   onRemove: () => void;
@@ -140,6 +151,25 @@ export function MemoryCard({
       style={{ rotate: `${tilt}deg` }}
       className="group relative transition duration-500 ease-(--ease-bounce) hover:-translate-y-2 hover:scale-[1.02] hover:[rotate:0deg] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100"
     >
+      {/* Two more sheets of album paper peeking out from behind the top
+          print — the visual shorthand for "there's more inside" that a
+          single tag alone wouldn't read at a glance. Purely decorative:
+          the tag is what actually says "album" to a screen reader. */}
+      {album && (
+        <>
+          <div
+            aria-hidden
+            style={{ rotate: "4deg", translate: "7px 5px" }}
+            className="absolute inset-2 -z-10 rounded-2xl bg-[#fffdf7] shadow-[0_10px_20px_-16px_rgba(76,59,48,0.4)]"
+          />
+          <div
+            aria-hidden
+            style={{ rotate: "-3deg", translate: "-5px 6px" }}
+            className="absolute inset-2 -z-10 rounded-2xl bg-[#fffdf7]/95 shadow-[0_8px_16px_-14px_rgba(76,59,48,0.32)]"
+          />
+        </>
+      )}
+
       <button
         type="button"
         onClick={() => {
@@ -164,6 +194,21 @@ export function MemoryCard({
         className="block w-full select-none text-left [-webkit-touch-callout:none] focus-visible:outline-none"
       >
         <div className="relative rounded-2xl bg-[#fffdf7] p-3 pb-4 shadow-[0_12px_24px_-14px_rgba(76,59,48,0.42)] transition duration-700 group-hover:shadow-[0_24px_38px_-18px_rgba(76,59,48,0.45)] group-focus-within:outline group-focus-within:outline-2 group-focus-within:outline-accent motion-reduce:transition-none">
+          {/* A tag pinned across the top of the print, counter-rotated
+              against the card's own tilt so it always reads level — as if
+              someone clipped it on straight regardless of how the photo
+              underneath sits on the page. */}
+          {album && (
+            <div
+              aria-hidden
+              style={{ rotate: `${-tilt}deg` }}
+              className="pointer-events-none absolute -top-3 left-4 z-10 flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-surface shadow-[0_8px_16px_-8px_rgba(76,59,48,0.55)]"
+            >
+              <CategoryGlyph category={album.category} className="h-3 w-3" />
+              Album
+            </div>
+          )}
+
           <div className="relative aspect-[4/5] w-full overflow-hidden rounded-xl bg-ink/5">
             <Image
               src={imageUrl}
@@ -189,6 +234,11 @@ export function MemoryCard({
               skip the caption line in that case rather than printing the date
               twice, one line above the other. */}
           <figcaption className="mt-3 px-1">
+            {album && (
+              <span className="sr-only">
+                Part of the album for the promise &ldquo;{album.title}&rdquo;
+              </span>
+            )}
             {memory.title !== formatMonthDay(toLocalDate(memory.occurred_at)) && (
               <span className="block font-serif text-xl italic leading-tight text-ink">
                 {memory.title}
