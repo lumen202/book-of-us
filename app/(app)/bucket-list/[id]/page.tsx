@@ -8,6 +8,7 @@ import {
   resolveMemoryMedia,
 } from "@/lib/memories/queries";
 import { AddAlbumPhotoComposer } from "@/components/bucket-list/AddAlbumPhotoComposer";
+import { CategoryGlyph } from "@/components/bucket-list/CategoryGlyph";
 import { PromiseAlbumGrid } from "@/components/bucket-list/PromiseAlbumGrid";
 
 /**
@@ -26,9 +27,15 @@ export default async function BucketItemAlbumPage({
 
   // Thumbnails only, same reasoning as the chapter page — the full-size URL
   // is signed on demand when a print is actually lifted.
-  const photos = albumPrints(
+  const allPhotos = albumPrints(
     await resolveMemoryMedia(await getBucketItemMemories(item.id), { full: false }),
   );
+  // The featured photo (`cover_memory_id`) is shown on its own, not a second
+  // time in the grid below — see `PromiseAlbumGrid`.
+  const cover = item.coverMemoryId
+    ? (allPhotos.find((photo) => photo.id === item.coverMemoryId) ?? null)
+    : null;
+  const photos = cover ? allPhotos.filter((photo) => photo.id !== cover.id) : allPhotos;
 
   const chapterLink = item.memoryId
     ? (await getMemoryChapterLinks([item.memoryId]))[0] ?? null
@@ -44,8 +51,12 @@ export default async function BucketItemAlbumPage({
       </Link>
 
       <section className="flex max-w-2xl flex-col gap-3">
-        <span className="ink-legible text-[11px] uppercase tracking-[0.3em] text-accent">
-          Kept
+        {/* The glyph is the same mark the bucket list row shows for this
+            promise's category — a visible thread back to "this album came
+            from a promise," not just the eyebrow text alone. */}
+        <span className="ink-legible flex items-center gap-2 text-[11px] uppercase tracking-[0.3em] text-accent">
+          <CategoryGlyph category={item.category} className="h-4 w-4 shrink-0" />
+          {item.status === "done" ? "A promise, kept" : "A promise, still open"}
         </span>
         <h1 className="ink-legible font-serif text-4xl leading-tight text-ink sm:text-5xl">
           {item.title}
@@ -65,7 +76,7 @@ export default async function BucketItemAlbumPage({
 
       <AddAlbumPhotoComposer itemId={item.id} />
 
-      <PromiseAlbumGrid itemId={item.id} photos={photos} />
+      <PromiseAlbumGrid itemId={item.id} cover={cover} photos={photos} />
     </main>
   );
 }

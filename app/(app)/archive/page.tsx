@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { listDeletedBucketItems } from "@/lib/bucket-list/queries";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { listDeletedMemories, resolveMemoryMedia } from "@/lib/memories/queries";
 import { listDeletedVaultItems } from "@/lib/vault/queries";
 import { ArchiveList } from "@/components/archive/ArchiveList";
+import { BucketListArchiveList } from "@/components/archive/BucketListArchiveList";
 import { VaultArchiveList } from "@/components/archive/VaultArchiveList";
 
 /**
@@ -20,9 +22,10 @@ import { VaultArchiveList } from "@/components/archive/VaultArchiveList";
 export default async function ArchivePage() {
   if (!(await isCurrentUserAdmin())) notFound();
 
-  const [deletedMemories, vaultItems] = await Promise.all([
+  const [deletedMemories, vaultItems, deletedBucketItems] = await Promise.all([
     listDeletedMemories(),
     listDeletedVaultItems(),
+    listDeletedBucketItems(),
   ]);
   const memories = await resolveMemoryMedia(deletedMemories);
 
@@ -57,6 +60,18 @@ export default async function ArchivePage() {
         </header>
 
         <VaultArchiveList items={vaultItems} />
+      </section>
+
+      <section className="flex flex-col gap-8 border-t border-border pt-12">
+        <header className="flex flex-col gap-2">
+          <h2 className="ink-legible font-serif text-3xl leading-tight text-ink">Removed promises</h2>
+          <p className="ink-legible max-w-xl text-sm leading-relaxed text-ink-muted">
+            Same rules — put one back, or delete it for good. Any photos already kept for a
+            removed promise are untouched either way; only the promise&apos;s own row is affected.
+          </p>
+        </header>
+
+        <BucketListArchiveList items={deletedBucketItems} />
       </section>
     </main>
   );

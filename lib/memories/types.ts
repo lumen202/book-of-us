@@ -20,6 +20,8 @@ export type Memory = {
   thumbnail_path: string | null;
   meta: Record<string, unknown>;
   unlock_at: string | null;
+  /** Set when this memory is a bucket-list promise's cover — see `docs/agent/codebase-map/bucket-list.md`. */
+  bucket_list_item_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;

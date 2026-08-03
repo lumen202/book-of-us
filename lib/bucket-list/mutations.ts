@@ -1,4 +1,6 @@
+import { requireAdmin } from "@/lib/auth/admin";
 import { createMemory } from "@/lib/memories/mutations";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import type { BucketCategory } from "./types";
 
@@ -107,6 +109,46 @@ export async function removeItem(id: string): Promise<void> {
   if (error) throw error;
 }
 
+/** Puts a removed promise back on the list. The inverse of `removeItem`, same shape as `restoreMemory`. */
+export async function restoreItem(id: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("bucket_list_items")
+    .update({ deleted_at: null })
+    .eq("id", id)
+    .not("deleted_at", "is", null);
+  if (error) throw error;
+}
+
+/**
+ * Destroys a promise's row for good. Admin only, irreversible — the one
+ * deliberate exception to "no hard deletes" for this table, same reasoning
+ * and same shape as `purgeMemory`. Unlike a memory, a promise has no storage
+ * files of its own to clean up first; any photos tagged to it via
+ * `memories.bucket_list_item_id` are untouched (`on delete set null` on that
+ * column, migration `0009`) — purging the promise never purges its photos.
+ * Refuses to touch a promise that hasn't been soft-deleted first.
+ */
+export async function purgeItem(id: string): Promise<void> {
+  await requireAdmin();
+
+  const admin = createAdminClient();
+
+  const { data: item, error: readError } = await admin
+    .from("bucket_list_items")
+    .select("id, deleted_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (readError) throw readError;
+  if (!item) return;
+  if (!item.deleted_at) {
+    throw new Error("Only promises that are already removed can be deleted for good.");
+  }
+
+  const { error: deleteError } = await admin.from("bucket_list_items").delete().eq("id", id);
+  if (deleteError) throw deleteError;
+}
+
 /**
  * Writes the memory (if there's a photo) and links it to the item, guarding
  * against the same write happening twice.
@@ -165,6 +207,12 @@ async function writeLinkedMemory(
       status: "done",
       completed_at: input.occurredAt,
       memory_id: input.photo?.memoryId ?? null,
+      // The kept-day photo takes the album's cover spot unconditionally —
+      // it earns it over any "picturing this" reference photo added when
+      // the promise was still just a wish. Left untouched (not set to null)
+      // when there's no photo, so a reference-photo cover survives being
+      // kept without one.
+      ...(input.photo ? { cover_memory_id: input.photo.memoryId } : {}),
     })
     .eq("id", itemId)
     .is("memory_id", null);
@@ -240,13 +288,17 @@ export async function attachMemoryToItem(input: {
 }
 
 /**
- * Adding another photo to an already-kept promise's album — unlike
- * `attachMemoryToItem`, this never touches `bucket_list_items.memory_id` (the
- * cover pointer) and can be called any number of times. `chapterId` is
- * deliberately not set on the memory this writes: an album photo beyond the
- * cover never files into a chapter's flat grid, only into this promise's own
- * album page (`getBucketItemMemories`) — see
- * `docs/agent/codebase-map/bucket-list.md`.
+ * Adding another photo to a promise's album — never touches
+ * `bucket_list_items.memory_id` (the kept-day/chapter pointer) and can be
+ * called any number of times, on an open item (a reference photo, or a
+ * second one) or a kept one alike. `chapterId` is deliberately not set on
+ * the memory this writes: an album photo added this way never files into a
+ * chapter's flat grid, only into this promise's own album page
+ * (`getBucketItemMemories`) — see `docs/agent/codebase-map/bucket-list.md`.
+ *
+ * Also claims the album's cover (`cover_memory_id`) if nothing has yet —
+ * the first photo a promise gets, by whatever path, is the default cover
+ * until `writeLinkedMemory` supersedes it with the kept-day photo.
  *
  * Same retry-safety idea as `writeLinkedMemory`: the caller reuses one
  * client-generated `memoryId` across retries, so a duplicate-key error here
@@ -285,4 +337,14 @@ export async function addAlbumPhoto(input: {
   } catch (caught) {
     if (!isDuplicateKeyError(caught)) throw caught;
   }
+
+  // Only claims the cover if nothing has one yet — guarded at the database,
+  // same reasoning as `writeLinkedMemory`'s `memory_id is null` guard. A
+  // second or third photo added here must never bump an existing cover.
+  const { error: coverError } = await supabase
+    .from("bucket_list_items")
+    .update({ cover_memory_id: input.photo.memoryId })
+    .eq("id", item.id)
+    .is("cover_memory_id", null);
+  if (coverError) throw coverError;
 }

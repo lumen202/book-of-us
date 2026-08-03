@@ -32,9 +32,18 @@ export type BucketListItem = {
   /**
    * The entire goal→memory conversion. Null on an open item, and — on
    * purpose — also null on an item completed without a photo. See
-   * `completeItem` in `./mutations.ts`.
+   * `completeItem` in `./mutations.ts`. Not the same thing as
+   * `coverMemoryId` below — this one also means "filed into a chapter."
    */
   memoryId: string | null;
+  /**
+   * Which of the promise's album photos is featured — independent of
+   * `memoryId`. Set to a promise's first photo (a reference photo added at
+   * write-down time, or the first thing added to the album directly) and
+   * unconditionally taken over by the kept-day photo once the promise is
+   * actually kept. See `lib/bucket-list/mutations.ts`.
+   */
+  coverMemoryId: string | null;
   createdBy: string | null;
   createdAt: string;
   updatedAt: string;

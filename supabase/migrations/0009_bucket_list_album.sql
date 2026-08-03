@@ -8,8 +8,13 @@
 -- never appear in any chapter's flat grid, which is the whole point: chapters
 -- stay organized regardless of how many photos a trip produced.
 
+-- `on delete set null`: a purged promise (see purgeItem in
+-- lib/bucket-list/mutations.ts, the archive's "delete forever") must not be
+-- blocked by its own photos still pointing at it, and the photos themselves
+-- are never deleted just because the promise that gathered them is —
+-- same "link, never copy" reasoning as bucket_list_items.memory_id itself.
 alter table memories
-  add column bucket_list_item_id uuid references bucket_list_items (id);
+  add column bucket_list_item_id uuid references bucket_list_items (id) on delete set null;
 
 create index memories_bucket_list_item_id_idx on memories (bucket_list_item_id)
   where deleted_at is null and bucket_list_item_id is not null;
