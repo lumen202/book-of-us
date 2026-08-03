@@ -5,7 +5,7 @@ import { CelebrationControls } from "@/components/dev/CelebrationControls";
 
 /**
  * The keeper-only links + Celebration preview, shared between the desktop
- * "Keeper" dropdown (`AdminMenu`) and the mobile hamburger menu
+ * `More` dropdown (`DesktopMoreMenu`) and the mobile hamburger menu
  * (`MobileNavMenu`) so a new admin-only page only ever needs to be added
  * here once.
  */

@@ -18,7 +18,7 @@ export function ClosingReflection({
   nextChapterLabel,
   daysUntilNextChapter,
 }: {
-  /** e.g. "August 5" — already formatted server-side. */
+  /** e.g. "August 1" — already formatted server-side. */
   nextChapterLabel: string;
   daysUntilNextChapter: number;
 }) {
