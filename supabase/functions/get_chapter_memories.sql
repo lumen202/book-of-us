@@ -54,3 +54,37 @@ as $$
     and (m.unlock_at is null or m.unlock_at <= now())
     and c.deleted_at is null;
 $$;
+
+-- A kept bucket-list promise's whole album — the cover (also filed into a
+-- chapter) and any additional photos (chapter_id left null, see
+-- lib/bucket-list/mutations.ts's addAlbumPhoto) returned together. Same
+-- filtering as get_chapter_memories: a locked or removed photo doesn't come
+-- back.
+create or replace function get_bucket_item_memories(p_bucket_list_item_id uuid)
+returns setof memories
+language sql
+stable
+as $$
+  select *
+  from memories
+  where bucket_list_item_id = p_bucket_list_item_id
+    and deleted_at is null
+    and (unlock_at is null or unlock_at <= now())
+  order by occurred_at asc, created_at asc;
+$$;
+
+-- Which bucket-list items have at least one photo, batched for the whole
+-- list page in one call — lets an *open* (not-yet-kept) promise show a
+-- "there's a picture of it" link without the list page signing any image
+-- URLs or making one query per row. No image data returned, just the ids.
+create or replace function get_bucket_item_photo_flags(p_item_ids uuid[])
+returns table (bucket_list_item_id uuid)
+language sql
+stable
+as $$
+  select distinct bucket_list_item_id
+  from memories
+  where bucket_list_item_id = any(p_item_ids)
+    and deleted_at is null
+    and (unlock_at is null or unlock_at <= now());
+$$;

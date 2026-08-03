@@ -46,7 +46,17 @@ its creator either.
   `memories.type` — not a join table. No raw-read restriction (same direct-read reasoning as
   reactions/comments above) — bucket list items have no unlock semantics. See
   `codebase-map/bucket-list.md` for the full design, especially the chapter-resolution trap a kept
-  promise's photo has to avoid.
+  promise's photo has to avoid, and the album model (`memories.bucket_list_item_id`) below.
+
+`memories.bucket_list_item_id` (nullable FK to `bucket_list_items`) tags every photo belonging to
+a kept promise, letting one promise hold a whole album instead of one photo. The one tagged photo
+that's *also* filed into a chapter (`chapter_id` set) is the promise's cover — same row
+`bucket_list_items.memory_id` already pointed at before this column existed. Every other album
+photo has `chapter_id = null`, so `get_chapter_memories` never returns it; only the new
+`get_bucket_item_memories(p_bucket_list_item_id)` RPC does, following the exact same
+"RPC-not-raw-read" rule as every other memory read (see below) — read through
+`lib/memories/queries.ts`'s `getBucketItemMemories`, never a raw `.from("memories")` filtered by
+this column.
 
 ## Soft delete
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { BucketListItem, BucketCategory } from "@/lib/bucket-list/types";
 import { CATEGORIES } from "@/lib/bucket-list/types";
+import { CategoryDropdown } from "./CategoryDropdown";
 import { CategoryGlyph } from "./CategoryGlyph";
 
 /**
@@ -64,6 +65,7 @@ function TickTarget({
 export function BucketItemRow({
   item,
   memoryLink,
+  hasReferencePhoto = false,
   isCompleting,
   currentUserId,
   onTick,
@@ -75,6 +77,8 @@ export function BucketItemRow({
   item: BucketListItem;
   /** Present only when this item is done and its memory hasn't been removed. */
   memoryLink: { chapterSlug: string; chapterTitle: string } | null;
+  /** An open (not-yet-kept) item with a reference photo attached at add-time. */
+  hasReferencePhoto?: boolean;
   /** True while the completion modal is open (or working) for this item. */
   isCompleting: boolean;
   /** Whose promise this is shows as "you" / "your partner" — see `MemoryCard` for why not a name. */
@@ -104,11 +108,6 @@ export function BucketItemRow({
     setEditing(true);
   }
 
-  function cycleCategory() {
-    const index = CATEGORIES.findIndex((entry) => entry.value === category);
-    setCategory(CATEGORIES[(index + 1) % CATEGORIES.length].value);
-  }
-
   async function save() {
     const trimmed = title.trim();
     if (!trimmed) return;
@@ -124,14 +123,9 @@ export function BucketItemRow({
   if (editing) {
     return (
       <div className="flex items-start gap-3 rounded-2xl bg-background/60 px-2 py-2">
-        <button
-          type="button"
-          onClick={cycleCategory}
-          aria-label="Change category"
-          className="mt-1.5 h-4 w-4 shrink-0 text-ink-muted transition hover:text-accent"
-        >
-          <CategoryGlyph category={category} className="h-4 w-4" />
-        </button>
+        <div className="mt-1 shrink-0">
+          <CategoryDropdown category={category} onChange={setCategory} disabled={saving} />
+        </div>
         <div className="flex-1">
           <input
             autoFocus
@@ -180,7 +174,10 @@ export function BucketItemRow({
         className="flex items-start gap-3 py-1.5 opacity-75 transition hover:opacity-100"
       >
         <TickTarget drawn label={`Un-tick "${item.title}"`} onClick={onReopen} />
-        <span className="mt-1.5 h-4 w-4 shrink-0 text-ink-muted">
+        <span
+          className="mt-1.5 h-4 w-4 shrink-0 text-ink-muted"
+          title={CATEGORIES.find((entry) => entry.value === item.category)?.label}
+        >
           <CategoryGlyph category={item.category} className="h-4 w-4" />
         </span>
         <div className="flex-1 pt-0.5">
@@ -189,8 +186,12 @@ export function BucketItemRow({
           </p>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] uppercase tracking-[0.2em]">
             {memoryLink ? (
+              // The album page (not the chapter directly) — it's the one
+              // photo today, but it's also where more get added, and the
+              // chapter it's filed in is still one tap away from there. See
+              // `docs/agent/codebase-map/bucket-list.md`.
               <Link
-                href={`/chapters/${memoryLink.chapterSlug}`}
+                href={`/bucket-list/${item.id}`}
                 className="text-accent underline decoration-border underline-offset-4 transition hover:text-ink"
               >
                 there&apos;s a photograph
@@ -224,25 +225,46 @@ export function BucketItemRow({
         label={`Mark "${item.title}" as kept`}
         onClick={onTick}
       />
-      <span className="mt-1.5 h-4 w-4 shrink-0 text-ink-muted">
+      <span
+        className="mt-1.5 h-4 w-4 shrink-0 text-ink-muted"
+        title={CATEGORIES.find((entry) => entry.value === item.category)?.label}
+      >
         <CategoryGlyph category={item.category} className="h-4 w-4" />
       </span>
-      {/* The whole line is the edit target — tap it, it becomes an input,
-          rather than a gesture (long-press) that turned out to be hard to
-          find on a desktop pointer. */}
-      <button
-        type="button"
-        onClick={startEditing}
-        className="flex-1 pt-0.5 text-left focus-visible:outline-none"
-      >
-        <p className="font-serif text-lg italic leading-snug text-ink underline decoration-transparent decoration-2 underline-offset-4 transition hover:decoration-border">
-          {item.title}
-        </p>
-        {item.note && <p className="mt-0.5 text-sm text-ink-muted">({item.note})</p>}
-        {addedBy && (
-          <p className="mt-0.5 text-[11px] uppercase tracking-[0.2em]">{addedBy}</p>
+      {/* Title + note are the edit target — tap either, it becomes an
+          input, rather than a gesture (long-press) that turned out to be
+          hard to find on a desktop pointer. The reference-photo link below
+          is a sibling, not nested inside this button — a link inside a
+          button is invalid HTML, same reasoning as `RemoveButton` sitting
+          beside it rather than inside it. */}
+      <div className="flex-1 pt-0.5">
+        <button
+          type="button"
+          onClick={startEditing}
+          className="block w-full text-left focus-visible:outline-none"
+        >
+          <p className="font-serif text-lg italic leading-snug text-ink underline decoration-transparent decoration-2 underline-offset-4 transition hover:decoration-border">
+            {item.title}
+          </p>
+          {item.note && <p className="mt-0.5 text-sm text-ink-muted">({item.note})</p>}
+        </button>
+        {(hasReferencePhoto || addedBy) && (
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] uppercase tracking-[0.2em]">
+            {hasReferencePhoto && (
+              // Softer than a kept promise's "there's a photograph" —
+              // this is a wish, not yet the day it happened. See
+              // `docs/agent/codebase-map/bucket-list.md`.
+              <Link
+                href={`/bucket-list/${item.id}`}
+                className="text-accent underline decoration-border underline-offset-4 transition hover:text-ink"
+              >
+                with a picture
+              </Link>
+            )}
+            {addedBy}
+          </p>
         )}
-      </button>
+      </div>
       <RemoveButton label={`Remove "${item.title}" from the list`} onClick={onAskRemove} />
     </motion.div>
   );

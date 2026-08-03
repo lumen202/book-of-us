@@ -24,8 +24,15 @@ export type CompletionPhoto = {
 /**
  * Adding a promise — see `components/bucket-list/AddPromiseModal.tsx`.
  * New promises go to the end of the open list.
+ *
+ * `id` is optional and client-supplied — same reason `createMemory` takes
+ * one (`lib/memories/mutations.ts`): when the add modal has a reference
+ * photo to attach too, the client needs the new row's id *before* the row
+ * exists, to build the upload's storage path and to tag the photo with
+ * `bucketListItemId`. Omitted, Postgres defaults it as before.
  */
 export async function addItem(input: {
+  id?: string;
   title: string;
   category: BucketCategory;
   note?: string | null;
@@ -50,6 +57,7 @@ export async function addItem(input: {
   const position = (last?.position ?? -1) + 1;
 
   const { error } = await supabase.from("bucket_list_items").insert({
+    ...(input.id ? { id: input.id } : {}),
     title,
     category: input.category,
     note: input.note?.trim() || null,
@@ -136,6 +144,11 @@ async function writeLinkedMemory(
         storagePath: input.photo.storagePath,
         thumbnailPath: input.photo.thumbnailPath,
         meta: input.photo.meta,
+        // Tags the cover as part of this promise's album too, so
+        // `getBucketItemMemories` finds it alongside any photos added later
+        // via `addAlbumPhoto` — see BUG/plan note in
+        // docs/agent/codebase-map/bucket-list.md.
+        bucketListItemId: itemId,
       });
     } catch (caught) {
       if (!isDuplicateKeyError(caught)) throw caught;
@@ -224,4 +237,52 @@ export async function attachMemoryToItem(input: {
   if (item.memory_id) return; // already has a print
 
   await writeLinkedMemory(item.id, item.title, input);
+}
+
+/**
+ * Adding another photo to an already-kept promise's album — unlike
+ * `attachMemoryToItem`, this never touches `bucket_list_items.memory_id` (the
+ * cover pointer) and can be called any number of times. `chapterId` is
+ * deliberately not set on the memory this writes: an album photo beyond the
+ * cover never files into a chapter's flat grid, only into this promise's own
+ * album page (`getBucketItemMemories`) — see
+ * `docs/agent/codebase-map/bucket-list.md`.
+ *
+ * Same retry-safety idea as `writeLinkedMemory`: the caller reuses one
+ * client-generated `memoryId` across retries, so a duplicate-key error here
+ * means this exact photo was already written and the call is a harmless
+ * no-op rather than a second copy.
+ */
+export async function addAlbumPhoto(input: {
+  itemId: string;
+  occurredAt: string;
+  note: string;
+  photo: CompletionPhoto;
+}): Promise<void> {
+  const supabase = await createClient();
+  const { data: item, error: itemError } = await supabase
+    .from("bucket_list_items")
+    .select("id, title")
+    .eq("id", input.itemId)
+    .is("deleted_at", null)
+    .maybeSingle();
+  if (itemError) throw itemError;
+  if (!item) throw new Error("That promise isn't there anymore.");
+
+  try {
+    await createMemory({
+      id: input.photo.memoryId,
+      chapterId: null,
+      type: "photo",
+      title: input.note.trim() || item.title,
+      body: null,
+      occurredAt: input.occurredAt,
+      storagePath: input.photo.storagePath,
+      thumbnailPath: input.photo.thumbnailPath,
+      meta: input.photo.meta,
+      bucketListItemId: item.id,
+    });
+  } catch (caught) {
+    if (!isDuplicateKeyError(caught)) throw caught;
+  }
 }

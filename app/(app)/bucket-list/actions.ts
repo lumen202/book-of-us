@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  addAlbumPhoto,
   addItem,
   attachMemoryToItem,
   completeItem,
@@ -12,10 +13,12 @@ import {
 } from "@/lib/bucket-list/mutations";
 import type { BucketCategory } from "@/lib/bucket-list/types";
 import { resolveTargetChapter } from "@/lib/chapters/queries";
+import { getBucketItemMemoryFullUrl } from "@/lib/memories/queries";
 
 /** Thin wrappers over `lib/bucket-list/mutations.ts` — see that file for the actual writes. */
 
 export async function addPromise(input: {
+  id?: string;
   title: string;
   category: BucketCategory;
   note?: string | null;
@@ -74,4 +77,26 @@ export async function attachPromiseMemory(input: {
   await attachMemoryToItem({ ...rest, photo });
   revalidatePath("/bucket-list");
   revalidatePath(`/chapters/${photo.chapterSlug}`);
+}
+
+/**
+ * Adding another photo to an already-kept promise's album — the
+ * `chapterSlug` in `photo` is only there because `CompletionPhoto` carries it
+ * for the storage path's folder convention; unlike `keepPromise`/
+ * `attachPromiseMemory`, no chapter page needs revalidating, since this photo
+ * never appears on one.
+ */
+export async function addPromiseAlbumPhoto(input: {
+  itemId: string;
+  occurredAt: string;
+  note: string;
+  photo: CompletionPhoto;
+}) {
+  await addAlbumPhoto(input);
+  revalidatePath(`/bucket-list/${input.itemId}`);
+}
+
+/** The album grid asks for thumbnails only; this signs one full-size URL when a photo is lifted. */
+export async function loadPromiseAlbumFullUrl(itemId: string, memoryId: string) {
+  return getBucketItemMemoryFullUrl(itemId, memoryId);
 }

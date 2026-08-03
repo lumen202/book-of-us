@@ -2,6 +2,7 @@ import Link from "next/link";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { DesktopMoreMenu } from "@/components/nav/DesktopMoreMenu";
 import { MobileNavMenu } from "@/components/nav/MobileNavMenu";
+import { NavLink } from "@/components/nav/NavLink";
 import { NightModeIconToggle } from "@/components/nav/NightModeIconToggle";
 
 export async function AppHeader() {
@@ -28,24 +29,24 @@ export async function AppHeader() {
             DesktopMoreMenu and BUG-004 for why a flat equal-weight row was
             itself the problem, not just a mobile-width one. */}
         <div className="hidden items-center gap-5 sm:flex">
-          <Link
+          <NavLink
             href="/"
-            className="ink-legible text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="ink-legible text-[11px] uppercase tracking-[0.2em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           >
             Bookshelf
-          </Link>
-          <Link
+          </NavLink>
+          <NavLink
             href="/bucket-list"
-            className="ink-legible text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="ink-legible text-[11px] uppercase tracking-[0.2em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           >
             Bucket list
-          </Link>
-          <Link
+          </NavLink>
+          <NavLink
             href="/vault"
-            className="ink-legible text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+            className="ink-legible text-[11px] uppercase tracking-[0.2em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           >
             Vault
-          </Link>
+          </NavLink>
           <DesktopMoreMenu isAdmin={isAdmin} />
         </div>
 

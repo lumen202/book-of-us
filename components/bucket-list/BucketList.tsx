@@ -9,13 +9,15 @@ import type { MemoryChapterLink } from "@/lib/memories/queries";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { AddPromiseModal } from "./AddPromiseModal";
 import { BucketItemRow } from "./BucketItemRow";
+import { CategoryFilterRow } from "./CategoryFilterRow";
 import { CompletionModal } from "./CompletionModal";
 
 /**
- * A page of the book, not a task manager — see `docs/plans/bucket-list.md`
- * §0.1. Two sections only (open, kept), no filter chips: ten promises don't
- * need them, and the trigger for adding grouping later is written down
- * there — more than ~25 open items.
+ * A page of the book, not a task manager — see `docs/agent/codebase-map/bucket-list.md`.
+ * Two sections only (open, kept). Filtering by category is opt-in and quiet
+ * (`CategoryFilterRow` hides itself entirely below two categories in use) —
+ * it doesn't turn the page into a dashboard, it's just a way to find the
+ * travel ones among everything else once there's enough to want that.
  *
  * Ticking, renaming and reordering are the optimistic part of this page.
  * Completion is not: it writes a photo to storage and two tables, so
@@ -26,10 +28,13 @@ import { CompletionModal } from "./CompletionModal";
 export function BucketList({
   items,
   memoryLinks,
+  photoItemIds,
   currentUserId,
 }: {
   items: BucketListItem[];
   memoryLinks: MemoryChapterLink[];
+  /** Item ids with at least one photo (cover or reference) — see `getBucketItemPhotoFlags`. */
+  photoItemIds: string[];
   currentUserId: string | null;
 }) {
   const router = useRouter();
@@ -40,6 +45,7 @@ export function BucketList({
   const [pendingRemovalId, setPendingRemovalId] = useState<string | null>(null);
   const [removing, setRemoving] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [filter, setFilter] = useState<BucketCategory | "all">("all");
 
   const linksByMemory = useMemo(() => {
     const map = new Map<string, { chapterSlug: string; chapterTitle: string }>();
@@ -49,8 +55,16 @@ export function BucketList({
     return map;
   }, [memoryLinks]);
 
-  const open = items.filter((item) => item.status === "open");
-  const done = [...items.filter((item) => item.status === "done")].sort((a, b) =>
+  const hasPhoto = useMemo(() => new Set(photoItemIds), [photoItemIds]);
+
+  const presentCategories = useMemo(
+    () => Array.from(new Set(items.map((item) => item.category))),
+    [items],
+  );
+  const filtered = filter === "all" ? items : items.filter((item) => item.category === filter);
+
+  const open = filtered.filter((item) => item.status === "open");
+  const done = [...filtered.filter((item) => item.status === "done")].sort((a, b) =>
     (b.completedAt ?? "").localeCompare(a.completedAt ?? ""),
   );
 
@@ -99,10 +113,18 @@ export function BucketList({
           }}
         />
 
+        {items.length > 0 && (
+          <CategoryFilterRow present={presentCategories} value={filter} onChange={setFilter} />
+        )}
+
         <div className="relative flex flex-col divide-y divide-border/60">
-          {open.length === 0 && done.length === 0 ? (
+          {items.length === 0 ? (
             <p className="py-6 max-w-md font-serif text-xl italic text-ink-muted">
               Nothing written down yet. The first promise will find its way here.
+            </p>
+          ) : open.length === 0 && done.length === 0 ? (
+            <p className="py-6 max-w-md font-serif text-lg italic text-ink-muted">
+              Nothing in this category yet.
             </p>
           ) : (
             <AnimatePresence initial={false}>
@@ -119,6 +141,7 @@ export function BucketList({
                   <BucketItemRow
                     item={item}
                     memoryLink={null}
+                    hasReferencePhoto={hasPhoto.has(item.id)}
                     isCompleting={completingId === item.id}
                     currentUserId={currentUserId}
                     onTick={() => setCompletingId(item.id)}
