@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { addComment, editMemoryComment, removeMemoryComment } from "@/app/(app)/chapters/[slug]/actions";
 import type { Comment } from "@/lib/comments/types";
 
 function formatNoteDate(iso: string): string {
@@ -22,17 +21,23 @@ function formatNoteDate(iso: string): string {
  * wrong than useful. Whether a note is yours is the one thing this component
  * *can* know for certain, from `currentUserId`, and that's also the thing
  * that decides whether the remove control shows.
+ *
+ * Context-agnostic — takes `onAdd`/`onEdit`/`onRemove` rather than a
+ * `chapterSlug` and hardcoded chapter actions, so `MemoryGrid` can bind
+ * either the chapter's or a bucket-list album's own Server Actions here.
  */
 export function MemoryComments({
-  memoryId,
-  chapterSlug,
   comments,
   currentUserId,
+  onAdd,
+  onEdit,
+  onRemove,
 }: {
-  memoryId: string;
-  chapterSlug: string;
   comments: Comment[];
   currentUserId: string | null;
+  onAdd: (body: string) => Promise<void>;
+  onEdit: (commentId: string, body: string) => Promise<void>;
+  onRemove: (commentId: string) => Promise<void>;
 }) {
   const router = useRouter();
   const [draft, setDraft] = useState("");
@@ -44,7 +49,7 @@ export function MemoryComments({
     const body = draft.trim();
     if (!body) return;
     startTransition(async () => {
-      await addComment(memoryId, body, chapterSlug);
+      await onAdd(body);
       setDraft("");
       router.refresh();
     });
@@ -52,7 +57,7 @@ export function MemoryComments({
 
   function remove(commentId: string) {
     startTransition(async () => {
-      await removeMemoryComment(commentId, chapterSlug);
+      await onRemove(commentId);
       router.refresh();
     });
   }
@@ -66,7 +71,7 @@ export function MemoryComments({
     const body = editDraft.trim();
     if (!body) return;
     startTransition(async () => {
-      await editMemoryComment(commentId, body, chapterSlug);
+      await onEdit(commentId, body);
       setEditingId(null);
       router.refresh();
     });

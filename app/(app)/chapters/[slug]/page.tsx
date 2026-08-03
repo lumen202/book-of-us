@@ -71,8 +71,7 @@ export default async function ChapterPage({
 
         <MemoryGrid
           memories={memories}
-          chapterId={chapter.id}
-          chapterSlug={chapter.slug}
+          context={{ kind: "chapter", chapterId: chapter.id, chapterSlug: chapter.slug }}
           reactionsByMemory={reactionsByMemory}
           commentsByMemory={commentsByMemory}
           currentUserId={user?.id ?? null}

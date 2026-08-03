@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useOptimistic, useRef, useState, useTransition } from "react";
-import { reactToMemory, unreactToMemory } from "@/app/(app)/chapters/[slug]/actions";
 import { REACTION_EMOJIS } from "@/lib/reactions/types";
 import type { Reaction } from "@/lib/reactions/types";
 
@@ -26,21 +25,28 @@ import type { Reaction } from "@/lib/reactions/types";
  * two people in this book, "who reacted" is rarely the interesting part, and
  * a stack of tiny avatars would be the first genuinely app-like thing on the
  * page. What shows is *what* was felt, not a scoreboard of who felt it.
+ *
+ * Context-agnostic — takes `onReact`/`onUnreact` rather than a `chapterSlug`
+ * and a hardcoded chapter action, so `MemoryGrid` can bind either the
+ * chapter's or a bucket-list album's own Server Actions here without this
+ * component knowing which one it's in.
  */
 export function MemoryReactions({
   memoryId,
-  chapterSlug,
   reactions,
   currentUserId,
   variant,
+  onReact,
+  onUnreact,
   open: controlledOpen,
   onOpenChange,
 }: {
   memoryId: string;
-  chapterSlug: string;
   reactions: Reaction[];
   currentUserId: string | null;
   variant: "corner" | "inline";
+  onReact: (emoji: string) => Promise<void>;
+  onUnreact: () => Promise<void>;
   /**
    * Optional, `corner` only. Passing it hands the picker's open state to the
    * caller, so press-and-hold on the print can open the same picker the corner
@@ -110,9 +116,9 @@ export function MemoryReactions({
     startTransition(async () => {
       setOptimisticReaction(nextEmoji);
       if (nextEmoji === null) {
-        await unreactToMemory(memoryId, chapterSlug);
+        await onUnreact();
       } else {
-        await reactToMemory(memoryId, emoji, chapterSlug);
+        await onReact(emoji);
       }
       router.refresh();
     });

@@ -186,6 +186,17 @@ irreversible) never touches its photos — `bucket_list_item_id`'s `on delete se
 `0009`) means the row can be purged even while photos still reference it; they just lose that tag,
 not their existence.
 
+**Removing a promise also hides its cover photo from its chapter — a reversal of the original
+`reopenItem` reasoning above, confirmed deliberately with the user.** `get_chapter_memories` and
+`get_all_memories` (`supabase/functions/get_chapter_memories.sql`) now exclude a memory whose
+`bucket_list_item_id` points at a currently soft-deleted promise. This is a live check at read
+time, not a cascaded delete onto the memory row itself: the memory's own `deleted_at` is never
+touched by `removeItem`, so restoring the promise from the archive makes the photo visible again
+automatically, with nothing else to reconcile — and if the photo was independently removed via
+the chapter's own remove control, that stays true regardless of the promise's status, since the
+two `deleted_at`s are tracked separately and this exclusion only ever *adds* a reason to hide a
+photo, never a reason to show one that's actually gone.
+
 ## Deliberately out of scope for v1
 
 - **Manual reordering.** `bucket_list_items.position` exists and new promises append to the end of

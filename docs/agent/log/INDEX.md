@@ -7,6 +7,7 @@ not an edit to an old one.
 | Date | Title | File |
 |---|---|---|
 | 2026-08-03 | Album cover concept, cancel-before-upload on every photo picker | [`2026-08-03-bucket-list-album-cover-and-cancel-upload.md`](2026-08-03-bucket-list-album-cover-and-cancel-upload.md) |
+| 2026-08-03 | Album reuses the chapter's rich grid; removed promises hide their chapter photo | [`2026-08-03-album-reuses-chapter-grid.md`](2026-08-03-album-reuses-chapter-grid.md) |
 | 2026-08-03 | Category dropdown, filter, active-nav highlighting, reference photos on open items | [`2026-08-03-bucket-list-category-ui-and-reference-photos.md`](2026-08-03-bucket-list-category-ui-and-reference-photos.md) |
 | 2026-08-03 | Bucket-list promises can hold an album, not just one photo | [`2026-08-03-bucket-list-album.md`](2026-08-03-bucket-list-album.md) |
 | 2026-08-03 | Desktop backdrop lag: extended touch-only perf fixes, disabled parallax everywhere (BUG-005) | [`2026-08-03-desktop-backdrop-lag.md`](2026-08-03-desktop-backdrop-lag.md) |

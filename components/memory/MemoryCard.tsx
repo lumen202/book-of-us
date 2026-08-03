@@ -58,22 +58,27 @@ function Corner({ className }: { className: string }) {
 export function MemoryCard({
   memory,
   index,
-  chapterSlug,
   reactions,
   commentCount,
   currentUserId,
   onSelect,
   onRemove,
+  removeLabel,
+  onReact,
+  onUnreact,
 }: {
   memory: MemoryWithMedia;
   index: number;
-  chapterSlug: string;
   reactions: Reaction[];
   commentCount: number;
   currentUserId: string | null;
   onSelect: () => void;
   /** Asks to remove this print — the caller confirms in a dialog first. */
   onRemove: () => void;
+  /** e.g. "this chapter" or "this album" — where the remove button says the print is leaving. */
+  removeLabel: string;
+  onReact: (emoji: string) => Promise<void>;
+  onUnreact: () => Promise<void>;
 }) {
   const tilt = TILTS[index % TILTS.length];
   const imageUrl = memory.thumbnailUrl ?? memory.mediaUrl;
@@ -216,7 +221,7 @@ export function MemoryCard({
           MemoryGrid. */}
       <button
         type="button"
-        aria-label={`Remove ${memory.title} from this chapter`}
+        aria-label={`Remove ${memory.title} from ${removeLabel}`}
         onClick={onRemove}
         // The visible circle stays 32px so it doesn't dominate the print's
         // corner — `before` pads out the actual tappable area to ~44px (the
@@ -232,10 +237,11 @@ export function MemoryCard({
           the same picker rather than two of them. */}
       <MemoryReactions
         memoryId={memory.id}
-        chapterSlug={chapterSlug}
         reactions={reactions}
         currentUserId={currentUserId}
         variant="corner"
+        onReact={onReact}
+        onUnreact={onUnreact}
         open={pickerOpen}
         onOpenChange={setPickerOpen}
       />

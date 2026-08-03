@@ -3,7 +3,26 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { removeMemory } from "@/app/(app)/chapters/[slug]/actions";
+import {
+  editMemoryCaption,
+  loadMemoryFullUrl,
+  reactToMemory,
+  removeMemory,
+  addComment as addChapterComment,
+  editMemoryComment,
+  removeMemoryComment,
+  unreactToMemory,
+} from "@/app/(app)/chapters/[slug]/actions";
+import {
+  addAlbumComment,
+  editAlbumComment,
+  editAlbumMemoryCaption,
+  loadPromiseAlbumFullUrl,
+  reactToAlbumPhoto,
+  removeAlbumComment,
+  removeAlbumMemory,
+  unreactToAlbumPhoto,
+} from "@/app/(app)/bucket-list/actions";
 import type { Comment } from "@/lib/comments/types";
 import type { MemoryWithMedia } from "@/lib/memories/queries";
 import type { Reaction } from "@/lib/reactions/types";
@@ -11,11 +30,60 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { MemoryCard } from "./MemoryCard";
 import { MemoryDetail } from "./MemoryDetail";
 
+export type MemoryGridContext =
+  | { kind: "chapter"; chapterId: string; chapterSlug: string }
+  | { kind: "album"; itemId: string };
+
 /**
- * A chapter reads as a page in a photo album, not a grid of cards: one sheet
- * of album paper, prints mounted onto it at slight angles, captions written
- * underneath. Prints settle in one after another rather than all at once so
- * the page feels turned-to rather than loaded.
+ * The one component that knows "chapter" from "bucket-list album" — every
+ * other memory component (`MemoryCard`, `MemoryDetail`, `MemoryReactions`,
+ * `MemoryComments`) is context-agnostic, taking plain callback props. This
+ * binds the right Server Actions for `context.kind` once and hands bound
+ * per-memory closures down; the chapter page and the album page each just
+ * pass their own `context`, and everything else is identical between them.
+ *
+ * Reactions and comments were never chapter-specific underneath — see
+ * `app/(app)/bucket-list/actions.ts`'s album action set, which calls the
+ * exact same `lib/reactions/mutations.ts` / `lib/comments/mutations.ts`
+ * functions the chapter's own actions do, just revalidating a different path.
+ */
+export function bindMemoryActions(context: MemoryGridContext) {
+  if (context.kind === "chapter") {
+    const { chapterId, chapterSlug } = context;
+    return {
+      removeLabel: "this chapter",
+      removalBody: "It won't be gone for good — it just won't be in this chapter anymore.",
+      onRemove: (memoryId: string) => removeMemory(memoryId, chapterSlug),
+      onReact: (memoryId: string, emoji: string) => reactToMemory(memoryId, emoji, chapterSlug),
+      onUnreact: (memoryId: string) => unreactToMemory(memoryId, chapterSlug),
+      onAddComment: (memoryId: string, body: string) => addChapterComment(memoryId, body, chapterSlug),
+      onEditComment: (commentId: string, body: string) => editMemoryComment(commentId, body, chapterSlug),
+      onRemoveComment: (commentId: string) => removeMemoryComment(commentId, chapterSlug),
+      onEditCaption: (memoryId: string, title: string) => editMemoryCaption(memoryId, title, chapterSlug),
+      resolveFullUrl: (memoryId: string) => loadMemoryFullUrl(chapterId, memoryId),
+    };
+  }
+
+  const { itemId } = context;
+  return {
+    removeLabel: "this album",
+    removalBody: "It won't be gone for good — it just won't be in this album anymore.",
+    onRemove: (memoryId: string) => removeAlbumMemory(memoryId, itemId),
+    onReact: (memoryId: string, emoji: string) => reactToAlbumPhoto(memoryId, emoji, itemId),
+    onUnreact: (memoryId: string) => unreactToAlbumPhoto(memoryId, itemId),
+    onAddComment: (memoryId: string, body: string) => addAlbumComment(memoryId, body, itemId),
+    onEditComment: (commentId: string, body: string) => editAlbumComment(commentId, body, itemId),
+    onRemoveComment: (commentId: string) => removeAlbumComment(commentId, itemId),
+    onEditCaption: (memoryId: string, title: string) => editAlbumMemoryCaption(memoryId, title, itemId),
+    resolveFullUrl: (memoryId: string) => loadPromiseAlbumFullUrl(itemId, memoryId),
+  };
+}
+
+/**
+ * A chapter (or a bucket-list album) reads as a page in a photo album, not a
+ * grid of cards: one sheet of album paper, prints mounted onto it at slight
+ * angles, captions written underneath. Prints settle in one after another
+ * rather than all at once so the page feels turned-to rather than loaded.
  *
  * The layout below is a plain grid, not CSS multi-column, despite every print
  * being roughly the same height (fixed `aspect-[4/5]` photo + a short
@@ -30,15 +98,13 @@ import { MemoryDetail } from "./MemoryDetail";
  */
 export function MemoryGrid({
   memories,
-  chapterId,
-  chapterSlug,
+  context,
   reactionsByMemory,
   commentsByMemory,
   currentUserId,
 }: {
   memories: MemoryWithMedia[];
-  chapterId: string;
-  chapterSlug: string;
+  context: MemoryGridContext;
   reactionsByMemory: Record<string, Reaction[]>;
   commentsByMemory: Record<string, Comment[]>;
   currentUserId: string | null;
@@ -50,6 +116,7 @@ export function MemoryGrid({
   const [removing, setRemoving] = useState(false);
   const [, startTransition] = useTransition();
 
+  const actions = bindMemoryActions(context);
   const selected = memories.find((memory) => memory.id === selectedId) ?? null;
   const pendingRemoval = memories.find((memory) => memory.id === pendingRemovalId) ?? null;
 
@@ -58,7 +125,7 @@ export function MemoryGrid({
     setRemoving(true);
     startTransition(async () => {
       try {
-        await removeMemory(pendingRemovalId, chapterSlug);
+        await actions.onRemove(pendingRemovalId);
         router.refresh();
       } finally {
         setRemoving(false);
@@ -101,20 +168,28 @@ export function MemoryGrid({
               <MemoryCard
                 memory={memory}
                 index={index}
-                chapterSlug={chapterSlug}
                 reactions={reactionsByMemory[memory.id] ?? []}
                 commentCount={(commentsByMemory[memory.id] ?? []).length}
                 currentUserId={currentUserId}
-                onSelect={() =>
+                onSelect={() => {
                   // A promise's cover print opens its whole album, not just
                   // itself as an isolated photo — the chapter is one page of
-                  // it, not the only place it lives. See
-                  // `docs/agent/codebase-map/bucket-list.md`.
-                  memory.bucket_list_item_id
-                    ? router.push(`/bucket-list/${memory.bucket_list_item_id}`)
-                    : setSelectedId(memory.id)
-                }
+                  // it, not the only place it lives. Only relevant from a
+                  // chapter: inside an album already, every photo shares the
+                  // same promise, so there's nowhere further to redirect to.
+                  // See `docs/agent/codebase-map/bucket-list.md`.
+                  if (context.kind === "chapter" && memory.bucket_list_item_id) {
+                    router.push(
+                      `/bucket-list/${memory.bucket_list_item_id}?from=/chapters/${context.chapterSlug}`,
+                    );
+                    return;
+                  }
+                  setSelectedId(memory.id);
+                }}
                 onRemove={() => setPendingRemovalId(memory.id)}
+                removeLabel={actions.removeLabel}
+                onReact={(emoji) => actions.onReact(memory.id, emoji)}
+                onUnreact={() => actions.onUnreact(memory.id)}
               />
             </motion.div>
           ))}
@@ -128,12 +203,17 @@ export function MemoryGrid({
           <MemoryDetail
             key={selected.id}
             memory={selected}
-            chapterId={chapterId}
-            chapterSlug={chapterSlug}
             reactions={reactionsByMemory[selected.id] ?? []}
             comments={commentsByMemory[selected.id] ?? []}
             currentUserId={currentUserId}
             onClose={() => setSelectedId(null)}
+            onEditCaption={(title) => actions.onEditCaption(selected.id, title)}
+            resolveFullUrl={() => actions.resolveFullUrl(selected.id)}
+            onReact={(emoji) => actions.onReact(selected.id, emoji)}
+            onUnreact={() => actions.onUnreact(selected.id)}
+            onAddComment={(body) => actions.onAddComment(selected.id, body)}
+            onEditComment={(commentId, body) => actions.onEditComment(commentId, body)}
+            onRemoveComment={(commentId) => actions.onRemoveComment(commentId)}
           />
         )}
       </AnimatePresence>
@@ -143,7 +223,7 @@ export function MemoryGrid({
           <ConfirmDialog
             key={pendingRemoval.id}
             title="Take this one off the page?"
-            body="It won't be gone for good — it just won't be in this chapter anymore."
+            body={actions.removalBody}
             confirmLabel="Take it off"
             busy={removing}
             onConfirm={confirmRemoval}

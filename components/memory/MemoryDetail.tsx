@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { editMemoryCaption, loadMemoryFullUrl } from "@/app/(app)/chapters/[slug]/actions";
 import { useCloseOnBack } from "@/lib/navigation/useCloseOnBack";
 import { PhotoLightbox } from "./PhotoLightbox";
 import type { Comment } from "@/lib/comments/types";
@@ -14,22 +13,38 @@ import type { Reaction } from "@/lib/reactions/types";
 import { MemoryComments } from "./MemoryComments";
 import { MemoryReactions } from "./MemoryReactions";
 
+/**
+ * Context-agnostic — takes `onEditCaption`/`resolveFullUrl` plus the
+ * reaction/comment callbacks rather than a `chapterId`/`chapterSlug` and
+ * hardcoded chapter actions, so `MemoryGrid` can mount this for either a
+ * chapter or a bucket-list album with the right Server Actions bound.
+ */
 export function MemoryDetail({
   memory,
-  chapterId,
-  chapterSlug,
   reactions,
   comments,
   currentUserId,
   onClose,
+  onEditCaption,
+  resolveFullUrl,
+  onReact,
+  onUnreact,
+  onAddComment,
+  onEditComment,
+  onRemoveComment,
 }: {
   memory: MemoryWithMedia;
-  chapterId: string;
-  chapterSlug: string;
   reactions: Reaction[];
   comments: Comment[];
   currentUserId: string | null;
   onClose: () => void;
+  onEditCaption: (title: string) => Promise<void>;
+  resolveFullUrl: () => Promise<string | null>;
+  onReact: (emoji: string) => Promise<void>;
+  onUnreact: () => Promise<void>;
+  onAddComment: (body: string) => Promise<void>;
+  onEditComment: (commentId: string, body: string) => Promise<void>;
+  onRemoveComment: (commentId: string) => Promise<void>;
 }) {
   const router = useRouter();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -52,7 +67,7 @@ export function MemoryDetail({
     const trimmed = captionDraft.trim();
     if (!trimmed) return;
     startCaptionTransition(async () => {
-      await editMemoryCaption(memory.id, trimmed, chapterSlug);
+      await onEditCaption(trimmed);
       setEditingCaption(false);
       router.refresh();
     });
@@ -75,7 +90,7 @@ export function MemoryDetail({
   useEffect(() => {
     if (fullUrl) return;
     let live = true;
-    loadMemoryFullUrl(chapterId, memory.id)
+    resolveFullUrl()
       .then((url) => {
         if (live && url) setFullUrl(url);
       })
@@ -85,7 +100,8 @@ export function MemoryDetail({
     return () => {
       live = false;
     };
-  }, [chapterId, memory.id, fullUrl]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- resolveFullUrl is a fresh closure per render from the caller; re-running only when the memory or fullUrl itself changes is the intent
+  }, [memory.id, fullUrl]);
 
   /** Tapping the print opens it full-screen — see `PhotoLightbox`. */
   const [zoomed, setZoomed] = useState(false);
@@ -241,16 +257,18 @@ export function MemoryDetail({
         {memory.body && <p className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-ink">{memory.body}</p>}
         <MemoryReactions
           memoryId={memory.id}
-          chapterSlug={chapterSlug}
           reactions={reactions}
           currentUserId={currentUserId}
           variant="inline"
+          onReact={onReact}
+          onUnreact={onUnreact}
         />
         <MemoryComments
-          memoryId={memory.id}
-          chapterSlug={chapterSlug}
           comments={comments}
           currentUserId={currentUserId}
+          onAdd={onAddComment}
+          onEdit={onEditComment}
+          onRemove={onRemoveComment}
         />
       </motion.div>
 
