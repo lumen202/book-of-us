@@ -164,20 +164,35 @@ export function AddPromiseModal({ onClose }: { onClose: () => void }) {
 
           {photoOpen && (
             <div className="mt-3">
-              <input
-                type="file"
-                accept="image/*"
-                disabled={pending}
-                onChange={(event) => pickFile(event.target.files?.[0] ?? null)}
-                className="block w-full text-sm normal-case tracking-normal text-ink file:mr-3 file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:uppercase file:tracking-[0.18em] file:text-ink"
-              />
-              {previewUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={previewUrl}
-                  alt=""
-                  className="mt-3 aspect-[4/3] w-full rounded-xl object-cover"
+              {!previewUrl ? (
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={pending}
+                  onChange={(event) => pickFile(event.target.files?.[0] ?? null)}
+                  className="block w-full text-sm normal-case tracking-normal text-ink file:mr-3 file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:uppercase file:tracking-[0.18em] file:text-ink"
                 />
+              ) : (
+                <div className="relative w-full">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={previewUrl}
+                    alt=""
+                    className="aspect-[4/3] w-full rounded-xl object-cover"
+                  />
+                  {/* A misclick shouldn't cost an upload-then-delete round
+                      trip — clearing the selection here just forgets the
+                      file, nothing has been sent anywhere yet. */}
+                  <button
+                    type="button"
+                    aria-label="Remove this photo"
+                    onClick={() => pickFile(null)}
+                    disabled={pending}
+                    className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-base leading-none text-ink-muted shadow-[0_4px_10px_-4px_rgba(76,59,48,0.5)] transition hover:scale-110 hover:border-accent hover:text-accent disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:hover:scale-100"
+                  >
+                    ×
+                  </button>
+                </div>
               )}
             </div>
           )}

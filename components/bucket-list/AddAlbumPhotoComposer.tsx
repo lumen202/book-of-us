@@ -2,10 +2,12 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { addPromiseAlbumPhoto, resolveChapterForCompletion } from "@/app/(app)/bucket-list/actions";
 import { todayIso } from "@/lib/format/date";
 import { uploadMemoryMedia } from "@/lib/media/uploadMemoryMedia";
+
+type PickedFile = { id: string; file: File; previewUrl: string };
 
 /**
  * Adding to a kept promise's album. Modeled directly on
@@ -23,14 +25,47 @@ import { uploadMemoryMedia } from "@/lib/media/uploadMemoryMedia";
 export function AddAlbumPhotoComposer({ itemId }: { itemId: string }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [files, setFiles] = useState<File[]>([]);
+  const [files, setFiles] = useState<PickedFile[]>([]);
   const [caption, setCaption] = useState("");
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const busy = progress !== null;
 
+  // Object URLs are only good for this tab's lifetime — revoke whichever
+  // ones are no longer in `files`, on every change and on unmount, so a
+  // long session doesn't leak one per photo picked and then removed.
+  useEffect(() => {
+    return () => {
+      for (const picked of files) URL.revokeObjectURL(picked.previewUrl);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- cleanup only, not a re-run on every `files` change
+  }, []);
+
+  function addFiles(selected: FileList | null) {
+    if (!selected) return;
+    const picked = Array.from(selected).map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      previewUrl: URL.createObjectURL(file),
+    }));
+    // Accumulates rather than replaces — reopening the picker to grab a few
+    // more photos shouldn't forget the ones already queued.
+    setFiles((prev) => [...prev, ...picked]);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  function removeFile(id: string) {
+    setFiles((prev) => {
+      const target = prev.find((picked) => picked.id === id);
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((picked) => picked.id !== id);
+    });
+  }
+
   function reset() {
+    for (const picked of files) URL.revokeObjectURL(picked.previewUrl);
     setFiles([]);
     setCaption("");
     setProgress(null);
@@ -47,13 +82,13 @@ export function AddAlbumPhotoComposer({ itemId }: { itemId: string }) {
     try {
       const chapter = await resolveChapterForCompletion();
 
-      for (const [index, file] of files.entries()) {
+      for (const [index, picked] of files.entries()) {
         setProgress(
           files.length === 1 ? "Tucking it in…" : `Tucking in ${index + 1} of ${files.length}…`,
         );
 
         const memoryId = crypto.randomUUID();
-        const { storagePath, thumbnailPath, meta } = await uploadMemoryMedia(file, {
+        const { storagePath, thumbnailPath, meta } = await uploadMemoryMedia(picked.file, {
           chapterId: chapter.id,
           memoryId,
         });
@@ -110,20 +145,41 @@ export function AddAlbumPhotoComposer({ itemId }: { itemId: string }) {
             <label className="mt-6 block text-[11px] uppercase tracking-[0.22em] text-ink-muted">
               Photos
               <input
+                ref={inputRef}
                 type="file"
                 accept="image/*"
                 multiple
                 disabled={busy}
-                onChange={(event) => setFiles(Array.from(event.target.files ?? []))}
+                onChange={(event) => addFiles(event.target.files)}
                 className="mt-2 block w-full text-sm normal-case tracking-normal text-ink file:mr-3 file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:uppercase file:tracking-[0.18em] file:text-ink"
               />
             </label>
 
             {files.length > 0 && (
-              <p className="mt-2 text-xs text-ink-muted">
-                {files.length === 1 ? "1 photo ready" : `${files.length} photos ready`} — they&apos;ll be
-                resized before they&apos;re saved.
-              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {files.map((picked) => (
+                  <div key={picked.id} className="relative h-16 w-16 shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={picked.previewUrl}
+                      alt=""
+                      className="h-full w-full rounded-lg object-cover"
+                    />
+                    {/* A misclick shouldn't cost an upload-then-delete round
+                        trip — removing here just forgets the file, nothing
+                        has been sent anywhere yet. */}
+                    <button
+                      type="button"
+                      aria-label="Remove this photo"
+                      onClick={() => removeFile(picked.id)}
+                      disabled={busy}
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full border border-border bg-surface text-xs leading-none text-ink-muted shadow-[0_2px_6px_-2px_rgba(76,59,48,0.5)] transition hover:scale-110 hover:border-accent hover:text-accent disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:hover:scale-100"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
             )}
 
             <label className="mt-5 block text-[11px] uppercase tracking-[0.22em] text-ink-muted">

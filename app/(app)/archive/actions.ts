@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { purgeItem, restoreItem } from "@/lib/bucket-list/mutations";
 import { requireAdmin } from "@/lib/auth/admin";
 import { purgeMemory, restoreMemory } from "@/lib/memories/mutations";
 import { purgeVaultItem, restoreVaultItem } from "@/lib/vault/mutations";
@@ -83,6 +84,46 @@ export async function purgeVaultItemsAction(
   for (const id of ids) {
     try {
       await purgeVaultItem(id);
+      purged += 1;
+    } catch (caught) {
+      revalidatePath("/archive");
+      return {
+        purged,
+        failed: caught instanceof Error ? caught.message : "Something went wrong.",
+      };
+    }
+  }
+
+  revalidatePath("/archive");
+  return { purged, failed: null };
+}
+
+/** The bucket list's copy of the three actions above, for `bucket_list_items` instead. */
+
+export async function restoreBucketItemAction(id: string) {
+  await requireAdmin();
+  await restoreItem(id);
+  revalidatePath("/archive");
+  revalidatePath("/bucket-list");
+}
+
+/** Irreversible. See `purgeItem` for why this exception to "no hard deletes" exists. */
+export async function purgeBucketItemAction(id: string) {
+  await requireAdmin();
+  await purgeItem(id);
+  revalidatePath("/archive");
+}
+
+/** Bulk purge. Irreversible. Sequential — see `purgeMemoriesAction`'s comment for why. */
+export async function purgeBucketItemsAction(
+  ids: string[],
+): Promise<{ purged: number; failed: string | null }> {
+  await requireAdmin();
+
+  let purged = 0;
+  for (const id of ids) {
+    try {
+      await purgeItem(id);
       purged += 1;
     } catch (caught) {
       revalidatePath("/archive");

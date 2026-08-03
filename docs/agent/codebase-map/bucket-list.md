@@ -66,15 +66,49 @@ its row's own link is opened, on `/bucket-list/[id]`.
 
 ## A kept promise can hold an album, not just one photo
 
-`bucket_list_items.memory_id` still means exactly what it always has: the **cover** photo, the
-one also filed into a chapter (unchanged — `completeItem`/`attachMemoryToItem` still write it the
-same way). What's new is `memories.bucket_list_item_id`, which tags *every* photo belonging to a
-promise, the cover included. `get_bucket_item_memories(p_bucket_list_item_id)`
-(`supabase/functions/get_chapter_memories.sql`) reads a promise's whole album by that tag, the
-same RPC-not-raw-read pattern every memory read follows (`data-model.md`).
+`memories.bucket_list_item_id` tags *every* photo belonging to a promise.
+`get_bucket_item_memories(p_bucket_list_item_id)` (`supabase/functions/get_chapter_memories.sql`)
+reads a promise's whole album by that tag, the same RPC-not-raw-read pattern every memory read
+follows (`data-model.md`).
 
-Additional photos beyond the cover are written with `chapter_id = null` — deliberately never in
-any chapter's flat grid, so a twenty-photo trip doesn't dump twenty cards into that month's page.
+**Two different "cover" concepts live on `bucket_list_items`, and they must stay separate:**
+
+- `memory_id` — the kept-day photo, also filed into a chapter. Unchanged since before the album
+  existed. `completeItem`/`attachMemoryToItem`'s guards treat a non-null `memory_id` as "already
+  kept" — **never** write to this column from anywhere else, or ticking a promise later would
+  silently no-op.
+- `cover_memory_id` (migration `0010`) — which album photo the album page features, independent
+  of kept status. Set to a promise's *first* photo by whichever path adds it first (a reference
+  photo at write-down time, or the first thing added via `AddAlbumPhotoComposer`) —
+  `addAlbumPhoto` claims it only `where cover_memory_id is null`. `writeLinkedMemory` then
+  unconditionally overwrites it with the kept-day photo when the promise is actually kept: the
+  real day earns the cover spot over a "picturing this" placeholder, but the placeholder photo
+  itself stays in the album, just no longer featured.
+
+The album page (`app/(app)/bucket-list/[id]/page.tsx`) shows the cover on its own
+(`CoverCard` in `PromiseAlbumGrid.tsx`, no tilt — it's the title page, not a loose print) and
+excludes it from the grid below, which shows every other photo.
+
+**The link runs both ways, and on the chapter side it's a redirect, not an added link.** The
+bucket-list side already links to a kept promise's chapter ("see the cover print in {chapter}").
+Clicking that same photo *from* the chapter used to open the ordinary `MemoryDetail` modal —
+tried adding a "see the whole album" link inside it first, but that's not what a promise's cover
+photo is: it's not a photo that happens to also be in an album, tapping it should go straight to
+the album. `MemoryGrid.tsx`'s `onSelect` now checks `memory.bucket_list_item_id` and
+`router.push`es to `/bucket-list/[id]` instead of opening `MemoryDetail` when it's set — the
+modal is only ever reached for memories that aren't tied to a promise. `Memory` gained the column
+(`lib/memories/types.ts`) so this could type-check; `get_chapter_memories` already returned it
+(`select *`), it just wasn't exposed to callers before.
+
+The album page itself carries a visible "this came from a promise" marker: the same
+`CategoryGlyph` the bucket-list row shows, next to an eyebrow reading "A promise, kept" / "A
+promise, still open" — a deliberate visual thread back to the list, not just descriptive text.
+
+Every photo except the one pointed at by `memory_id` is written with `chapter_id = null` —
+deliberately never in any chapter's flat grid, so a twenty-photo trip doesn't dump twenty cards
+into that month's page. That includes the featured cover when it's a reference photo rather than
+the kept-day print — being the album's cover doesn't put a photo in a chapter, only `memory_id`
+does.
 They only ever show on the promise's own album page, `/bucket-list/[id]`
 (`app/(app)/bucket-list/[id]/page.tsx`), added there via `addAlbumPhoto`
 (`lib/bucket-list/mutations.ts`) and `AddAlbumPhotoComposer.tsx` (modeled on
@@ -87,11 +121,18 @@ photo into that chapter.
 chapter — the album page itself links onward to "see the cover print in {chapter}" when there is
 one.
 
-**Deliberately not in this round:** removing a photo from an album (view-and-add only for now —
-`PromiseAlbumGrid.tsx` has no remove control; adding one later can reuse `softDeleteMemory` with
+**Deliberately not in this round:** removing an already-uploaded photo from an album
+(`PromiseAlbumGrid.tsx` has no remove control; adding one later can reuse `softDeleteMemory` with
 no backend changes), and no count-aware copy on the list page ("1 photograph" vs "an album of 6")
 — that would need a new batched query on a page that currently signs zero URLs and makes zero
 memory queries per row, and the real count is one click away regardless.
+
+**Removing a *picked-but-not-yet-uploaded* photo is in scope, and different from the above.**
+Every photo picker here (`AddPromiseModal`, `CompletionModal`, `AddAlbumPhotoComposer`) shows a ×
+on the local preview before anything is sent to Storage — a misclick shouldn't cost an
+upload-then-delete round trip. `AddAlbumPhotoComposer`'s multi-file picker accumulates across
+repeated picks (reopening the file dialog adds to the queue rather than replacing it) and lets
+each queued photo be removed individually; object URLs are revoked on removal and on unmount.
 
 ## Category is a check constraint, not a table
 
@@ -132,6 +173,19 @@ a picture" — softer, because it's a wish, not a memory, even though both link 
 `bucket_list_item_id`. See `bucket_list_items.title` vs. a memory's own title/caption being allowed
 to disagree, above — same instinct, applied to language instead of data.
 
+## Removed promises are reachable, same as removed photos
+
+`removeItem` soft-deletes a promise, and its album page (`/bucket-list/[id]`) 404s once it's
+removed — `getBucketItem` filters `deleted_at is null`, same as a chapter would for a removed
+memory. Without a way back to it, a removed promise with photos tagged to it via
+`memories.bucket_list_item_id` would strand those photos (any that aren't also a chapter's cover)
+unreachable from anywhere. `/archive`'s existing "put it back or delete it forever" pattern
+(`ArchiveList`/`VaultArchiveList`) now has a third copy, `BucketListArchiveList.tsx`, backed by
+`listDeletedBucketItems`/`restoreItem`/`purgeItem`. Purging a promise (`purgeItem`, admin-only,
+irreversible) never touches its photos — `bucket_list_item_id`'s `on delete set null` (migration
+`0009`) means the row can be purged even while photos still reference it; they just lose that tag,
+not their existence.
+
 ## Deliberately out of scope for v1
 
 - **Manual reordering.** `bucket_list_items.position` exists and new promises append to the end of
@@ -146,6 +200,7 @@ to disagree, above — same instinct, applied to language instead of data.
 ```
 supabase/migrations/0005_bucket_list.sql   schema
 supabase/migrations/0009_bucket_list_album.sql  memories.bucket_list_item_id + backfill
+supabase/migrations/0010_bucket_list_album_cover.sql  bucket_list_items.cover_memory_id
 supabase/functions/get_chapter_memories.sql  + get_memory_chapter_links, get_bucket_item_memories,
                                               get_bucket_item_photo_flags (appended)
 lib/bucket-list/{types,queries,mutations}.ts

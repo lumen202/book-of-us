@@ -18,6 +18,7 @@ function toItem(row: {
   position: number;
   completed_at: string | null;
   memory_id: string | null;
+  cover_memory_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -32,6 +33,7 @@ function toItem(row: {
     position: row.position,
     completedAt: row.completed_at,
     memoryId: row.memory_id,
+    coverMemoryId: row.cover_memory_id,
     createdBy: row.created_by,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -64,4 +66,22 @@ export async function getBucketItem(id: string): Promise<BucketListItem | null> 
 
   if (error) throw error;
   return data ? toItem(data) : null;
+}
+
+/**
+ * Removed promises, newest removal first — the archive's contents. A
+ * removed promise's album page 404s (`getBucketItem` filters it out), same
+ * as a removed memory's own page would; this is the way back to it, put
+ * back or deleted for good, same as `listDeletedMemories`.
+ */
+export async function listDeletedBucketItems(): Promise<BucketListItem[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bucket_list_items")
+    .select("*")
+    .not("deleted_at", "is", null)
+    .order("deleted_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map(toItem);
 }

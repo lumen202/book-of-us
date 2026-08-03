@@ -105,7 +105,15 @@ export function MemoryGrid({
                 reactions={reactionsByMemory[memory.id] ?? []}
                 commentCount={(commentsByMemory[memory.id] ?? []).length}
                 currentUserId={currentUserId}
-                onSelect={() => setSelectedId(memory.id)}
+                onSelect={() =>
+                  // A promise's cover print opens its whole album, not just
+                  // itself as an isolated photo — the chapter is one page of
+                  // it, not the only place it lives. See
+                  // `docs/agent/codebase-map/bucket-list.md`.
+                  memory.bucket_list_item_id
+                    ? router.push(`/bucket-list/${memory.bucket_list_item_id}`)
+                    : setSelectedId(memory.id)
+                }
                 onRemove={() => setPendingRemovalId(memory.id)}
               />
             </motion.div>

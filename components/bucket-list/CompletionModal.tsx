@@ -151,25 +151,38 @@ export function CompletionModal({
               </h2>
               <p className="mt-2 font-serif text-lg italic text-ink-muted">{item.title}</p>
 
-              <label className="mt-6 block text-left text-[11px] uppercase tracking-[0.22em] text-ink-muted">
+              <div className="mt-6 text-left text-[11px] uppercase tracking-[0.22em] text-ink-muted">
                 Photo {mode === "complete" && <span className="normal-case tracking-normal">(optional — no photo? that&apos;s alright)</span>}
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={(event) => pickFile(event.target.files?.[0] ?? null)}
-                  className="mt-2 block w-full text-sm normal-case tracking-normal text-ink file:mr-3 file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:uppercase file:tracking-[0.18em] file:text-ink"
-                />
-              </label>
-
-              {previewUrl && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={previewUrl}
-                  alt=""
-                  className="mt-3 aspect-[4/3] w-full rounded-xl object-cover"
-                />
-              )}
+                {!previewUrl ? (
+                  <input
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={(event) => pickFile(event.target.files?.[0] ?? null)}
+                    className="mt-2 block w-full text-sm normal-case tracking-normal text-ink file:mr-3 file:border file:border-border file:bg-background file:px-3 file:py-1.5 file:text-xs file:uppercase file:tracking-[0.18em] file:text-ink"
+                  />
+                ) : (
+                  <div className="relative mt-3 w-full">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={previewUrl}
+                      alt=""
+                      className="aspect-[4/3] w-full rounded-xl object-cover"
+                    />
+                    {/* A misclick shouldn't cost an upload-then-delete round
+                        trip — clearing the selection here just forgets the
+                        file, nothing has been sent anywhere yet. */}
+                    <button
+                      type="button"
+                      aria-label="Remove this photo"
+                      onClick={() => pickFile(null)}
+                      className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-surface text-base normal-case leading-none tracking-normal text-ink-muted shadow-[0_4px_10px_-4px_rgba(76,59,48,0.5)] transition hover:scale-110 hover:border-accent hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent motion-reduce:hover:scale-100"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
+              </div>
 
               <div className="mt-5 text-left">
                 {!showDatePicker ? (
