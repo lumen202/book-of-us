@@ -127,7 +127,6 @@ export default function LoginPage() {
         </button>
 
         <p className="text-center text-sm text-neutral-500">
-          Just curious?{" "}
           <a href="/demo" className="font-medium text-neutral-700 underline underline-offset-2 hover:text-neutral-900">
             View demo
           </a>
