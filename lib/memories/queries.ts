@@ -28,6 +28,43 @@ export async function getChapterMemories(chapterId: string): Promise<Memory[]> {
 }
 
 /**
+ * A kept bucket-list promise's whole album — the cover (also returned by
+ * `getChapterMemories` for its chapter) and any additional photos, which have
+ * no `chapter_id` and only surface here. See
+ * `supabase/functions/get_chapter_memories.sql`'s `get_bucket_item_memories`.
+ */
+export async function getBucketItemMemories(bucketListItemId: string): Promise<Memory[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_bucket_item_memories", {
+    p_bucket_list_item_id: bucketListItemId,
+  });
+
+  if (error) throw error;
+  return (data ?? []) as Memory[];
+}
+
+/**
+ * Which of these bucket-list item ids have at least one photo — one batched
+ * call for the whole list page, no signed URLs, no per-row query. Lets an
+ * open (not-yet-kept) promise with a reference photo show a link without
+ * reversing the list page's "zero images, zero per-row memory reads" cost
+ * profile for everything that *doesn't* have one.
+ */
+export async function getBucketItemPhotoFlags(itemIds: string[]): Promise<Set<string>> {
+  if (itemIds.length === 0) return new Set();
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_bucket_item_photo_flags", {
+    p_item_ids: itemIds,
+  });
+
+  if (error) throw error;
+  return new Set(
+    (data ?? []).map((row: { bucket_list_item_id: string }) => row.bucket_list_item_id),
+  );
+}
+
+/**
  * Soft-deleted memories, newest removal first — the admin archive's contents.
  *
  * This is the one read that goes to the table directly instead of through
@@ -244,6 +281,23 @@ export async function getMemoryFullUrl(
   memoryId: string,
 ): Promise<string | null> {
   const memory = (await getChapterMemories(chapterId)).find((row) => row.id === memoryId);
+  if (!memory?.storage_path) return null;
+  return getSignedUrl(memory.storage_path, memory.type === "photo" ? "full" : undefined);
+}
+
+/**
+ * The full-size signed URL for one photo in a bucket-list promise's album —
+ * same on-demand-at-lift reasoning as `getMemoryFullUrl`, going through
+ * `getBucketItemMemories` instead of `getChapterMemories` since an album
+ * photo beyond the cover has no `chapter_id` to look it up by.
+ */
+export async function getBucketItemMemoryFullUrl(
+  bucketListItemId: string,
+  memoryId: string,
+): Promise<string | null> {
+  const memory = (await getBucketItemMemories(bucketListItemId)).find(
+    (row) => row.id === memoryId,
+  );
   if (!memory?.storage_path) return null;
   return getSignedUrl(memory.storage_path, memory.type === "photo" ? "full" : undefined);
 }

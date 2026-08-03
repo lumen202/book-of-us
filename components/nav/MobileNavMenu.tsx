@@ -1,10 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/app/(app)/actions";
 import { AdminMenuItems } from "@/components/nav/AdminMenuItems";
+import { NavLink } from "@/components/nav/NavLink";
 import { useOpeningActive } from "@/lib/opening-sequence/useOpeningActive";
 
 /**
@@ -69,34 +69,42 @@ export function MobileNavMenu({ isAdmin }: { isAdmin: boolean }) {
             className="absolute right-0 top-full z-10 mt-2 flex w-56 flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-[0_20px_40px_-24px_rgba(76,59,48,0.45)]"
           >
             <div className="flex flex-col gap-1">
-              <Link
+              <NavLink
                 href="/"
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:bg-accent-muted/40 hover:text-ink"
+                className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] transition hover:bg-accent-muted/40"
+                activeClassName="bg-accent-muted/40 text-ink"
+                inactiveClassName="text-ink-muted hover:text-ink"
               >
                 Bookshelf
-              </Link>
-              <Link
+              </NavLink>
+              <NavLink
                 href="/bucket-list"
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:bg-accent-muted/40 hover:text-ink"
+                className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] transition hover:bg-accent-muted/40"
+                activeClassName="bg-accent-muted/40 text-ink"
+                inactiveClassName="text-ink-muted hover:text-ink"
               >
                 Bucket list
-              </Link>
-              <Link
+              </NavLink>
+              <NavLink
                 href="/vault"
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:bg-accent-muted/40 hover:text-ink"
+                className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] transition hover:bg-accent-muted/40"
+                activeClassName="bg-accent-muted/40 text-ink"
+                inactiveClassName="text-ink-muted hover:text-ink"
               >
                 Vault
-              </Link>
-              <Link
+              </NavLink>
+              <NavLink
                 href="/settings"
                 onClick={() => setOpen(false)}
-                className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:bg-accent-muted/40 hover:text-ink"
+                className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] transition hover:bg-accent-muted/40"
+                activeClassName="bg-accent-muted/40 text-ink"
+                inactiveClassName="text-ink-muted hover:text-ink"
               >
                 Settings
-              </Link>
+              </NavLink>
             </div>
 
             {isAdmin && (

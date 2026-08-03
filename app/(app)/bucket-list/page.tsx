@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { formatMonthDay } from "@/lib/format/date";
 import { listBucketItems } from "@/lib/bucket-list/queries";
-import { getMemoryChapterLinks } from "@/lib/memories/queries";
+import { getBucketItemPhotoFlags, getMemoryChapterLinks } from "@/lib/memories/queries";
 import { getAppNow } from "@/lib/relationship/devClock";
 import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
 import { createClient } from "@/lib/supabase/server";
@@ -10,12 +10,15 @@ import { ClosingReflection } from "@/components/story/ClosingReflection";
 
 /**
  * Things we still owe each other — a written page, not a task manager. See
- * `docs/plans/bucket-list.md` §0.1 for why: every capability the feature was
- * asked for is here, none of it looks like Jira.
+ * `docs/agent/codebase-map/bucket-list.md` for why: every capability the
+ * feature was asked for is here, none of it looks like Jira.
  *
- * Ships zero images (§0.3, §2.5 of the plan) — no cover photo per item, no
- * thumbnail beside a kept promise. A kept promise links to its print with
- * text; the photo lives where photos live, on the chapter page.
+ * Signs zero images itself — no cover photo per item, no thumbnail beside a
+ * kept promise. A kept promise, or an open one with a reference photo, links
+ * to it with text; the photo lives on the promise's own album page
+ * (`/bucket-list/[id]`). `getBucketItemPhotoFlags` is the one concession:
+ * a single batched, image-free query so an open item can even know to show
+ * that link, without signing anything or querying per row.
  */
 export default async function BucketListPage() {
   const items = await listBucketItems();
@@ -23,8 +26,9 @@ export default async function BucketListPage() {
   const memoryIds = items
     .map((item) => item.memoryId)
     .filter((id): id is string => Boolean(id));
-  const [memoryLinks, auth] = await Promise.all([
+  const [memoryLinks, photoItemIds, auth] = await Promise.all([
     getMemoryChapterLinks(memoryIds),
+    getBucketItemPhotoFlags(items.map((item) => item.id)),
     createClient().then((supabase) => supabase.auth.getUser()),
   ]);
   const currentUserId = auth.data.user?.id ?? null;
@@ -56,7 +60,12 @@ export default async function BucketListPage() {
           </p>
         </section>
 
-        <BucketList items={items} memoryLinks={memoryLinks} currentUserId={currentUserId} />
+        <BucketList
+          items={items}
+          memoryLinks={memoryLinks}
+          photoItemIds={Array.from(photoItemIds)}
+          currentUserId={currentUserId}
+        />
       </main>
 
       <ClosingReflection

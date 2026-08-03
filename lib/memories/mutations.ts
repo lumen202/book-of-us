@@ -6,7 +6,12 @@ import type { MemoryType } from "./types";
 export type NewMemoryInput = {
   /** Chosen by the client so the storage paths can be built before the row exists. */
   id: string;
-  chapterId: string;
+  /**
+   * Null for a bucket-list promise's album photo beyond the cover — see
+   * `lib/bucket-list/mutations.ts`'s `addAlbumPhoto`. Those never file into a
+   * chapter's flat grid; `bucketListItemId` is how they're found instead.
+   */
+  chapterId: string | null;
   type: MemoryType;
   title: string;
   body: string | null;
@@ -15,6 +20,7 @@ export type NewMemoryInput = {
   storagePath: string | null;
   thumbnailPath: string | null;
   meta?: Record<string, unknown>;
+  bucketListItemId?: string | null;
 };
 
 /**
@@ -46,6 +52,7 @@ export async function createMemory(input: NewMemoryInput): Promise<void> {
     storage_path: input.storagePath,
     thumbnail_path: input.thumbnailPath,
     meta: input.meta ?? {},
+    bucket_list_item_id: input.bucketListItemId ?? null,
     created_by: user.id,
   });
 

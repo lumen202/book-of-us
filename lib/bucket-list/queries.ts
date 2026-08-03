@@ -51,3 +51,17 @@ export async function listBucketItems(): Promise<BucketListItem[]> {
   if (error) throw error;
   return (data ?? []).map(toItem);
 }
+
+/** One promise, for its album page — `null` if it's gone (the page 404s). */
+export async function getBucketItem(id: string): Promise<BucketListItem | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bucket_list_items")
+    .select("*")
+    .eq("id", id)
+    .is("deleted_at", null)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ? toItem(data) : null;
+}
