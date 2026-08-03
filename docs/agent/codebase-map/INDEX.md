@@ -7,7 +7,7 @@ Table of contents only. Open just the row you need.
 | Project overview, stack, folder layout, invariants | [`overview.md`](overview.md) | current |
 | Database schema, RLS, RPCs | [`data-model.md`](data-model.md) | current |
 | Auth + route gating | [`auth.md`](auth.md) | current |
-| The demo account (isolated Supabase project) | [`demo.md`](demo.md) | current |
+| The demo account (isolated via a separate Postgres schema) | [`demo.md`](demo.md) | current |
 | Design tokens + theming | [`theming.md`](theming.md) | current |
 | The painted world (ambient backdrop) | [`painted-world.md`](painted-world.md) | current |
 | Experience direction + interaction choreography guardrails | [`experience-direction.md`](experience-direction.md) | current |

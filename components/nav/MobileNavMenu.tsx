@@ -14,7 +14,7 @@ import { useOpeningActive } from "@/lib/opening-sequence/useOpeningActive";
  * multiplied. `AppHeader` hides the inline nav below `sm` and shows this
  * instead; above `sm` this returns null and the inline nav takes over.
  */
-export function MobileNavMenu({ isAdmin }: { isAdmin: boolean }) {
+export function MobileNavMenu({ isAdmin, isDemo = false }: { isAdmin: boolean; isDemo?: boolean }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   // The ceremony's "Skip intro" button sits top-right, same corner as this
@@ -109,7 +109,7 @@ export function MobileNavMenu({ isAdmin }: { isAdmin: boolean }) {
 
             {isAdmin && (
               <div className="border-t border-border pt-2">
-                <AdminMenuItems onNavigate={() => setOpen(false)} />
+                <AdminMenuItems onNavigate={() => setOpen(false)} isDemo={isDemo} />
               </div>
             )}
 

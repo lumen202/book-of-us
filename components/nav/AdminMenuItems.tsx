@@ -15,11 +15,20 @@ export const ADMIN_LINKS = [
   { href: "/keeper/visits", label: "Visits" },
 ];
 
-export function AdminMenuItems({ onNavigate }: { onNavigate?: () => void }) {
+export function AdminMenuItems({
+  onNavigate,
+  isDemo = false,
+}: {
+  onNavigate?: () => void;
+  /** Hides "Passwords" — there's no real partner account for the demo to manage a password for, and no real one it should ever be able to reach either. See settings/actions.ts. */
+  isDemo?: boolean;
+}) {
+  const links = isDemo ? ADMIN_LINKS.filter((link) => link.href !== "/keeper/passwords") : ADMIN_LINKS;
+
   return (
     <>
       <div className="flex flex-col gap-1">
-        {ADMIN_LINKS.map((link) => (
+        {links.map((link) => (
           <Link
             key={link.href}
             href={link.href}

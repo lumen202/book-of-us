@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# The Book of Us
 
-## Getting Started
+A private, password-protected relationship archive built as a gift for two people — not a generic
+gallery app. Content is organized into monthly "chapters," each holding "memories" (photos,
+videos, audio, letters, milestones, and more), plus a shared bucket list of promises that turn
+into memories once kept, a private vault for anything meant to stay just between the two of you,
+and a "Celebration Mode" that changes the whole app's atmosphere on the 5th of every month.
 
-First, run the development server:
+**[View the live demo →](https://book-of-us-chi.vercel.app/demo)** — a frictionless, read/write
+sandbox seeded with placeholder content. No account needed.
+
+## Highlights
+
+- **Monthly chapters** of photos and other media, laid out like pages in a physical photo album —
+  prints mounted at a slight tilt, lifted on hover, opened one at a time.
+- **A shared bucket list** of promises to keep together. Completing one converts it into a real
+  memory, and a kept promise can hold a whole album of photos, not just one.
+- **A private vault**, gated behind a password re-entry step, for anything that shouldn't live in
+  the main book.
+- **Celebration Mode** — every 5th of the month, the whole app shifts into a distinct atmosphere: a
+  night-garden backdrop, a look-back slideshow of the month just finished, and a small firework of
+  its own.
+- **Soft delete everywhere.** Nothing is ever silently gone — removed items land in an admin-only
+  archive and can be restored, with exactly one deliberately gated exception for permanently
+  emptying the trash.
+- **A fully isolated public demo**, sharing one Supabase project with the real data but walled off
+  by a separate Postgres schema and separate storage buckets, so a demo visit can never read or
+  write anything real.
+
+## Stack
+
+Next.js (App Router) + TypeScript + React 19, Tailwind CSS v4, Supabase (Postgres + Auth +
+Storage) with row-level security throughout, Framer Motion. Deployed on Vercel.
+
+> This repo intentionally tracks a very recent Next.js release, ahead of most public
+> documentation and training data — see `AGENTS.md` before assuming an API's shape has stayed the
+> same.
+
+## Running it locally
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). You'll need a Supabase project of your own —
+copy `.env.local.example` to `.env.local` and fill in the values from your project's API settings,
+then, in order:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Run every file in `supabase/migrations/` against your project's SQL editor, in filename order
+   (`0001` → `0011`).
+2. Run `supabase/functions/get_chapter_memories.sql` and, if you also want a working `/demo`,
+   `get_chapter_memories_demo.sql`.
+3. Create the two real accounts directly in the Supabase dashboard (Authentication → Users) —
+   there's no signup flow by design.
+4. Optional: seed the demo schema with placeholder content —
+   `npx tsx --env-file=.env.local scripts/seed-demo.ts` — after also adding `demo` to
+   **Project Settings → API → Data API Settings → Exposed schemas**.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Project structure
 
-## Learn More
+```
+app/          Next.js routes — (auth) outside the login gate, (app) behind it
+lib/          All domain logic: data access, mutations, media pipeline, theming, timeline stats
+components/   Presentational React components, grouped by domain
+supabase/     SQL migrations and Postgres functions (RPCs)
+docs/agent/   A living internal doc set (orientation, session log, bug tracker) this project's
+              development has been using across sessions
+```
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `docs/agent/codebase-map/INDEX.md` for a deeper tour of any specific subsystem.

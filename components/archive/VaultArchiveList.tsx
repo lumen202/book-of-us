@@ -134,28 +134,30 @@ export function VaultArchiveList({ items }: { items: DeletedVaultItem[] }) {
           return (
             <li
               key={item.id}
-              className={`flex items-center gap-4 rounded-2xl border p-3 transition ${
+              className={`flex flex-col gap-3 rounded-2xl border p-3 transition sm:flex-row sm:items-center sm:gap-4 ${
                 isSelected ? "border-accent bg-surface" : "border-border bg-surface/80"
               }`}
             >
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => toggle(item.id)}
-                aria-label="Select this photo"
-                className="h-4 w-4 shrink-0 accent-[var(--color-accent)]"
-              />
+              <div className="flex min-w-0 items-center gap-4 sm:flex-1">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggle(item.id)}
+                  aria-label="Select this photo"
+                  className="h-4 w-4 shrink-0 accent-[var(--color-accent)]"
+                />
 
-              <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-ink/5">
-                {item.thumbnailUrl && (
-                  <Image src={item.thumbnailUrl} alt="" fill unoptimized className="object-cover" />
-                )}
-              </div>
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-ink/5">
+                  {item.thumbnailUrl && (
+                    <Image src={item.thumbnailUrl} alt="" fill unoptimized className="object-cover" />
+                  )}
+                </div>
 
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] uppercase tracking-[0.16em] text-ink-muted">
-                  removed {formatFullDate(item.deletedAt.slice(0, 10))}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-ink-muted">
+                    removed {formatFullDate(item.deletedAt.slice(0, 10))}
+                  </p>
+                </div>
               </div>
 
               <div className="flex shrink-0 items-center gap-3">
