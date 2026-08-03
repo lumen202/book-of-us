@@ -6,8 +6,8 @@ import { useCelebrationOverride } from "./useCelebrationOverride";
  * Floating dev-only fallback for the Celebration Mode preview, for a
  * non-admin account testing locally in development.
  *
- * The admin's copy of these controls lives inside the Keeper menu in
- * `AppHeader`/`AdminMenu` (`CelebrationControls`) — always available in
+ * The admin's copy of these controls lives inside the desktop `More` menu in
+ * `AppHeader`/`DesktopMoreMenu` (`CelebrationControls`) — always available in
  * production, not just in development, per the original reason for showing
  * this to one person: rehearsing the ceremony on a real phone, on the real
  * deployment. This widget needs its own pill/card look (unlike the flat menu

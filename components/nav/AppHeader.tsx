@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { signOut } from "@/app/(app)/actions";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
-import { AdminMenu } from "@/components/nav/AdminMenu";
+import { DesktopMoreMenu } from "@/components/nav/DesktopMoreMenu";
 import { MobileNavMenu } from "@/components/nav/MobileNavMenu";
 import { NightModeIconToggle } from "@/components/nav/NightModeIconToggle";
 
@@ -23,7 +22,11 @@ export async function AppHeader() {
         <NightModeIconToggle />
 
         {/* Below `sm` (phones), this collapses into one hamburger menu
-            instead of clumping every link side by side — see MobileNavMenu. */}
+            instead of clumping every link side by side — see MobileNavMenu.
+            Above `sm`, only the primary destinations sit inline; Settings/
+            Keeper/"Step out for now" are one level down behind `More` — see
+            DesktopMoreMenu and BUG-004 for why a flat equal-weight row was
+            itself the problem, not just a mobile-width one. */}
         <div className="hidden items-center gap-5 sm:flex">
           <Link
             href="/"
@@ -43,21 +46,7 @@ export async function AppHeader() {
           >
             Vault
           </Link>
-          <Link
-            href="/settings"
-            className="ink-legible text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            Settings
-          </Link>
-          {isAdmin && <AdminMenu />}
-          <form action={signOut}>
-            <button
-              type="submit"
-              className="ink-legible cursor-pointer text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-            >
-              Step out for now
-            </button>
-          </form>
+          <DesktopMoreMenu isAdmin={isAdmin} />
         </div>
 
         <MobileNavMenu isAdmin={isAdmin} />

@@ -2,8 +2,9 @@ import Link from "next/link";
 import { NightModeToggle } from "@/components/settings/NightModeToggle";
 
 /**
- * Password-changing lives in the Keeper menu now, not here — see
- * `components/nav/AdminMenu.tsx`. This page is the one everyone can reach.
+ * Password-changing lives in the desktop `More` / mobile hamburger menu now,
+ * not here — see `components/nav/DesktopMoreMenu.tsx`. This page is the one
+ * everyone can reach.
  */
 export default function SettingsPage() {
   return (

@@ -9,7 +9,10 @@
   by giving the dropdown an unfold/fade transition via framer-motion, matching the
   `useReducedMotion` convention already used in `CompletionModal.tsx`. The desktop row wasn't
   touched — scope was deliberately kept to mobile only.
-- **Status:** open — next session should decide whether to restructure the desktop row's
-  hierarchy (e.g. demote "Settings"/"Step out for now" visually, lead with whatever's most
-  emotionally central) rather than just re-skinning it, since a flat equal-weight link list is
-  itself a "broad navigation" pattern the invariants ask to reduce.
+- **Status:** fixed (2026-08-03) — restructured rather than re-skinned. Bookshelf/Bucket
+  list/Vault stay inline (primary destinations); Settings/Keeper/"Step out for now" moved behind
+  a new `More` dropdown (`components/nav/DesktopMoreMenu.tsx`, replacing `AdminMenu.tsx`) with
+  the same unfold/fade transition `MobileNavMenu` already has. Flat row goes from 6 equal-weight
+  links down to 3 + one affordance, and stays that way as admin-only pages are added since new
+  utility links land in the dropdown, not the row. See
+  `log/2026-08-03-desktop-nav-more-menu.md`.
