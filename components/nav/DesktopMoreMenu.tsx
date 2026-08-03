@@ -17,7 +17,7 @@ import { NavLink } from "@/components/nav/NavLink";
  * folding admin items in directly rather than nesting a dropdown inside a
  * dropdown (same convention `MobileNavMenu` already uses).
  */
-export function DesktopMoreMenu({ isAdmin }: { isAdmin: boolean }) {
+export function DesktopMoreMenu({ isAdmin, isDemo = false }: { isAdmin: boolean; isDemo?: boolean }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
@@ -75,7 +75,7 @@ export function DesktopMoreMenu({ isAdmin }: { isAdmin: boolean }) {
 
             {isAdmin && (
               <div className="border-t border-border pt-2">
-                <AdminMenuItems onNavigate={() => setOpen(false)} />
+                <AdminMenuItems onNavigate={() => setOpen(false)} isDemo={isDemo} />
               </div>
             )}
 

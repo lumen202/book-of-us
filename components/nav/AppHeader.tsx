@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { isCurrentUserAdmin } from "@/lib/auth/admin";
+import { getActiveProjectFromCookies } from "@/lib/supabase/project.server";
 import { DesktopMoreMenu } from "@/components/nav/DesktopMoreMenu";
 import { MobileNavMenu } from "@/components/nav/MobileNavMenu";
 import { NavLink } from "@/components/nav/NavLink";
@@ -9,6 +10,12 @@ export async function AppHeader() {
   // Only the keeper sees the Keeper menu. The routes behind it check again on
   // their own — hiding this is tidiness, not access control.
   const isAdmin = await isCurrentUserAdmin();
+  // The demo account is admin/keeper by design, but "Passwords" specifically
+  // must never show for it — see app/(app)/settings/actions.ts's
+  // getPartnerEmail/changePartnerPassword comments for why. Both menus filter
+  // it out of ADMIN_LINKS via this flag rather than only relying on the page
+  // itself refusing, so a demo visitor never sees a dead-end link at all.
+  const isDemo = (await getActiveProjectFromCookies()) === "demo";
 
   return (
     <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-x-5 px-6 pb-2 pt-6">
@@ -47,10 +54,10 @@ export async function AppHeader() {
           >
             Vault
           </NavLink>
-          <DesktopMoreMenu isAdmin={isAdmin} />
+          <DesktopMoreMenu isAdmin={isAdmin} isDemo={isDemo} />
         </div>
 
-        <MobileNavMenu isAdmin={isAdmin} />
+        <MobileNavMenu isAdmin={isAdmin} isDemo={isDemo} />
       </div>
     </header>
   );

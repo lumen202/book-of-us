@@ -136,27 +136,29 @@ export function BucketListArchiveList({ items }: { items: BucketListItem[] }) {
           return (
             <li
               key={item.id}
-              className={`flex items-center gap-4 rounded-2xl border p-3 transition ${
+              className={`flex flex-col gap-3 rounded-2xl border p-3 transition sm:flex-row sm:items-center sm:gap-4 ${
                 isSelected ? "border-accent bg-surface" : "border-border bg-surface/80"
               }`}
             >
-              <input
-                type="checkbox"
-                checked={isSelected}
-                onChange={() => toggle(item.id)}
-                aria-label="Select this promise"
-                className="h-4 w-4 shrink-0 accent-[var(--color-accent)]"
-              />
+              <div className="flex min-w-0 items-center gap-4 sm:flex-1">
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={() => toggle(item.id)}
+                  aria-label="Select this promise"
+                  className="h-4 w-4 shrink-0 accent-[var(--color-accent)]"
+                />
 
-              <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-ink/5 text-ink-muted">
-                <CategoryGlyph category={item.category} className="h-6 w-6" />
-              </span>
+                <span className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl bg-ink/5 text-ink-muted">
+                  <CategoryGlyph category={item.category} className="h-6 w-6" />
+                </span>
 
-              <div className="min-w-0 flex-1">
-                <p className="truncate font-serif text-lg italic text-ink">{item.title}</p>
-                <p className="text-[11px] uppercase tracking-[0.16em] text-ink-muted">
-                  removed {item.deletedAt ? formatFullDate(item.deletedAt.slice(0, 10)) : ""}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-serif text-lg italic text-ink">{item.title}</p>
+                  <p className="text-[11px] uppercase tracking-[0.16em] text-ink-muted">
+                    removed {item.deletedAt ? formatFullDate(item.deletedAt.slice(0, 10)) : ""}
+                  </p>
+                </div>
               </div>
 
               <div className="flex shrink-0 items-center gap-3">
