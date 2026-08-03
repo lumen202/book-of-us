@@ -1,15 +1,24 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getBucketItem } from "@/lib/bucket-list/queries";
+import { getCommentsForMemories, groupCommentsByMemory } from "@/lib/comments/queries";
 import {
   albumPrints,
   getBucketItemMemories,
   getMemoryChapterLinks,
   resolveMemoryMedia,
 } from "@/lib/memories/queries";
+import { getReactionsForMemories, groupReactionsByMemory } from "@/lib/reactions/queries";
+import { createClient } from "@/lib/supabase/server";
 import { AddAlbumPhotoComposer } from "@/components/bucket-list/AddAlbumPhotoComposer";
 import { CategoryGlyph } from "@/components/bucket-list/CategoryGlyph";
 import { PromiseAlbumGrid } from "@/components/bucket-list/PromiseAlbumGrid";
+
+/** Only ever a same-app path this page actually recognizes — never trust `from` blindly as an href. */
+function resolveBackLink(from: string | undefined): { href: string; label: string } {
+  if (from && from.startsWith("/chapters/")) return { href: from, label: "Back to the chapter" };
+  return { href: "/bucket-list", label: "Back to the list" };
+}
 
 /**
  * A kept promise's own page: every photo tagged to it (the cover that also
@@ -18,10 +27,13 @@ import { PromiseAlbumGrid } from "@/components/bucket-list/PromiseAlbumGrid";
  */
 export default async function BucketItemAlbumPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { id } = await params;
+  const { from } = await searchParams;
   const item = await getBucketItem(id);
   if (!item) notFound();
 
@@ -36,18 +48,28 @@ export default async function BucketItemAlbumPage({
     ? (allPhotos.find((photo) => photo.id === item.coverMemoryId) ?? null)
     : null;
   const photos = cover ? allPhotos.filter((photo) => photo.id !== cover.id) : allPhotos;
+  const photoIds = allPhotos.map((photo) => photo.id);
 
-  const chapterLink = item.memoryId
-    ? (await getMemoryChapterLinks([item.memoryId]))[0] ?? null
-    : null;
+  const [chapterLinks, reactions, comments, auth] = await Promise.all([
+    item.memoryId ? getMemoryChapterLinks([item.memoryId]) : Promise.resolve([]),
+    getReactionsForMemories(photoIds),
+    getCommentsForMemories(photoIds),
+    createClient().then((supabase) => supabase.auth.getUser()),
+  ]);
+  const chapterLink = chapterLinks[0] ?? null;
+  const reactionsByMemory = groupReactionsByMemory(reactions);
+  const commentsByMemory = groupCommentsByMemory(comments);
+  const currentUserId = auth.data.user?.id ?? null;
+
+  const backLink = resolveBackLink(from);
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 pb-24 pt-8">
       <Link
-        href="/bucket-list"
+        href={backLink.href}
         className="ink-legible w-fit text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink"
       >
-        &larr; Back to the list
+        &larr; {backLink.label}
       </Link>
 
       <section className="flex max-w-2xl flex-col gap-3">
@@ -76,7 +98,14 @@ export default async function BucketItemAlbumPage({
 
       <AddAlbumPhotoComposer itemId={item.id} />
 
-      <PromiseAlbumGrid itemId={item.id} cover={cover} photos={photos} />
+      <PromiseAlbumGrid
+        itemId={item.id}
+        cover={cover}
+        photos={photos}
+        reactionsByMemory={reactionsByMemory}
+        commentsByMemory={commentsByMemory}
+        currentUserId={currentUserId}
+      />
     </main>
   );
 }

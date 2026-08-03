@@ -6,31 +6,56 @@
 -- user, so the existing `memories_select` RLS policy still applies on top of
 -- this function's own filtering. Two independent layers, not one.
 
+-- A memory tied to a *removed* promise (bucket_list_items.deleted_at set)
+-- doesn't come back from either read below — see
+-- docs/agent/codebase-map/bucket-list.md. This is a live check, not a
+-- cascaded delete onto the memory row: restoring the promise from the
+-- archive makes its cover photo visible again automatically, with nothing
+-- else to reconcile. Only ever matters for a memory with
+-- bucket_list_item_id set (the cover); everything else passes through
+-- unaffected.
 create or replace function get_chapter_memories(p_chapter_id uuid)
 returns setof memories
 language sql
 stable
 as $$
-  select *
-  from memories
-  where chapter_id = p_chapter_id
-    and deleted_at is null
-    and (unlock_at is null or unlock_at <= now())
-  order by occurred_at asc, created_at asc;
+  select m.*
+  from memories m
+  where m.chapter_id = p_chapter_id
+    and m.deleted_at is null
+    and (m.unlock_at is null or m.unlock_at <= now())
+    and (
+      m.bucket_list_item_id is null
+      or exists (
+        select 1 from bucket_list_items b
+        where b.id = m.bucket_list_item_id and b.deleted_at is null
+      )
+    )
+  order by m.occurred_at asc, m.created_at asc;
 $$;
 
 -- Cross-chapter read, used by the timeline/stats page and the surprise
--- engine's candidate pool. Same filtering rules as above, applied globally.
+-- engine's candidate pool. Same filtering rules as above, applied globally —
+-- including the removed-promise exclusion, for the same reason: a photo
+-- that's meant to be gone from its chapter shouldn't resurface in a
+-- surprise pull or a timeline view either.
 create or replace function get_all_memories()
 returns setof memories
 language sql
 stable
 as $$
-  select *
-  from memories
-  where deleted_at is null
-    and (unlock_at is null or unlock_at <= now())
-  order by occurred_at asc, created_at asc;
+  select m.*
+  from memories m
+  where m.deleted_at is null
+    and (m.unlock_at is null or m.unlock_at <= now())
+    and (
+      m.bucket_list_item_id is null
+      or exists (
+        select 1 from bucket_list_items b
+        where b.id = m.bucket_list_item_id and b.deleted_at is null
+      )
+    )
+  order by m.occurred_at asc, m.created_at asc;
 $$;
 
 -- Lets a kept bucket-list promise say "there's a photograph, in <chapter>"
