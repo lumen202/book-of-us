@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, type RefObject } from "react";
+import type { RefObject } from "react";
 
 /**
- * Scroll parallax for the painted world.
+ * Scroll parallax for the painted world. **Currently disabled everywhere —
+ * see the 2026-08-03 section below.**
  *
  * Collects every element inside the scene marked with `data-parallax` (see
  * `depth.ts`, which also explains why the travel is an attribute rather than an
@@ -47,52 +48,21 @@ import { useEffect, type RefObject } from "react";
  * phone loses is the world having thickness *as you scroll*, which is the
  * cheapest thing here to give up and the only one that was being paid for at
  * exactly the wrong moment.
+ *
+ * ## 2026-08-03: disabled everywhere, not just touch (BUG-005)
+ *
+ * Desktop scroll was reported laggy too, across Safari/Chrome/Firefox alike.
+ * This is the only thing in the backdrop that reacts to scrolling at all, and
+ * it writes a transform every frame onto (among others) the
+ * `HillRange`/`Meadow` SVGs that carry the heaviest `feTurbulence` filters —
+ * the same mechanism already proven to fix scroll lag when removed, since
+ * that's exactly why it was off on touch. The implementation below is gone
+ * rather than commented out (this repo's convention — see `AGENTS.md`); it's
+ * intact in git history at this commit if the desktop fix needs revisiting,
+ * e.g. a lighter version limited to the unfiltered sky layer instead of an
+ * outright removal.
+ *
+ * A no-op now, kept with its original signature so call sites don't need
+ * touching if it's reinstated.
  */
-export function useParallax(ref: RefObject<HTMLElement | null>, range = 1100): void {
-  useEffect(() => {
-    const element = ref.current;
-    if (!element) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    if (window.matchMedia("(pointer: coarse)").matches) return;
-
-    // Both kinds appear: the hills are `<svg>` elements carrying the attribute
-    // directly, everything else is a wrapper `<div>`. Both have `style` and
-    // `dataset`, which is all this touches.
-    const layers = Array.from(
-      element.querySelectorAll<HTMLElement | SVGElement>("[data-parallax]"),
-    ).map((node) => ({ node, travel: Number(node.dataset.parallax) || 0 }));
-    if (!layers.length) return;
-
-    let frame = 0;
-    let last = -1;
-
-    const apply = () => {
-      frame = 0;
-      const progress = Math.min(1, Math.max(0, window.scrollY / range));
-      // Three decimals is finer than a pixel of travel; rounding here keeps us
-      // from touching a style object on every idle frame.
-      const value = Math.round(progress * 1000) / 1000;
-      if (value === last) return;
-      last = value;
-
-      for (const layer of layers) {
-        const y = Math.round(value * layer.travel * 100) / 100;
-        layer.node.style.transform = `translate3d(0, ${y}px, 0)`;
-      }
-    };
-
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(apply);
-    };
-
-    apply();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    window.addEventListener("resize", onScroll, { passive: true });
-
-    return () => {
-      window.removeEventListener("scroll", onScroll);
-      window.removeEventListener("resize", onScroll);
-      if (frame) cancelAnimationFrame(frame);
-    };
-  }, [ref, range]);
-}
+export function useParallax(_ref: RefObject<HTMLElement | null>, _range = 1100): void {}

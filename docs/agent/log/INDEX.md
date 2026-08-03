@@ -6,6 +6,7 @@ not an edit to an old one.
 
 | Date | Title | File |
 |---|---|---|
+| 2026-08-03 | Desktop backdrop lag: extended touch-only perf fixes, disabled parallax everywhere (BUG-005) | [`2026-08-03-desktop-backdrop-lag.md`](2026-08-03-desktop-backdrop-lag.md) |
 | 2026-08-03 | Desktop nav restructured behind a `More` menu (BUG-004 fixed) | [`2026-08-03-desktop-nav-more-menu.md`](2026-08-03-desktop-nav-more-menu.md) |
 | 2026-07-29 | Mobile nav dropdown gets an unfold/reveal transition (desktop nav deferred) | [`2026-07-29-mobile-nav-unfold-reveal.md`](2026-07-29-mobile-nav-unfold-reveal.md) |
 | 2026-07-29 | Preview button broke under the current-month look-back exclusion | [`2026-07-29-preview-button-broke-under-current-month-exclusion.md`](2026-07-29-preview-button-broke-under-current-month-exclusion.md) |
