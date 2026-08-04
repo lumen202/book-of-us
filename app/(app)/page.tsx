@@ -3,7 +3,7 @@ import { ChapterCover } from "@/components/chapter/ChapterCover";
 import { listChapters } from "@/lib/chapters/queries";
 import { isCelebrationDay } from "@/lib/celebration/isCelebrationDay";
 import { findLookBackPrints } from "@/lib/memories/queries";
-import { getRelationship } from "@/lib/relationship/queries";
+import { getLoveLetter, getRelationship, getWhisperLines } from "@/lib/relationship/queries";
 import { getMonthsaryNumber } from "@/lib/relationship/monthsary";
 import { pickMonthsaryMessage } from "@/lib/celebration/messages";
 import { formatMonthDay, toLocalDate } from "@/lib/format/date";
@@ -25,6 +25,8 @@ export default async function HomePage({
   const subtitle = relationship
     ? `${relationship.partner_a_name} & ${relationship.partner_b_name}`
     : undefined;
+  const loveLetter = getLoveLetter(relationship);
+  const whisperLines = getWhisperLines(relationship);
 
   // `getAppNow()` is the real clock in production and everywhere except local
   // dev before the first monthsary — see lib/relationship/devClock.ts. Used
@@ -90,6 +92,8 @@ export default async function HomePage({
       celebrationMessage={celebrationMessage}
       monthsaryNumber={monthsaryNumber ?? undefined}
       monthPrints={monthPrints}
+      letter={loveLetter ?? undefined}
+      whisperLines={whisperLines ?? undefined}
     >
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-14 px-6 pb-6 pt-8">
         <section className="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center">

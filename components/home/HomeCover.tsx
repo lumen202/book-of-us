@@ -5,6 +5,7 @@ import { useCelebrating } from "@/lib/celebration/useCelebrating";
 import { OpeningSequence } from "@/lib/opening-sequence/OpeningSequence";
 import type { MonthPrint } from "@/lib/opening-sequence/types";
 import { markOpeningSeen, useOpeningSeen } from "@/lib/opening-sequence/useOpeningSeen";
+import type { LoveLetter } from "@/lib/relationship/types";
 
 /**
  * Decides whether this visit gets a ceremony before the shelf.
@@ -52,6 +53,8 @@ export function HomeCover({
   celebrationMessage,
   monthsaryNumber,
   monthPrints = [],
+  letter,
+  whisperLines,
   children,
 }: {
   title: string;
@@ -62,6 +65,10 @@ export function HomeCover({
   monthsaryNumber?: number;
   /** This month's photographs, for the ceremony's look back. May be empty. */
   monthPrints?: MonthPrint[];
+  /** The couple's own letter from Settings, if saved — falls back to the built-in copy otherwise. */
+  letter?: LoveLetter;
+  /** The couple's own whisper lines from Settings, if saved — falls back to `monthsaryWhispers()`. */
+  whisperLines?: string[];
   children: React.ReactNode;
 }) {
   const celebrating = useCelebrating();
@@ -84,6 +91,8 @@ export function HomeCover({
           celebrationMessage={celebrationMessage}
           monthsaryNumber={monthsaryNumber}
           monthPrints={monthPrints}
+          letter={letter}
+          whisperLines={whisperLines}
           onIntroComplete={markOpeningSeen}
           onComplete={() => setIntroGone(true)}
         />

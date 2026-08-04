@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useCelebrating } from "@/lib/celebration/useCelebrating";
 import { MonthsaryOpening } from "./sequences";
 import type { MonthPrint } from "./types";
+import type { LoveLetter } from "@/lib/relationship/types";
 
 type OpeningSequenceProps = {
   title: string;
@@ -13,6 +14,8 @@ type OpeningSequenceProps = {
   celebrationMessage?: string;
   monthsaryNumber?: number;
   monthPrints?: MonthPrint[];
+  letter?: LoveLetter;
+  whisperLines?: string[];
   /**
    * Called the moment the scene's story ends, while it's still dissolving.
    * The page should start appearing here so it comes up *through* the
@@ -30,6 +33,8 @@ export function OpeningSequence({
   celebrationMessage,
   monthsaryNumber,
   monthPrints,
+  letter,
+  whisperLines,
   onIntroComplete,
   onComplete,
 }: OpeningSequenceProps) {
@@ -72,6 +77,8 @@ export function OpeningSequence({
           celebrationMessage={celebrationMessage}
           monthsaryNumber={monthsaryNumber}
           monthPrints={monthPrints}
+          letter={letter}
+          whisperLines={whisperLines}
           reducedMotion={reducedMotion}
           onIntroComplete={() => {
             setIntroDone(true);

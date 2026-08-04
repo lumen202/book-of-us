@@ -49,6 +49,8 @@ export function MonthsaryOpening({
   celebrationMessage,
   monthsaryNumber,
   monthPrints = [],
+  letter: customLetter,
+  whisperLines: customWhisperLines,
   onIntroComplete,
 }: OpeningSceneProps) {
   const [stage, setStage] = useState<Stage>("arriving");
@@ -119,20 +121,26 @@ export function MonthsaryOpening({
    * first monthsary. Every month after keeps the metaphor intact — which is
    * also why the recurring letter says "a bigger book" and not "more storage".
    * Don't propagate the break.
+   *
+   * `customLetter` (from Settings — see `lib/relationship/queries.ts`'s `getLoveLetter`) overrides
+   * both variants below when the couple has saved their own. Absent that, this is still the copy
+   * shown.
    */
-  const letter = firstMonth
-    ? {
-        salutation: "My habibi — you did this to me,",
-        body:
-          "One month ago I was a perfectly normal person. Now I've built you an entire website. I'm aware that's a lot. I'm not taking any of it back — come see.",
-        signoff: "Yours, obviously —",
-      }
-    : {
-        salutation: "To my habibi (still, somehow),",
-        body:
-          "Another month, and I still haven't run out of things worth keeping. At this rate we're going to need a bigger book. I've made my peace with that — come look.",
-        signoff: "Yours, still —",
-      };
+  const letter =
+    customLetter ??
+    (firstMonth
+      ? {
+          salutation: "My habibi — you did this to me,",
+          body:
+            "One month ago I was a perfectly normal person. Now I've built you an entire website. I'm aware that's a lot. I'm not taking any of it back — come see.",
+          signoff: "Yours, obviously —",
+        }
+      : {
+          salutation: "To my habibi (still, somehow),",
+          body:
+            "Another month, and I still haven't run out of things worth keeping. At this rate we're going to need a bigger book. I've made my peace with that — come look.",
+          signoff: "Yours, still —",
+        });
 
   /** No photographs this month — the look back is skipped, never shown empty. */
   const afterLetter = () => setStage(monthPrints.length > 0 ? "review" : "whisper");
@@ -356,7 +364,7 @@ export function MonthsaryOpening({
       {stage === "whisper" && (
         <div className="absolute flex min-h-[7rem] max-w-lg items-center justify-center px-4 text-center">
           <WhisperSequence
-            lines={monthsaryWhispers(monthsaryNumber)}
+            lines={customWhisperLines ?? monthsaryWhispers(monthsaryNumber)}
             reducedMotion={reducedMotion}
             onComplete={() => setStage("revealed")}
             className="ink-legible font-serif text-3xl italic leading-snug text-ink sm:text-4xl"

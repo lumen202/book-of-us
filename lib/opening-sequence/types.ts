@@ -1,3 +1,5 @@
+import type { LoveLetter } from "@/lib/relationship/types";
+
 /**
  * One photograph from the month being celebrated, for the ceremony's look back.
  *
@@ -20,6 +22,17 @@ export type OpeningSceneProps = {
   /** Only rendered by celebration-flagged scenes (e.g. GoldenHour) — base scenes ignore these. */
   celebrationLabel?: string;
   celebrationMessage?: string;
+  /**
+   * The couple's own replacement for `MonthsaryOpening`'s built-in letter, from
+   * Settings (`lib/relationship/queries.ts`'s `getLoveLetter`). When absent, the
+   * scene falls back to its hand-written default copy.
+   */
+  letter?: LoveLetter;
+  /**
+   * The couple's own replacement for the `whisper` beat's spoken lines, from
+   * Settings (`getWhisperLines`). When absent, falls back to `monthsaryWhispers()`.
+   */
+  whisperLines?: string[];
   /**
    * Which monthsary this is. Copy branches on it — "another month" is false on
    * the first one, and a line bent to be true in every case reads like a form

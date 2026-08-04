@@ -60,6 +60,12 @@ conditional render would hydrate differently than it server-rendered.
 own `StorybookSky` shows through it, and `HomeCover` veils the shelf rather than covering the
 world. Beats: `arriving` → `sealed` → `letter` → `review` → `whisper` → `revealed`.
 
+The `letter` beat shows the couple's own letter if they've saved one in Settings
+(`app/(app)/settings/page.tsx` → `LoveLetterEditor`, stored at `relationship.settings.loveLetter`,
+read via `getLoveLetter()` in `lib/relationship/queries.ts`), falling back to the two hardcoded
+defaults in `MonthsaryOpening.tsx` otherwise. No admin gate on editing it — same "either account
+edits everything" model as the rest of the app (`lib/auth/admin.ts`).
+
 `review` is the look back — **last** month's photographs, one at a time, as mounted album prints
 (`art/MonthInReview.tsx`), never the current calendar month's even though it's already on the
 shelf (chapters are created and revealed on the 1st now — see

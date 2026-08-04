@@ -15,7 +15,8 @@ under this one).
 
 - `lib/opening-sequence/types.ts` — `OpeningSceneProps` shared by both scenes: `title`,
   `subtitle`, `reducedMotion`, `celebrationLabel`/`celebrationMessage` (only rendered by
-  the celebration scene), `onIntroComplete`.
+  the celebration scene), `letter` (the couple's own replacement for `MonthsaryOpening`'s
+  built-in letter — see below), `onIntroComplete`.
 - `lib/opening-sequence/whispers.ts` — the first-message copy, one short line per entry.
   One sentence, one breath; if a line needs a comma splice to fit, it's two lines.
 - `lib/opening-sequence/WhisperSequence.tsx` — delivers those lines one at a time (fade in,
@@ -41,7 +42,10 @@ under this one).
   `revealed`. **"Happy Nth Monthsary" is the headline of this scene** — set large serif with
   a soft glow, with the book's own title stepped down to a byline underneath it. On the 5th
   the occasion outranks the product name; don't quietly demote it back to a tracking-wide
-  label.
+  label. The `letter` stage's copy is `letter` (the `OpeningSceneProps.letter` prop) when the
+  couple has saved one from Settings, falling back to the two hand-written defaults
+  (`firstMonth` vs recurring) baked into the component otherwise — see the doc-comment above
+  that `const letter = …` for the reasoning behind the fallback copy's tone.
 - `lib/opening-sequence/OpeningSequence.tsx` — orchestrator. Picks
   `celebrating && celebrationLabel ? MonthsaryOpening : celebrating ? GiftOpening : EnvelopeOpening`
   (from `useCelebrating()`, see `celebration-mode.md`), wraps the chosen scene in
