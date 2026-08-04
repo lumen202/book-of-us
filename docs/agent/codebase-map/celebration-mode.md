@@ -63,8 +63,11 @@ world. Beats: `arriving` → `sealed` → `letter` → `review` → `whisper` �
 The `letter` beat shows the couple's own letter if they've saved one in Settings
 (`app/(app)/settings/page.tsx` → `LoveLetterEditor`, stored at `relationship.settings.loveLetter`,
 read via `getLoveLetter()` in `lib/relationship/queries.ts`), falling back to the two hardcoded
-defaults in `MonthsaryOpening.tsx` otherwise. No admin gate on editing it — same "either account
-edits everything" model as the rest of the app (`lib/auth/admin.ts`).
+defaults in `MonthsaryOpening.tsx` otherwise. The `whisper` beat works the same way, one step
+down: `WhisperEditor` saves a flat list of lines to `relationship.settings.whisperLines`
+(`getWhisperLines()`), overriding `monthsaryWhispers()`'s two hardcoded sets (`whispers.ts`) when
+present. Neither has an admin gate — same "either account edits everything" model as the rest of
+the app (`lib/auth/admin.ts`).
 
 `review` is the look back — **last** month's photographs, one at a time, as mounted album prints
 (`art/MonthInReview.tsx`), never the current calendar month's even though it's already on the

@@ -15,10 +15,12 @@ under this one).
 
 - `lib/opening-sequence/types.ts` — `OpeningSceneProps` shared by both scenes: `title`,
   `subtitle`, `reducedMotion`, `celebrationLabel`/`celebrationMessage` (only rendered by
-  the celebration scene), `letter` (the couple's own replacement for `MonthsaryOpening`'s
-  built-in letter — see below), `onIntroComplete`.
+  the celebration scene), `letter` and `whisperLines` (the couple's own replacements for
+  `MonthsaryOpening`'s built-in letter and whisper lines, from Settings — see below),
+  `onIntroComplete`.
 - `lib/opening-sequence/whispers.ts` — the first-message copy, one short line per entry.
-  One sentence, one breath; if a line needs a comma splice to fit, it's two lines.
+  One sentence, one breath; if a line needs a comma splice to fit, it's two lines. Overridden
+  by the `whisperLines` prop when the couple has saved their own from Settings.
 - `lib/opening-sequence/WhisperSequence.tsx` — delivers those lines one at a time (fade in,
   hold, fade out, next) so the first message lands as speech with pauses rather than a
   paragraph. Guards against double-advance with a `scheduledFrom` ref, because

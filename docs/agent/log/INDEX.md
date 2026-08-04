@@ -6,6 +6,7 @@ not an edit to an old one.
 
 | Date | Title | File |
 |---|---|---|
+| 2026-08-04 | Customizable whisper lines, editable from Settings | [`2026-08-04-customizable-whisper-in-settings.md`](2026-08-04-customizable-whisper-in-settings.md) |
 | 2026-08-04 | Customizable love letter, editable from Settings | [`2026-08-04-customizable-love-letter-in-settings.md`](2026-08-04-customizable-love-letter-in-settings.md) |
 | 2026-08-03 | Demo account, take two: same Supabase project, separate `demo` schema (supersedes below) | [`2026-08-03-demo-account-schema-redesign.md`](2026-08-03-demo-account-schema-redesign.md) |
 | 2026-08-03 | Album cover concept, cancel-before-upload on every photo picker | [`2026-08-03-bucket-list-album-cover-and-cancel-upload.md`](2026-08-03-bucket-list-album-cover-and-cancel-upload.md) |
