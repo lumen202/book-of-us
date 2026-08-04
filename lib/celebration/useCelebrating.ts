@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { isCelebrationDay } from "./isCelebrationDay";
+import { useServerCelebrationDay } from "./CelebrationDayContext";
 
 export const OVERRIDE_KEY = "book-of-us:celebration-override";
 
@@ -32,8 +32,13 @@ function readOverride(): boolean | null {
  * value is only ever read inside other effects downstream (never directly
  * in JSX), so there's no hydration-mismatch risk in letting the client's
  * first render already see the real `window`-backed value.
+ *
+ * The non-override case defers to `useServerCelebrationDay()` (the server's
+ * clock, from `app/(app)/layout.tsx`) rather than asking the browser's own
+ * `Date` — see `CelebrationDayContext` for why that distinction matters.
  */
 export function useCelebrating(): boolean {
-  const [celebrating] = useState(() => readOverride() ?? isCelebrationDay());
+  const serverCelebrationDay = useServerCelebrationDay();
+  const [celebrating] = useState(() => readOverride() ?? serverCelebrationDay);
   return celebrating;
 }
