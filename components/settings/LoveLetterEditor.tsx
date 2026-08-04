@@ -12,7 +12,8 @@ export function LoveLetterEditor({ initialLetter }: { initialLetter: LoveLetter 
       <div className="flex flex-col gap-1">
         <span className="font-serif text-lg text-ink">The letter</span>
         <span className="text-sm text-ink-muted">
-          Write your own for the monthsary ceremony to open with, in place of the built-in one.
+          Write your own for your partner&rsquo;s monthsary ceremony to open with, in place of the
+          built-in one. Only they&rsquo;ll see it, when it plays for them.
         </span>
       </div>
 

@@ -6,6 +6,7 @@ not an edit to an old one.
 
 | Date | Title | File |
 |---|---|---|
+| 2026-08-04 | Role-split letters/whispers (keeper ↔ partner), plus a partner-ceremony preview | [`2026-08-04-role-split-letters-and-partner-preview.md`](2026-08-04-role-split-letters-and-partner-preview.md) |
 | 2026-08-04 | Customizable whisper lines, editable from Settings | [`2026-08-04-customizable-whisper-in-settings.md`](2026-08-04-customizable-whisper-in-settings.md) |
 | 2026-08-04 | Customizable love letter, editable from Settings | [`2026-08-04-customizable-love-letter-in-settings.md`](2026-08-04-customizable-love-letter-in-settings.md) |
 | 2026-08-03 | Demo account, take two: same Supabase project, separate `demo` schema (supersedes below) | [`2026-08-03-demo-account-schema-redesign.md`](2026-08-03-demo-account-schema-redesign.md) |

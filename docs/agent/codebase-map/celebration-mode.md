@@ -60,14 +60,26 @@ conditional render would hydrate differently than it server-rendered.
 own `StorybookSky` shows through it, and `HomeCover` veils the shelf rather than covering the
 world. Beats: `arriving` → `sealed` → `letter` → `review` → `whisper` → `revealed`.
 
-The `letter` beat shows the couple's own letter if they've saved one in Settings
-(`app/(app)/settings/page.tsx` → `LoveLetterEditor`, stored at `relationship.settings.loveLetter`,
-read via `getLoveLetter()` in `lib/relationship/queries.ts`), falling back to the two hardcoded
-defaults in `MonthsaryOpening.tsx` otherwise. The `whisper` beat works the same way, one step
-down: `WhisperEditor` saves a flat list of lines to `relationship.settings.whisperLines`
-(`getWhisperLines()`), overriding `monthsaryWhispers()`'s two hardcoded sets (`whispers.ts`) when
-present. Neither has an admin gate — same "either account edits everything" model as the rest of
-the app (`lib/auth/admin.ts`).
+The `letter` and `whisper` beats each show what the *other* account wrote for the current viewer,
+if anything's been saved in Settings — never the viewer's own draft, so it stays a surprise.
+Storage is **role-keyed**, not shared: `relationship.settings.loveLetter`/`.whisperLines` are each
+`{ keeper?: …, partner?: … }`, where "keeper"/"partner" is decided by the existing admin/non-admin
+identity check (`isAdminEmail`/`isCurrentUserAdmin`, `lib/auth/admin.ts` — there are only ever
+these two accounts). `lib/relationship/queries.ts` exposes both directions per field:
+`getLoveLetter`/`getWhisperLines(relationship, viewerIsKeeper)` return what was written *for* the
+viewer (used here, in the real ceremony); `getMyLoveLetterDraft`/`getMyWhisperDraft` return what
+the viewer wrote *for* their partner (used to prefill the Settings forms). Both fall back to the
+hardcoded defaults (`MonthsaryOpening.tsx`'s two letter variants, `whispers.ts`'s two whisper sets)
+when nothing's saved for that slot. Saving in Settings only ever writes the caller's own role's
+slot (`lib/relationship/mutations.ts`), so one partner's draft never overwrites the other's — no
+admin gate on *who* can save, only on *which* slot a given save lands in.
+
+**Previewing your own outgoing letter:** since your own draft never shows on your own real
+ceremony (by design — it's for your partner), the Keeper menu's "Preview partner's ceremony"
+button (`CelebrationControls.tsx`, via `useCelebrationOverride`'s `previewPartnerCeremony`)
+navigates to `/?celebrate=1&previewAsPartner=1`, which flips `app/(app)/page.tsx` to read
+`getMyLoveLetterDraft`/`getMyWhisperDraft` instead of the incoming getters — i.e. it shows *you*
+exactly what your partner will see, without needing their account.
 
 `review` is the look back — **last** month's photographs, one at a time, as mounted album prints
 (`art/MonthInReview.tsx`), never the current calendar month's even though it's already on the

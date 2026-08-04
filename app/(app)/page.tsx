@@ -3,7 +3,14 @@ import { ChapterCover } from "@/components/chapter/ChapterCover";
 import { listChapters } from "@/lib/chapters/queries";
 import { isCelebrationDay } from "@/lib/celebration/isCelebrationDay";
 import { findLookBackPrints } from "@/lib/memories/queries";
-import { getLoveLetter, getRelationship, getWhisperLines } from "@/lib/relationship/queries";
+import {
+  getLoveLetter,
+  getMyLoveLetterDraft,
+  getMyWhisperDraft,
+  getRelationship,
+  getWhisperLines,
+} from "@/lib/relationship/queries";
+import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { getMonthsaryNumber } from "@/lib/relationship/monthsary";
 import { pickMonthsaryMessage } from "@/lib/celebration/messages";
 import { formatMonthDay, toLocalDate } from "@/lib/format/date";
@@ -15,18 +22,33 @@ import { ClosingReflection } from "@/components/story/ClosingReflection";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ celebrate?: string }>;
+  searchParams: Promise<{ celebrate?: string; previewAsPartner?: string }>;
 }) {
-  const [chapters, relationship, params] = await Promise.all([
+  const [chapters, relationship, isKeeper, params] = await Promise.all([
     listChapters(),
     getRelationship(),
+    isCurrentUserAdmin(),
     searchParams,
   ]);
   const subtitle = relationship
     ? `${relationship.partner_a_name} & ${relationship.partner_b_name}`
     : undefined;
-  const loveLetter = getLoveLetter(relationship);
-  const whisperLines = getWhisperLines(relationship);
+
+  /**
+   * A letter/whisper is written *for* a partner, not shared — so on an ordinary visit this shows
+   * what the *other* account saved (`getLoveLetter`/`getWhisperLines`). The keeper-only "Preview
+   * partner's ceremony" button (`CelebrationControls.tsx`) instead asks for the current viewer's
+   * own draft (`getMy…Draft`) via `?previewAsPartner=1`, so they can check what they wrote before
+   * their partner ever sees it — without that flag, there's no way to preview your own outgoing
+   * letter, since it deliberately never shows on your own real ceremony.
+   */
+  const previewAsPartner = params.previewAsPartner === "1";
+  const loveLetter = previewAsPartner
+    ? getMyLoveLetterDraft(relationship, isKeeper)
+    : getLoveLetter(relationship, isKeeper);
+  const whisperLines = previewAsPartner
+    ? getMyWhisperDraft(relationship, isKeeper)
+    : getWhisperLines(relationship, isKeeper);
 
   // `getAppNow()` is the real clock in production and everywhere except local
   // dev before the first monthsary — see lib/relationship/devClock.ts. Used

@@ -15,7 +15,9 @@ const OPTIONS = [
  * presentation of the same `useCelebrationOverride` logic.
  */
 export function CelebrationControls() {
-  const { override, apply, playCeremony } = useCelebrationOverride({ lazyInit: true });
+  const { override, apply, playCeremony, previewPartnerCeremony } = useCelebrationOverride({
+    lazyInit: true,
+  });
 
   return (
     <div className="flex flex-col gap-1">
@@ -27,6 +29,16 @@ export function CelebrationControls() {
         className="cursor-pointer rounded-lg px-3 py-2 text-left text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:bg-accent-muted/40 hover:text-ink"
       >
         Play the ceremony
+      </button>
+
+      {/* Plays your own outgoing letter/whisper (from Settings) instead of the incoming
+          side — the only way to check what you wrote before your partner sees it. */}
+      <button
+        type="button"
+        onClick={previewPartnerCeremony}
+        className="cursor-pointer rounded-lg px-3 py-2 text-left text-[11px] uppercase tracking-[0.2em] text-ink-muted transition hover:bg-accent-muted/40 hover:text-ink"
+      >
+        Preview partner&rsquo;s ceremony
       </button>
 
       <div className="flex gap-1 px-3">

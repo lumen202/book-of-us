@@ -61,5 +61,17 @@ export function useCelebrationOverride(options?: { lazyInit?: boolean }) {
     window.location.href = "/?celebrate=1";
   }
 
-  return { override, apply, playCeremony };
+  /**
+   * Same as `playCeremony`, but with `previewAsPartner=1` — the ceremony then shows the current
+   * viewer's *own* saved letter/whisper (what they wrote for their partner) instead of the
+   * incoming side, which is the only way to check your own draft before your partner ever sees it.
+   * See `app/(app)/page.tsx`.
+   */
+  function previewPartnerCeremony() {
+    forgetOpeningSeen();
+    window.localStorage.setItem(OVERRIDE_KEY, "true");
+    window.location.href = "/?celebrate=1&previewAsPartner=1";
+  }
+
+  return { override, apply, playCeremony, previewPartnerCeremony };
 }
