@@ -18,8 +18,9 @@ export function WhisperEditor({ initialLines }: { initialLines: string[] | null 
       <div className="flex flex-col gap-1">
         <span className="font-serif text-lg text-ink">The whisper</span>
         <span className="text-sm text-ink-muted">
-          Spoken one line at a time, between the photos and the greeting. One line per line —
-          keep each one short enough to land in a breath.
+          Spoken to your partner one line at a time, between the photos and the greeting. Only
+          they&rsquo;ll hear it, when it plays for them. One line per line — keep each one short enough
+          to land in a breath.
         </span>
       </div>
 

@@ -2,7 +2,8 @@ import Link from "next/link";
 import { NightModeToggle } from "@/components/settings/NightModeToggle";
 import { LoveLetterEditor } from "@/components/settings/LoveLetterEditor";
 import { WhisperEditor } from "@/components/settings/WhisperEditor";
-import { getLoveLetter, getRelationship, getWhisperLines } from "@/lib/relationship/queries";
+import { getMyLoveLetterDraft, getMyWhisperDraft, getRelationship } from "@/lib/relationship/queries";
+import { isCurrentUserAdmin } from "@/lib/auth/admin";
 
 /**
  * Password-changing lives in the desktop `More` / mobile hamburger menu now,
@@ -10,9 +11,9 @@ import { getLoveLetter, getRelationship, getWhisperLines } from "@/lib/relations
  * everyone can reach.
  */
 export default async function SettingsPage() {
-  const relationship = await getRelationship();
-  const loveLetter = getLoveLetter(relationship);
-  const whisperLines = getWhisperLines(relationship);
+  const [relationship, isKeeper] = await Promise.all([getRelationship(), isCurrentUserAdmin()]);
+  const loveLetterDraft = getMyLoveLetterDraft(relationship, isKeeper);
+  const whisperDraft = getMyWhisperDraft(relationship, isKeeper);
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-6 pb-24 pt-8">
@@ -33,11 +34,11 @@ export default async function SettingsPage() {
       </section>
 
       <section className="flex flex-col gap-4 rounded-panel border border-border bg-surface p-7">
-        <LoveLetterEditor initialLetter={loveLetter} />
+        <LoveLetterEditor initialLetter={loveLetterDraft} />
       </section>
 
       <section className="flex flex-col gap-4 rounded-panel border border-border bg-surface p-7">
-        <WhisperEditor initialLines={whisperLines} />
+        <WhisperEditor initialLines={whisperDraft} />
       </section>
     </main>
   );
