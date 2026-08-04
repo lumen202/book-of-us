@@ -7,3 +7,10 @@ export type Relationship = {
   created_at: string;
   updated_at: string;
 };
+
+/** A couple-authored replacement for the ceremony's default letter — see `getLoveLetter`. */
+export type LoveLetter = {
+  salutation: string;
+  body: string;
+  signoff: string;
+};

@@ -4,8 +4,48 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth/admin";
 import { getActiveProjectFromCookies } from "@/lib/supabase/project.server";
+import { updateLoveLetter, updateWhisperLines } from "@/lib/relationship/mutations";
 
 export type PasswordActionState = { status: "success" | "error"; message: string } | null;
+export type LoveLetterActionState = { status: "success" | "error"; message: string } | null;
+export type WhisperActionState = { status: "success" | "error"; message: string } | null;
+
+export async function saveLoveLetter(
+  _prevState: LoveLetterActionState,
+  formData: FormData,
+): Promise<LoveLetterActionState> {
+  try {
+    await updateLoveLetter({
+      salutation: String(formData.get("salutation") ?? ""),
+      body: String(formData.get("body") ?? ""),
+      signoff: String(formData.get("signoff") ?? ""),
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Couldn't save the letter — try again.";
+    return { status: "error", message };
+  }
+
+  return { status: "success", message: "Your letter has been saved." };
+}
+
+export async function saveWhisper(
+  _prevState: WhisperActionState,
+  formData: FormData,
+): Promise<WhisperActionState> {
+  const lines = String(formData.get("lines") ?? "")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  try {
+    await updateWhisperLines(lines);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Couldn't save the whisper — try again.";
+    return { status: "error", message };
+  }
+
+  return { status: "success", message: "Your whisper has been saved." };
+}
 
 export async function changeMyPassword(
   _prevState: PasswordActionState,

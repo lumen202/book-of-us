@@ -1,12 +1,19 @@
 import Link from "next/link";
 import { NightModeToggle } from "@/components/settings/NightModeToggle";
+import { LoveLetterEditor } from "@/components/settings/LoveLetterEditor";
+import { WhisperEditor } from "@/components/settings/WhisperEditor";
+import { getLoveLetter, getRelationship, getWhisperLines } from "@/lib/relationship/queries";
 
 /**
  * Password-changing lives in the desktop `More` / mobile hamburger menu now,
  * not here — see `components/nav/DesktopMoreMenu.tsx`. This page is the one
  * everyone can reach.
  */
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const relationship = await getRelationship();
+  const loveLetter = getLoveLetter(relationship);
+  const whisperLines = getWhisperLines(relationship);
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-6 pb-24 pt-8">
       <Link
@@ -23,6 +30,14 @@ export default function SettingsPage() {
 
       <section className="flex flex-col gap-4 rounded-panel border border-border bg-surface p-7">
         <NightModeToggle />
+      </section>
+
+      <section className="flex flex-col gap-4 rounded-panel border border-border bg-surface p-7">
+        <LoveLetterEditor initialLetter={loveLetter} />
+      </section>
+
+      <section className="flex flex-col gap-4 rounded-panel border border-border bg-surface p-7">
+        <WhisperEditor initialLines={whisperLines} />
       </section>
     </main>
   );
