@@ -46,9 +46,14 @@ function parseWhisperLines(candidate: unknown): string[] | null {
  * these two accounts, so that existing identity check is what tells the two slots apart — no new
  * schema field needed.
  */
-function byRole(relationship: Relationship | null, key: "loveLetter" | "whisperLines") {
+function byRole(
+  relationship: Relationship | null,
+  key: "loveLetter" | "whisperLines",
+): Record<"keeper" | "partner", unknown> {
   const candidate = relationship?.settings[key];
-  if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) return {};
+  if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) {
+    return { keeper: undefined, partner: undefined };
+  }
   return candidate as Record<"keeper" | "partner", unknown>;
 }
 
