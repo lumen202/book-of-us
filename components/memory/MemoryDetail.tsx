@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useCloseOnBack } from "@/lib/navigation/useCloseOnBack";
+import { useSwipeNavigation } from "@/lib/navigation/useSwipeNavigation";
 import { PhotoLightbox } from "./PhotoLightbox";
 import type { Comment } from "@/lib/comments/types";
 import { formatFullDate } from "@/lib/format/date";
@@ -32,6 +33,8 @@ export function MemoryDetail({
   onAddComment,
   onEditComment,
   onRemoveComment,
+  onPrev,
+  onNext,
 }: {
   memory: MemoryWithMedia;
   reactions: Reaction[];
@@ -45,6 +48,14 @@ export function MemoryDetail({
   onAddComment: (body: string) => Promise<void>;
   onEditComment: (commentId: string, body: string) => Promise<void>;
   onRemoveComment: (commentId: string) => Promise<void>;
+  /**
+   * Step to the neighbouring print on the same page without folding this one
+   * first — absent at the ends of the batch (no wrap-around; an album page
+   * has a first print and a last one) and absent entirely where there is no
+   * batch (a promise's lone cover photo).
+   */
+  onPrev?: () => void;
+  onNext?: () => void;
 }) {
   const router = useRouter();
   const closeButtonRef = useRef<HTMLButtonElement>(null);
@@ -106,19 +117,57 @@ export function MemoryDetail({
   /** Tapping the print opens it full-screen — see `PhotoLightbox`. */
   const [zoomed, setZoomed] = useState(false);
 
+  /**
+   * Stepping to a neighbour (`onPrev`/`onNext`) swaps the `memory` prop on
+   * this same mounted component rather than remounting it under a new key —
+   * `useCloseOnBack` pushes a history entry per mount, and a keyed remount
+   * per step would stack one entry for every print walked past, turning the
+   * back button into a walk back through them. The cost of staying mounted is
+   * resetting per-memory state by hand, done here with the render-time reset
+   * pattern so the wrong memory's caption or full-size URL never paints.
+   */
+  const [shownMemoryId, setShownMemoryId] = useState(memory.id);
+  if (shownMemoryId !== memory.id) {
+    setShownMemoryId(memory.id);
+    setFullUrl(memory.mediaUrl);
+    setCaptionDraft(memory.title);
+    setEditingCaption(false);
+    setZoomed(false);
+  }
+
   useEffect(() => {
     closeButtonRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      // One Escape, one layer. Without this the key would close the lightbox
-      // and the memory underneath it in the same press, and the reader would
-      // land back on the album page having only meant to stop zooming.
-      if (zoomed) setZoomed(false);
-      else onClose();
+      if (event.key === "Escape") {
+        // One Escape, one layer. Without this the key would close the lightbox
+        // and the memory underneath it in the same press, and the reader would
+        // land back on the album page having only meant to stop zooming.
+        if (zoomed) setZoomed(false);
+        else onClose();
+        return;
+      }
+      if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+      // Arrow keys belong to the caret while writing — a caption or a note —
+      // and to nothing while the lightbox is up (stepping away would silently
+      // close it, since the neighbour mounts un-zoomed).
+      if (zoomed) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)
+      )
+        return;
+      if (event.key === "ArrowLeft") onPrev?.();
+      else onNext?.();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onClose, zoomed]);
+  }, [onClose, zoomed, onPrev, onNext]);
+
+  // The same gesture the phone already answers with everywhere else — swiping
+  // the lifted print slides its neighbour in. Judged on release, so it never
+  // fights the modal's own vertical scroll.
+  const swipe = useSwipeNavigation({ onPrev, onNext });
 
   return (
     <motion.div
@@ -140,6 +189,7 @@ export function MemoryDetail({
         // with no way to scroll to it.
         className="max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-[2rem] border border-border/90 bg-surface/97 p-6 shadow-[0_24px_50px_-30px_rgba(43,36,28,0.8)] sm:p-8"
         onClick={(event) => event.stopPropagation()}
+        {...swipe}
         initial={{ opacity: 0, y: 12, scale: 0.985 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 8, scale: 0.99 }}
@@ -271,6 +321,40 @@ export function MemoryDetail({
           onRemove={onRemoveComment}
         />
       </motion.div>
+
+      {/*
+       * The neighbouring prints, one keystroke or click away — siblings of the
+       * card so they rest on the backdrop at its edges rather than crowding
+       * the mat. Hidden on touch screens, where the card itself answers to a
+       * swipe and the edges are too narrow for a target anyway. Each stops
+       * propagation: turning to the next print must not fold the book shut.
+       */}
+      {onPrev && (
+        <button
+          type="button"
+          aria-label="Open the previous memory"
+          onClick={(event) => {
+            event.stopPropagation();
+            onPrev();
+          }}
+          className="absolute left-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface/90 text-2xl leading-none text-ink-muted shadow-[0_10px_24px_-14px_rgba(43,36,28,0.7)] backdrop-blur-sm transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent sm:flex"
+        >
+          ‹
+        </button>
+      )}
+      {onNext && (
+        <button
+          type="button"
+          aria-label="Open the next memory"
+          onClick={(event) => {
+            event.stopPropagation();
+            onNext();
+          }}
+          className="absolute right-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-surface/90 text-2xl leading-none text-ink-muted shadow-[0_10px_24px_-14px_rgba(43,36,28,0.7)] backdrop-blur-sm transition hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent sm:flex"
+        >
+          ›
+        </button>
+      )}
 
       {/* Rendered inside the detail, so this modal stays mounted underneath and
           closing the lightbox returns to it exactly as it was left. */}

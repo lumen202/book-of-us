@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useRef } from "react";
 import { useCloseOnBack } from "@/lib/navigation/useCloseOnBack";
+import { useSwipeNavigation } from "@/lib/navigation/useSwipeNavigation";
 
 /**
  * The photograph on its own, filling the screen.
@@ -30,10 +31,22 @@ export function PhotoLightbox({
   src,
   alt,
   onClose,
+  onPrev,
+  onNext,
+  position,
 }: {
   src: string;
   alt: string;
   onClose: () => void;
+  /**
+   * Present only when this photo is one of a row (a place's gallery) — the
+   * absent direction's arrow simply isn't rendered, so a lone photograph
+   * (a memory's print) looks exactly as it always has.
+   */
+  onPrev?: () => void;
+  onNext?: () => void;
+  /** "3 of 7", shown only when there is somewhere to go. */
+  position?: { index: number; total: number };
 }) {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -41,9 +54,21 @@ export function PhotoLightbox({
   // first, the same way Escape already does (see MemoryDetail).
   useCloseOnBack(onClose);
 
+  const swipe = useSwipeNavigation({ onPrev, onNext });
+
   useEffect(() => {
     closeButtonRef.current?.focus();
   }, []);
+
+  useEffect(() => {
+    if (!onPrev && !onNext) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "ArrowLeft") onPrev?.();
+      if (event.key === "ArrowRight") onNext?.();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onPrev, onNext]);
 
   return (
     <motion.div
@@ -62,6 +87,7 @@ export function PhotoLightbox({
         event.stopPropagation();
         onClose();
       }}
+      {...swipe}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -75,6 +101,10 @@ export function PhotoLightbox({
         transition={{ duration: 0.28, ease: "easeOut" }}
       >
         <Image
+          // Keyed so stepping to a neighbour swaps the element once the new
+          // photo has decoded, instead of mutating `src` and blanking the
+          // screen while it loads (same trick as MemoryDetail's print).
+          key={src}
           src={src}
           alt={alt}
           fill
@@ -87,6 +117,49 @@ export function PhotoLightbox({
           priority
         />
       </motion.div>
+
+      {/*
+       * Stepping between photos of the same place. Arrows are for pointers
+       * and keyboards; on touch the whole surface already answers to a swipe,
+       * so the buttons stay out of the way until a screen wide enough for a
+       * cursor. Each stops propagation — turning the page must not close the
+       * book.
+       */}
+      {onPrev && (
+        <button
+          type="button"
+          aria-label="Show the previous photograph"
+          onClick={(event) => {
+            event.stopPropagation();
+            onPrev();
+          }}
+          className="absolute left-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/15 text-2xl leading-none text-surface backdrop-blur-sm transition hover:bg-surface/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-surface sm:flex"
+        >
+          ‹
+        </button>
+      )}
+      {onNext && (
+        <button
+          type="button"
+          aria-label="Show the next photograph"
+          onClick={(event) => {
+            event.stopPropagation();
+            onNext();
+          }}
+          className="absolute right-4 top-1/2 hidden h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/15 text-2xl leading-none text-surface backdrop-blur-sm transition hover:bg-surface/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-surface sm:flex"
+        >
+          ›
+        </button>
+      )}
+
+      {position && position.total > 1 && (
+        <p
+          aria-live="polite"
+          className="pointer-events-none absolute bottom-5 left-1/2 -translate-x-1/2 text-[11px] uppercase tracking-[0.22em] text-surface/70"
+        >
+          {position.index} of {position.total}
+        </p>
+      )}
 
       {/*
        * Last in the DOM so it paints over the photo, and it does not stop
