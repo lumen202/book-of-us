@@ -88,6 +88,15 @@ export function MobileNavMenu({ isAdmin, isDemo = false }: { isAdmin: boolean; i
                 Bucket list
               </NavLink>
               <NavLink
+                href="/places"
+                onClick={() => setOpen(false)}
+                className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] transition hover:bg-accent-muted/40"
+                activeClassName="bg-accent-muted/40 text-ink"
+                inactiveClassName="text-ink-muted hover:text-ink"
+              >
+                Places
+              </NavLink>
+              <NavLink
                 href="/vault"
                 onClick={() => setOpen(false)}
                 className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] transition hover:bg-accent-muted/40"
