@@ -24,8 +24,8 @@ function buildPlaces(): Place[] {
       console.warn(`[places] "${seed.slug}" has no atlas entry — run scripts/build-places.ts`);
       continue;
     }
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- deliberately dropping these two seed-only fields from the merged Place
-    const { wikipedia, imageOverride, ...seedRest } = seed;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- deliberately dropping the seed-only source fields from the merged Place
+    const { wikipedia, wikidata, commonsCategory, descriptionSection, imageOverride, ...seedRest } = seed;
     const { fetchedAt, ...entryRest } = entry;
     places.push({
       ...seedRest,

@@ -26,11 +26,36 @@ const HUB_RADIUS = 20;
  */
 const LABEL_RADIUS_FRACTION = 0.56;
 
+/**
+ * Decimal places kept on every coordinate this file writes into the DOM.
+ *
+ * This is a hydration fix, not a tidiness one. `Math.sin`/`Math.cos` are
+ * *implementation-defined* in ECMAScript — the spec does not require
+ * bit-identical results across engines — so Node's SSR pass and the browser's
+ * hydration pass disagreed in the last unit in the last place, and React
+ * reported a mismatch on the wheel's `<text y>` and `<path d>`:
+ *
+ *     server: y="114.40714482041952"
+ *     client: y={114.40714482041953}
+ *
+ * Rounding makes both sides write the same string. Four decimals on a 300-unit
+ * viewBox is ~1/30,000th of the wheel — orders of magnitude finer than a
+ * device pixel, so nothing moves. Only the transcendental results need this;
+ * `+ - * /` are exactly specified by IEEE 754 and agree across engines already,
+ * which is why `labelTransform`'s rotation (plain arithmetic on `midDeg`) is
+ * left alone.
+ */
+const COORD_DECIMALS = 4;
+
+function round(value: number): number {
+  return Number(value.toFixed(COORD_DECIMALS));
+}
+
 /** Point on the wheel's circle for a given angle (0 = 12 o'clock, clockwise) and radius fraction. */
 function pointAt(deg: number, radiusFraction: number) {
   const rad = ((deg - 90) * Math.PI) / 180;
   const r = RADIUS * radiusFraction;
-  return { x: CENTER + r * Math.cos(rad), y: CENTER + r * Math.sin(rad) };
+  return { x: round(CENTER + r * Math.cos(rad)), y: round(CENTER + r * Math.sin(rad)) };
 }
 
 function wedgePath(segment: WheelSegment): string {
