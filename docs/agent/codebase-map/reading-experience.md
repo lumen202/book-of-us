@@ -183,6 +183,22 @@ have no thumbnail at all.
 | Press and hold (450ms) | grid print | Opens the reaction picker — same one the corner ♡ opens |
 | Tap the photo | inside `MemoryDetail` | Opens `PhotoLightbox`, the photo full-screen |
 | Escape | either | Closes one layer only: lightbox first, then the memory |
+| Swipe left/right, ←/→, edge arrows | inside `MemoryDetail` | Steps to the neighbouring print on the same page (no wrap-around) |
+
+Prev/next between prints: `MemoryGrid` computes the walkable list (from a chapter it excludes
+promise-cover prints, whose tap navigates to the album instead of opening a detail) and passes
+`onPrev`/`onNext` into `MemoryDetail`. Swipe detection is `lib/navigation/useSwipeNavigation.ts`
+(shared with `PhotoLightbox`; release-judged so it never fights vertical scroll), keyboard arrows
+are ignored while typing in an input/textarea or while the lightbox is up, and the edge arrow
+buttons are `hidden sm:flex` — touch gets the swipe. **The detail's `key` in `MemoryGrid` is
+deliberately stable (`"memory-detail"`), not `selected.id`:** `useCloseOnBack` pushes a history
+entry per mount, so a keyed remount per step would stack an entry for every print walked past.
+`MemoryDetail` instead resets its per-memory state (full URL, caption draft, zoom) with a
+render-time reset when `memory.id` changes.
+
+`PhotoLightbox` takes the same optional `onPrev`/`onNext` (plus a `position` "3 of 7" marker) —
+`/places`' `PlaceGallery` uses that to page through a place's photos with swipe, arrow keys, and
+edge arrows. A memory's own lightbox passes none, so a lone photograph looks as it always has.
 
 The hold is in `MemoryCard`: a timer, a 10px movement cancel (or every scroll starting on a photo
 opens a picker), and a `heldRef` flag that swallows the `click` the same press ends with — without

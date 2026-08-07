@@ -70,16 +70,28 @@ first and sharing its viewBox, which is the only arrangement that holds both pro
 `Waiting` alone was correct and still read as a utility, and a bare mark on a wash looked like a
 process bar. `components/ui/WaitingScene.tsx` adds a bloom of warm light with ten motes rising
 through it, reusing `Meadow`'s own `mote-rise` keyframe so a wait drifts at the same speed as the
-world outside the window. Used by both `NavigationVeil` and `PageWaiting`.
+world outside the window. Used by every route-level `loading.tsx`.
 
 The mote table is a literal, deliberately — this renders inside components that server-render, and
 `Math.random()` positions would reintroduce the same hydration-mismatch class fixed further up
 this entry.
 
-`NavigationVeil`'s delay was also raised **180ms → 450ms** (fade 240ms → 350ms). At 180ms fast
-routes still caught the leading edge of the fade, which reads as the screen glitching; a flash is
-strictly worse than no indicator, because it draws the eye to something already gone. If it needs
-tuning again, raise the delay rather than shortening the fade.
+`Waiting` also gained an **`onScene`** prop, off by default. It applies `.ink-legible`, without
+which a `text-ink-muted` label on the night meadow is dark type on a dark garden — "Reading the
+compass…" was very nearly invisible with the night toggle on. It must stay opt-in, because that
+class's `text-shadow` inherits and reads as blur on a `bg-surface` card; `PlaceRevealOverlay` is
+the one caller that correctly omits it.
+
+### The nav indicator was rebuilt, not tuned
+
+The full-screen veil went through 180ms → 450ms delays and still wasn't right, and the problem
+turned out not to be the timing. Its `backdrop-blur` over a translucent background left a smeared
+ghost of the page you were leaving — which reads as a rendering fault, not atmosphere — and a
+whole-screen takeover is disproportionate for something that usually resolves in under a second.
+
+Replaced by `NavigationProgress`: a 3px warm line at the top edge, page untouched underneath.
+**Don't rebuild the veil.** The scene component it used is still right for `loading.tsx`, where
+the old page really is gone.
 
 ## `/places` is now hero-plus-one-gift
 

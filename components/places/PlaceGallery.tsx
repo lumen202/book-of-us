@@ -36,6 +36,9 @@ export function PlaceGallery({ images }: { images: readonly PlaceImage[] }) {
             src={images[openIndex].url}
             alt={images[openIndex].alt}
             onClose={() => setOpenIndex(null)}
+            onPrev={openIndex > 0 ? () => setOpenIndex(openIndex - 1) : undefined}
+            onNext={openIndex < images.length - 1 ? () => setOpenIndex(openIndex + 1) : undefined}
+            position={{ index: openIndex + 1, total: images.length }}
           />
         )}
       </AnimatePresence>

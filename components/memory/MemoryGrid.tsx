@@ -131,6 +131,21 @@ export function MemoryGrid({
   const selected = memories.find((memory) => memory.id === selectedId) ?? null;
   const pendingRemoval = memories.find((memory) => memory.id === pendingRemovalId) ?? null;
 
+  // What prev/next walks through: the prints on this page that open in the
+  // detail view. From a chapter that excludes promise covers — clicking one
+  // navigates away to its album (see `onSelect` below), so stepping "into"
+  // one mid-walk would silently swap a modal for a page change.
+  const navigable =
+    context.kind === "chapter"
+      ? memories.filter((memory) => !memory.bucket_list_item_id)
+      : memories;
+  const selectedIndex = selected ? navigable.findIndex((memory) => memory.id === selected.id) : -1;
+  const prevMemory = selectedIndex > 0 ? navigable[selectedIndex - 1] : null;
+  const nextMemory =
+    selectedIndex >= 0 && selectedIndex < navigable.length - 1
+      ? navigable[selectedIndex + 1]
+      : null;
+
   function confirmRemoval() {
     if (!pendingRemovalId) return;
     setRemoving(true);
@@ -217,7 +232,11 @@ export function MemoryGrid({
       <AnimatePresence>
         {selected && (
           <MemoryDetail
-            key={selected.id}
+            // Stable across prev/next steps on purpose: `useCloseOnBack`
+            // pushes a history entry per mount, so a `selected.id` key here
+            // would stack one entry for every print stepped past. The detail
+            // resets its own per-memory state when the prop changes.
+            key="memory-detail"
             memory={selected}
             reactions={reactionsByMemory[selected.id] ?? []}
             comments={commentsByMemory[selected.id] ?? []}
@@ -230,6 +249,8 @@ export function MemoryGrid({
             onAddComment={(body) => actions.onAddComment(selected.id, body)}
             onEditComment={(commentId, body) => actions.onEditComment(commentId, body)}
             onRemoveComment={(commentId) => actions.onRemoveComment(commentId)}
+            onPrev={prevMemory ? () => setSelectedId(prevMemory.id) : undefined}
+            onNext={nextMemory ? () => setSelectedId(nextMemory.id) : undefined}
           />
         )}
       </AnimatePresence>
