@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect } from "react";
 import { useBodyScrollLock } from "@/lib/navigation/useBodyScrollLock";
+import { Waiting } from "@/components/ui/Waiting";
 import type { Place } from "@/lib/places/types";
 import { PlaceRevealCard } from "./PlaceRevealCard";
 import { RevealCardShell } from "./RevealCardShell";
@@ -114,12 +115,8 @@ export function PlaceRevealOverlay({
                     transition={{ duration: 0.3 }}
                   >
                     <RevealCardShell>
-                      <div className="flex flex-col items-center gap-4 py-16">
-                        <span
-                          aria-hidden
-                          className="h-10 w-10 animate-spin rounded-full border-2 border-border border-t-accent motion-reduce:animate-none"
-                        />
-                        <p className="font-serif text-lg italic text-ink-muted">{loadingLabel}</p>
+                      <div className="flex flex-col items-center py-16">
+                        <Waiting label={loadingLabel} size="lg" />
                       </div>
                     </RevealCardShell>
                   </motion.div>

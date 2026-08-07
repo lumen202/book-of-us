@@ -169,7 +169,7 @@ export function SpinWheel({
       <div className="relative aspect-square w-[min(88vw,360px)] sm:w-[380px]">
         <svg
           viewBox={`0 0 ${SIZE} ${SIZE}`}
-          className="h-full w-full overflow-visible motion-reduce:transition-none"
+          className="absolute inset-0 h-full w-full overflow-visible motion-reduce:transition-none"
           style={{
             transform: `rotate(${rotation}deg)`,
             transition: spinning ? "transform 3.2s cubic-bezier(0.17, 0.87, 0.32, 1)" : undefined,
@@ -177,18 +177,6 @@ export function SpinWheel({
           role="img"
           aria-label="A wheel of destination categories"
         >
-          {/*
-           * The pointer lives *inside* the svg viewBox — a sibling HTML div
-           * pinned to the wrapper's top edge looked right at one size and
-           * drifted at every other, because it didn't scale with the wheel's
-           * own responsive width the way everything drawn in the viewBox
-           * does automatically.
-           */}
-          <path
-            d={`M${CENTER - 10},${2} L${CENTER + 10},${2} L${CENTER},${20} Z`}
-            fill="var(--color-accent-warm)"
-            style={{ filter: "drop-shadow(0 2px 3px rgba(76,59,48,0.4))" }}
-          />
           <circle cx={CENTER} cy={CENTER} r={RADIUS + 4} fill="var(--color-surface)" stroke="var(--color-border)" strokeWidth={2} />
           {segments.map((segment, index) => {
             const label = labelTransform(segment);
@@ -216,6 +204,39 @@ export function SpinWheel({
             );
           })}
           <circle cx={CENTER} cy={CENTER} r={HUB_RADIUS} fill="var(--color-accent)" stroke="var(--color-surface)" strokeWidth={3} />
+        </svg>
+
+        {/*
+         * The pointer is a **second, non-rotating svg** stacked over the first,
+         * sharing its viewBox.
+         *
+         * It has been in the wrong place twice. As a sibling HTML div pinned to
+         * the wrapper's top edge it looked right at one size and drifted at
+         * every other, because it didn't scale with the wheel's responsive
+         * width the way anything drawn in the viewBox does. Moving it *into*
+         * the viewBox fixed the scaling and broke the thing entirely: the
+         * viewBox belongs to the element carrying `transform: rotate(...)`, so
+         * the pointer spun with the wheel — a wheel of fortune whose marker
+         * travels with the wedges never points at anything, which is why it
+         * read as missing rather than as misplaced.
+         *
+         * Its own svg keeps both properties: the same coordinate space, so it
+         * still scales exactly with the wheel, and no rotation, so it stays at
+         * twelve o'clock where `computeSpinRotation` assumes a fixed pointer.
+         */}
+        <svg
+          viewBox={`0 0 ${SIZE} ${SIZE}`}
+          className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+          aria-hidden
+        >
+          <path
+            d={`M${CENTER - 11},${0} L${CENTER + 11},${0} L${CENTER},${22} Z`}
+            fill="var(--color-accent-warm)"
+            stroke="var(--color-surface)"
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+            style={{ filter: "drop-shadow(0 2px 3px rgba(76,59,48,0.4))" }}
+          />
         </svg>
       </div>
 
