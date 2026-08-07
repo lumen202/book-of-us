@@ -692,6 +692,84 @@ body {
 }
 
 /*
+ * Three ink drops settling, one after another — the whole app's "something is
+ * happening" mark. See `components/ui/Waiting.tsx` for the API.
+ *
+ * Deliberately *not* a rotating ring. A spinner is the single most recognisable
+ * piece of stock software there is, and it says "an application is busy" — the
+ * exact register the experience-direction guardrails exist to keep out of this
+ * book. Ink soaking into paper says "something is being written down", which is
+ * both truer to what is actually happening and in the same voice as the rest of
+ * the world outside the window.
+ *
+ * Faster than `developing` (1.4s against 2.4s) because this one answers a tap:
+ * a skeleton can breathe slowly since nobody is waiting *on* it, but a mark
+ * that appears in response to a press has to visibly acknowledge the press.
+ * The stagger between the three drops comes from an inline `animation-delay`
+ * per drop, the same per-element-custom-property convention the scene keyframes
+ * use.
+ *
+ * Named `ambient-settling` so it inherits the one reduced-motion kill switch at
+ * the bottom of this file, and — like `developing` — it *rests at full opacity
+ * and zero offset*, so freezing it leaves three quiet ink drops rather than a
+ * row of half-faded dots stuck mid-bounce.
+ */
+@keyframes settling {
+  0%,
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+  40% {
+    opacity: 0.28;
+    transform: translate3d(0, -0.22em, 0);
+  }
+}
+
+.ambient-settling {
+  animation: settling 1.4s ease-in-out infinite;
+}
+
+/*
+ * The veil over a navigation in flight — see `components/nav/NavigationVeil.tsx`.
+ *
+ * The **450ms delay is the point of this rule**, not a flourish, and the number
+ * has already been raised once. `NavigationVeil` mounts the instant a link is
+ * clicked, but a prefetched route often arrives within a frame or two, and at
+ * an earlier 180ms threshold those quick navigations still caught the leading
+ * edge of the fade — a full-screen wash appearing and vanishing inside a fifth
+ * of a second, which reads as the screen glitching rather than as anything
+ * loading. A flash is strictly worse than no indicator: it draws the eye to
+ * something that is already gone by the time you look.
+ *
+ * 450ms is past the point where a transition still feels immediate, so anything
+ * that resolves before it never paints a pixel, and anything slower was going
+ * to be noticed anyway. The 350ms fade then brings it up gently rather than
+ * cutting to it, so even a navigation that lands just over the line reads as a
+ * scene settling in rather than a panel appearing.
+ *
+ * `both` fill so it holds at 0 through the delay and at 1 afterwards.
+ *
+ * Deliberately *not* named `ambient-*`: the kill switch at the bottom of this
+ * file would freeze it at its `from` state — permanently invisible — which
+ * would silently delete the feature for reduced-motion readers. What it
+ * animates is opacity alone, no movement, which is not what that preference is
+ * asking to be spared.
+ */
+@keyframes veil-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.nav-veil {
+  animation: veil-in 350ms ease-out 450ms both;
+}
+
+/*
  * The swing, still moving very slightly — as though somebody has just got up
  * from it. Under two degrees, and slow enough that you are never sure you saw
  * it. This is the most sentimental line of CSS in the project and it earns its

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { recordPlaceShown } from "@/app/(app)/places/actions";
 import { pickManyPlaces } from "@/lib/places/engine";
+import { useHydrated } from "@/lib/react/useHydrated";
 import { getAllPlaces } from "@/lib/places/source";
 import type { Month, Place } from "@/lib/places/types";
 import { PlaceRevealOverlay } from "./PlaceRevealOverlay";
@@ -10,17 +11,19 @@ import { PlaceRevealOverlay } from "./PlaceRevealOverlay";
 const CARD_COUNT = 4;
 
 /**
- * Mystery cards, face down, drawn once **after mount** — and the timing there
- * is a correctness requirement, not a preference.
+ * Mystery cards, face down. The hand is drawn on mount but **not rendered
+ * until after hydration**, and that timing is a correctness requirement.
  *
- * `pickManyPlaces` is `Math.random()`-backed, and a `useState` initializer runs
- * twice for a client component inside an RSC page: once on the server to
- * produce the HTML, once on the client to hydrate it. Two random draws, two
- * different sets of four names in the same `<span>`, and React threw
- * "server rendered text didn't match the client" on every single load of
- * `/places`. Drawing in an effect means the server renders four card *backs*
- * with no place data in them at all, which is also the honest markup: which
- * four you drew is not something the server should have an opinion about.
+ * `pickManyPlaces` is `Math.random()`-backed, and a client component inside an
+ * RSC page renders twice: once on the server to produce the HTML, once on the
+ * client to hydrate it. Two random draws, two different sets of four names in
+ * the same `<span>`, and React threw "server rendered text didn't match the
+ * client" on every single load of `/places`.
+ *
+ * `useHydrated` fixes it by making both of those renders show four card
+ * *backs* — identical markup, nothing to mismatch — with the real hand
+ * appearing on the render after. That is also the honest markup: which four you
+ * drew is not something the server should have an opinion about.
  *
  * Once drawn, the set stays put across re-renders — flipping one card must not
  * reshuffle the others. A fresh set only appears on "New cards" or a reload,
@@ -38,18 +41,17 @@ export function LuckyDraw({
   wishlist: readonly string[];
   visited: readonly string[];
 }) {
-  const [cards, setCards] = useState<Place[] | null>(null);
+  const hydrated = useHydrated();
+  // Drawn once per mount, in a plain initializer — it is the *rendering* of the
+  // hand that waits for hydration, not the draw. `recentlyShown` is read here
+  // and deliberately never re-read: flipping a card writes to the shown-log,
+  // which is where that prop comes from, so redrawing on a change to it would
+  // reshuffle the hand mid-turn.
+  const [cards, setCards] = useState<Place[]>(() =>
+    pickManyPlaces(getAllPlaces(), CARD_COUNT, { excludeSlugs: new Set(recentlyShown), month }),
+  );
   const [flipped, setFlipped] = useState<Set<string>>(new Set());
   const [openPlace, setOpenPlace] = useState<Place | null>(null);
-
-  // Empty dependency list on purpose: this draws the opening spread once, and
-  // must not redraw when `recentlyShown` changes underneath it after a card is
-  // flipped (flipping writes to the shown-log, which is where that prop comes
-  // from — a reactive dependency here would reshuffle the hand mid-turn).
-  useEffect(() => {
-    setCards(pickManyPlaces(getAllPlaces(), CARD_COUNT, { excludeSlugs: new Set(recentlyShown), month }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   function flip(card: Place) {
     if (flipped.has(card.slug)) {
@@ -89,7 +91,7 @@ export function LuckyDraw({
          * face — so the real cards arriving is not a layout shift, it's just
          * the moment the hand becomes yours.
          */}
-        {cards === null &&
+        {!hydrated &&
           Array.from({ length: CARD_COUNT }, (_, i) => (
             <div key={`back-${i}`} className="[perspective:1000px]">
               <div className="relative aspect-[5/7] w-full">
@@ -99,7 +101,7 @@ export function LuckyDraw({
               </div>
             </div>
           ))}
-        {cards?.map((card) => {
+        {hydrated && cards.map((card) => {
           const isFlipped = flipped.has(card.slug);
           return (
             <button

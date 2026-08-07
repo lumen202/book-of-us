@@ -11,6 +11,7 @@ Table of contents only. Open just the row you need.
 | Design tokens + theming | [`theming.md`](theming.md) | current |
 | The painted world (ambient backdrop) | [`painted-world.md`](painted-world.md) | current |
 | Experience direction + interaction choreography guardrails | [`experience-direction.md`](experience-direction.md) | current |
+| Waiting/loading states (the no-spinner rule, `Waiting`, `loading.tsx` coverage) | [`waiting-states.md`](waiting-states.md) | current |
 | Chapter album pages, image weight, signed URLs | [`reading-experience.md`](reading-experience.md) | current |
 | Cinematic opening sequence engine | [`opening-sequence.md`](opening-sequence.md) | current |
 | Celebration Mode (5th of month) | [`celebration-mode.md`](celebration-mode.md) | current |

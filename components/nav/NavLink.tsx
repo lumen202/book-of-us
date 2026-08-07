@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { NavigationVeil } from "./NavigationVeil";
 
 /**
  * A nav link that marks itself as the current section — "so we know what
@@ -45,6 +46,13 @@ export function NavLink({
       className={`${className} ${active ? activeClassName : inactiveClassName}`}
     >
       {children}
+      {/*
+       * Must be a descendant of `<Link>` — that is `useLinkStatus`'s one
+       * requirement — which is why the whole-screen veil is mounted from
+       * inside each nav link rather than once at the layout. It renders
+       * nothing at all unless a navigation from *this* link is pending.
+       */}
+      <NavigationVeil />
     </Link>
   );
 }

@@ -3,24 +3,28 @@ import { getRecentlyShownSlugs, getSavedSlugs } from "@/lib/places/journal/queri
 import { getAppNow } from "@/lib/relationship/devClock";
 import { getAllPlaces, searchPlaces } from "@/lib/places/source";
 import { toSummary, type Month } from "@/lib/places/types";
-import { LuckyDraw } from "@/components/places/LuckyDraw";
 import { PlaceRail } from "@/components/places/PlaceRail";
 import { PlaceRevealCard } from "@/components/places/PlaceRevealCard";
 import { PlacesHero } from "@/components/places/PlacesHero";
-import { SpinWheel } from "@/components/places/SpinWheel";
-import { SurpriseMe } from "@/components/places/SurpriseMe";
-import { WeekendEscape } from "@/components/places/WeekendEscape";
 import { ClosingReflection } from "@/components/story/ClosingReflection";
 import { formatMonthDay } from "@/lib/format/date";
 import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
-import Link from "next/link";
 
 /**
  * Destination discovery — the whole feature described in
- * `docs/agent/codebase-map/places.md`. A guided sequence of small beats
- * (hero → daily pick → lucky draw → wheel → weekend escape → hidden gems →
- * explore everything), not a dashboard of six buttons at once — see the
- * "reduce simultaneous choices" guardrail in `experience-direction.md`.
+ * `docs/agent/codebase-map/places.md`.
+ *
+ * Three beats, in order: **arrive** (the hero), **be given one thing** (today's
+ * pick, no choice to make), then **choose a way in** (the doors). Everything
+ * past the doors opens into `DiscoveryLayer` rather than continuing down the
+ * page.
+ *
+ * This page used to stack all five modes vertically, which made "spin the
+ * wheel" a scroll target below three other games and mounted every one of them
+ * on arrival. The sequence was real but nobody experienced it as one — a long
+ * page reads as a list of everything available, not as a progression. See
+ * `DiscoveryDoors` for the presentation and `DiscoveryLayer` for why the modes
+ * open in a layer rather than at their own routes.
  */
 export default async function PlacesPage() {
   const now = getAppNow();
@@ -52,7 +56,14 @@ export default async function PlacesPage() {
        * painted backdrop directly behind it.
        */}
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-24 px-6 pt-8">
-        <PlacesHero backdrop={today} recentlyShown={recentlyShown} month={month} wishlist={wishlist} visited={visited} />
+        <PlacesHero
+          backdrop={today}
+          recentlyShown={recentlyShown}
+          month={month}
+          wishlist={wishlist}
+          visited={visited}
+          hiddenGemsRail={<PlaceRail places={hiddenGems} />}
+        />
 
         {today && (
           <section className="flex flex-col items-center gap-4">
@@ -66,62 +77,14 @@ export default async function PlacesPage() {
           </section>
         )}
 
-        <section className="flex flex-col items-center gap-6">
-          <div className="flex flex-col items-center gap-1 text-center">
-            <span className="ink-legible text-[11px] uppercase tracking-[0.3em] text-accent">Lucky draw</span>
-            <h2 className="ink-legible font-serif text-2xl text-ink">Four cards, face down.</h2>
-          </div>
-          <LuckyDraw recentlyShown={recentlyShown} month={month} wishlist={wishlist} visited={visited} />
-        </section>
-
-        <section id="wheel" className="flex scroll-mt-24 flex-col items-center gap-6">
-          <div className="flex flex-col items-center gap-1 text-center">
-            <span className="ink-legible text-[11px] uppercase tracking-[0.3em] text-accent">Spin the wheel</span>
-            <h2 className="ink-legible font-serif text-2xl text-ink">Let the category choose itself.</h2>
-          </div>
-          <SpinWheel recentlyShown={recentlyShown} month={month} wishlist={wishlist} visited={visited} />
-        </section>
-
-        <section className="flex flex-col items-center gap-6">
-          <div className="flex flex-col items-center gap-1 text-center">
-            <span className="ink-legible text-[11px] uppercase tracking-[0.3em] text-accent">Weekend escape</span>
-            <h2 className="ink-legible font-serif text-2xl text-ink">How long do you actually have?</h2>
-          </div>
-          <WeekendEscape recentlyShown={recentlyShown} month={month} wishlist={wishlist} visited={visited} />
-        </section>
-
-        <section className="flex flex-col gap-6">
-          <div className="flex flex-col items-center gap-1 text-center">
-            <span className="ink-legible text-[11px] uppercase tracking-[0.3em] text-accent">Hidden gem mode</span>
-            <h2 className="ink-legible font-serif text-2xl text-ink">Nobody else has heard of these.</h2>
-          </div>
-          <PlaceRail places={hiddenGems} />
-          <div className="flex justify-center">
-            <SurpriseMe
-              recentlyShown={recentlyShown}
-              month={month}
-              wishlist={wishlist}
-              visited={visited}
-              hiddenGemOnly
-              source="hidden-gem"
-              label="Surprise me with a hidden gem"
-              loadingLabel="Looking somewhere quieter…"
-              className="rounded-full border border-border bg-surface px-7 py-2.5 text-[11px] uppercase tracking-[0.24em] text-ink shadow-[0_8px_16px_-8px_rgba(76,59,48,0.4)] transition hover:border-accent hover:text-accent"
-            />
-          </div>
-        </section>
-
-        <section className="flex flex-col items-center gap-4 text-center">
-          <p className="ink-legible max-w-md font-serif text-lg italic text-ink-muted">
-            Or skip the fate entirely and look for something in particular.
-          </p>
-          <Link
-            href="/places/browse"
-            className="rounded-full bg-accent px-7 py-2.5 text-[11px] uppercase tracking-[0.24em] text-surface shadow-[0_8px_16px_-8px_rgba(76,59,48,0.5)] transition hover:brightness-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            Explore every place
-          </Link>
-        </section>
+        {/*
+         * Nothing after the daily pick. The "ways in" section and the closing
+         * "explore every place" section both moved into `PlacesHero`, which is
+         * now the only place on this page you act — so what remains below the
+         * hero is the one thing the book *gives* you rather than asks of you,
+         * and then the reflection. Anything more here would be a second menu
+         * under a page that already has one.
+         */}
       </main>
 
       <ClosingReflection

@@ -6,6 +6,7 @@ not an edit to an old one.
 
 | Date | Title | File |
 |---|---|---|
+| 2026-08-08 | Waiting states app-wide (no-spinner rule, `Waiting`/`WaitingScene`, `loading.tsx`, nav veil), `/places` controls into the hero, scroll-lock + wheel-pointer fixes | [`2026-08-08-waiting-states-and-places-controls.md`](2026-08-08-waiting-states-and-places-controls.md) |
 | 2026-08-08 | Places: Cebu/Leyte hydration wave (55→91), Wikidata+Commons sourcing, end of the census-stub cards | [`2026-08-08-places-cebu-leyte-hydration.md`](2026-08-08-places-cebu-leyte-hydration.md) |
 | 2026-08-08 | Places: first-look fixes (images, contrast, wheel labels, modal close button, modal scroll) + Leyte/Region VIII destinations | [`2026-08-08-places-launch-fixes.md`](2026-08-08-places-launch-fixes.md) |
 | 2026-08-07 | Places — destination discovery feature (Surprise Me, wheel, Lucky Draw, Daily Pick, Weekend Escape, Hidden Gem Mode) | [`2026-08-07-places-destination-discovery.md`](2026-08-07-places-destination-discovery.md) |
