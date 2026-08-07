@@ -88,6 +88,7 @@ tapped something specific, so those beats stay quiet.
 
 | Route | Loading state |
 |---|---|
+| `(app)` (home + group fallback) | Scene only, no title — "Opening the book…" |
 | `chapters/[slug]` | Bespoke album skeleton |
 | `places` | `PageWaiting` — "Reading the compass…" |
 | `places/browse` | `PageWaiting` — "Gathering the map…" |
@@ -98,8 +99,13 @@ tapped something specific, so those beats stay quiet.
 | `archive` | `PageWaiting` — "Looking through what we set aside…" |
 | `settings` | `PageWaiting` — "One moment…" |
 
-Still uncovered: `app/(app)/page.tsx` (home — the opening sequence is its own arrival beat and a
-loading screen in front of it would step on that), `keeper/*` (keeper-only utility pages).
+`app/(app)/loading.tsx` sits at the group root, so it covers home *and* backs any route in the
+group without its own file (the `keeper/*` pages). Every route is now covered.
+
+It is the one wait with **no title**, deliberately. `PageWaiting` prints the destination's `<h1>`
+so it is already in place when content lands, which is right everywhere except home: home is
+wrapped in `HomeCover`, which plays the opening sequence, and printing the shelf's heading only
+for the ceremony to cover it a moment later spends the arrival before the arrival happens.
 
 ## The gap before `loading.tsx`: `components/nav/NavigationVeil.tsx`
 
