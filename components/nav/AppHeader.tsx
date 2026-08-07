@@ -49,6 +49,12 @@ export async function AppHeader() {
             Bucket list
           </NavLink>
           <NavLink
+            href="/places"
+            className="ink-legible text-[11px] uppercase tracking-[0.2em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            Places
+          </NavLink>
+          <NavLink
             href="/vault"
             className="ink-legible text-[11px] uppercase tracking-[0.2em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"
           >

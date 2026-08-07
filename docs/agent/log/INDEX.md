@@ -6,6 +6,8 @@ not an edit to an old one.
 
 | Date | Title | File |
 |---|---|---|
+| 2026-08-08 | Places: first-look fixes (images, contrast, wheel labels, modal close button, modal scroll) + Leyte/Region VIII destinations | [`2026-08-08-places-launch-fixes.md`](2026-08-08-places-launch-fixes.md) |
+| 2026-08-07 | Places — destination discovery feature (Surprise Me, wheel, Lucky Draw, Daily Pick, Weekend Escape, Hidden Gem Mode) | [`2026-08-07-places-destination-discovery.md`](2026-08-07-places-destination-discovery.md) |
 | 2026-08-04 | Role-split letters/whispers (keeper ↔ partner), plus a partner-ceremony preview | [`2026-08-04-role-split-letters-and-partner-preview.md`](2026-08-04-role-split-letters-and-partner-preview.md) |
 | 2026-08-04 | Customizable whisper lines, editable from Settings | [`2026-08-04-customizable-whisper-in-settings.md`](2026-08-04-customizable-whisper-in-settings.md) |
 | 2026-08-04 | Customizable love letter, editable from Settings | [`2026-08-04-customizable-love-letter-in-settings.md`](2026-08-04-customizable-love-letter-in-settings.md) |

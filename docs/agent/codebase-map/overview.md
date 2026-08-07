@@ -29,6 +29,7 @@ lib/                  All bespoke domain logic — the actual custom "framework"
   media/              uploadMemoryMedia — the one browser→Storage upload pipeline, shared by the
                        chapter composer and the bucket list's completion flow
   bucket-list/        Promises that convert into memories when kept — see codebase-map/bucket-list.md
+  places/             Destination discovery atlas + recommendation engine — see codebase-map/places.md
   storage/            Signed URL generation for private Supabase Storage objects
   opening-sequence/   Generative, non-repeating cinematic opening system for the cover page
   celebration/        Date-driven "Celebration Mode" (5th of every month) theme/context
