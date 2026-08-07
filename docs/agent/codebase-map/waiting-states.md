@@ -40,6 +40,17 @@ the viewport.
 
 `size` is `sm` \| `md` \| `lg` — intent, not pixels. Sizes live in one `SIZES` table in that file.
 
+**`onScene` is required whenever the wait sits on the bare painted world** rather than on a card.
+It applies `.ink-legible`, which paints a pale halo behind dark letterforms by day and flips the
+whole mechanism at night — pale letterforms on a dark halo (`theming.md`). Without it a
+`text-ink-muted` label on the night meadow is dark type on a dark garden: "Reading the compass…"
+was very nearly invisible with the night toggle on.
+
+It stays **off by default**, and must, because `.ink-legible`'s `text-shadow` inherits — on a
+`bg-surface` card there is nothing for the halo to compensate for and it reads as blur. The rule
+is exactly the one on `/places`'s own `<main>`. Today the only caller that correctly *omits* it is
+`PlaceRevealOverlay`, whose wait sits inside `RevealCardShell`.
+
 **Labels are story language**, like every other string in the book: "Finding somewhere…",
 "Tucking it in…", "Getting there…", "Reading the compass…". Never "Loading…".
 
@@ -107,36 +118,46 @@ so it is already in place when content lands, which is right everywhere except h
 wrapped in `HomeCover`, which plays the opening sequence, and printing the shelf's heading only
 for the ceremony to cover it a moment later spends the arrival before the arrival happens.
 
-## The gap before `loading.tsx`: `components/nav/NavigationVeil.tsx`
+## The gap before `loading.tsx`: `components/nav/NavigationProgress.tsx`
 
 A route's `loading.tsx` only appears once a navigation has **committed**. Every page here is
 dynamic (they all read Supabase), so there is a window between the tap and the commit where
 nothing moves and the old page still looks clickable — Vault → Bookshelf is the worst of them.
 
-`NavigationVeil` covers that window from the click itself: a full-screen blurred veil with the
-`Waiting` mark on it. It reads pending state from `useLinkStatus` (Next 15.3+), which **must be
-rendered inside a `<Link>`** — which is why it is mounted from within `NavLink`'s children rather
-than once at the layout. `NavLink` backs both the desktop row and `MobileNavMenu`, so one
-insertion covers every header link.
+`NavigationProgress` covers that window from the click itself: a 3px warm line creeping across the
+top edge, with the page you are leaving left exactly as it was underneath. It reads pending state
+from `useLinkStatus` (Next 15.3+), which **must be rendered inside a `<Link>`** — which is why it
+is mounted from within `NavLink`'s children rather than once at the layout. `NavLink` backs both
+the desktop row and `MobileNavMenu`, so one insertion covers every header link.
 
-Two details that are load-bearing:
+**A full-screen veil was built here first, and rejected.** It blurred the page behind it and put
+the `Waiting` mark and a bloom of light over the top. Two things were wrong with it: the
+see-through blur left a smeared ghost of the page you were leaving, which reads as a rendering
+fault rather than as atmosphere, and a whole-screen takeover is far too much ceremony for
+something that usually resolves in under a second. Don't rebuild it. `WaitingScene` still exists
+and is still right for a route's `loading.tsx`, where the old page is genuinely gone and something
+has to fill the space.
 
-- **The 450ms delay** (`.nav-veil` in `globals.css`) is the whole design. The veil starts at
-  `opacity: 0` and animates in only after 450ms, so a prefetched or otherwise quick navigation
-  unmounts it before a pixel is painted. A full-screen veil flashing on a fast tap is *strictly
-  worse* than no veil — it draws the eye to something already gone by the time you look. The
-  threshold started at 180ms and had to be raised for exactly that reason; if it needs tuning
-  again, raise the delay rather than shortening the 350ms fade.
-- **`pointer-events-none`**, because the veil is a descendant of the anchor that was just clicked
-  and a click landing on it would re-trigger the same link.
+Details that are load-bearing:
 
-`z-[60]` puts it above the reveal overlays (`z-50`) and the discovery layer (`z-40`) — a
-navigation started from inside one of those should veil the whole screen, not hide behind the
-thing it is leaving.
+- **Indeterminate, and it never arrives.** Next reports pending as a boolean, not a fraction, so
+  `nav-progress` eases toward the full width without ever reaching it. A bar that filled to 100%
+  and sat there would claim the page had loaded while it plainly hadn't.
+- **The 250ms delay** holds it at `scaleX(0)` — genuinely zero pixels wide, not merely
+  transparent — so a quick navigation draws nothing at all. The veil needed 450ms for the same
+  job and still flashed; being briefly visible costs far less for a line at the edge than for a
+  wash over the whole screen.
+- **`transform` only**, so it composites and can't trigger layout on a page already busy
+  rendering the route it is announcing.
+- **`pointer-events-none`**, because it is a descendant of the anchor that was just clicked and a
+  click landing on it would re-trigger the same link.
 
-`veil-in` is deliberately **not** named `ambient-*`: the reduced-motion kill switch would freeze
-it at `opacity: 0` and silently delete the feature for those readers. It animates opacity only,
-with no movement, which is not what that preference is asking to be spared.
+`z-[60]` puts it above the reveal overlays (`z-50`) and the discovery layer (`z-40`), so a
+navigation started from inside one of those is still visible.
+
+`nav-progress` is deliberately **not** named `ambient-*`: the reduced-motion kill switch would
+freeze it at `scaleX(0)` and silently delete the feature for those readers. One line easing along
+an edge is not the kind of motion that preference is asking to be spared.
 
 Not yet veiled: links that are not `NavLink` — chapter strips on the bookshelf, place cards,
 "Explore every place". Same component works there; it just has to go inside each `<Link>`.

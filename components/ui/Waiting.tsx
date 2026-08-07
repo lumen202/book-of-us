@@ -75,11 +75,28 @@ export function WaitingMark({
 export function Waiting({
   label,
   size = "md",
+  onScene = false,
   className = "",
 }: {
   /** Story language, e.g. "Finding somewhere…". Omit inside a button that already names the action. */
   label?: string;
   size?: WaitingSize;
+  /**
+   * True when this sits on the bare painted world rather than on a card.
+   *
+   * `theming.md` draws the line and it matters most at night: text on the open
+   * sky needs `.ink-legible`, which paints a pale halo behind dark letterforms
+   * by day and — on the 5th, or with the night toggle on — flips the whole
+   * mechanism, taking the letterforms pale against a dark halo. Without it a
+   * `text-ink-muted` label on the night meadow is dark type on a dark garden,
+   * which is exactly how "Reading the compass…" went nearly invisible.
+   *
+   * It must stay **off** by default, because `.ink-legible`'s `text-shadow`
+   * inherits: on a `bg-surface` card there is nothing for the halo to
+   * compensate for and it just reads as blur. Same trap documented on
+   * `/places`'s own `<main>`.
+   */
+  onScene?: boolean;
   className?: string;
 }) {
   const scale = SIZES[size];
@@ -93,7 +110,7 @@ export function Waiting({
       className={`inline-flex flex-col items-center ${scale.stack} ${className}`}
     >
       <WaitingMark size={size} />
-      <span className={`${scale.text} text-ink-muted`}>{label}</span>
+      <span className={`${onScene ? "ink-legible " : ""}${scale.text} text-ink-muted`}>{label}</span>
     </span>
   );
 }

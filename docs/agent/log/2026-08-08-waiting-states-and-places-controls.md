@@ -48,9 +48,10 @@ Short version:
   the one actual `animate-spin` in the codebase (`PlaceRevealOverlay`).
 - `components/ui/PageWaiting.tsx` + eight new `loading.tsx` files. The app had **one**
   `loading.tsx` across thirteen routes.
-- `components/nav/NavigationVeil.tsx` — `useLinkStatus` inside `NavLink`, covering the window
-  between a tap and the navigation committing, which `loading.tsx` cannot reach. The 180ms
-  animation delay is the design: a fast navigation unmounts it before a pixel is painted.
+- `components/nav/NavigationProgress.tsx` — `useLinkStatus` inside `NavLink`, covering the window
+  between a tap and the navigation committing, which `loading.tsx` structurally cannot reach. A
+  3px line easing across the top edge, indeterminate and never arriving, held at `scaleX(0)` for
+  250ms so quick navigations draw nothing.
 
 ## The wheel's pointer was rotating with the wheel
 

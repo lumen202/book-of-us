@@ -8,7 +8,7 @@ import { WaitingScene } from "@/components/ui/WaitingScene";
  * Home is one of the slowest routes in the book: it awaits chapters, the
  * relationship, the keeper check and — on the 5th — a signed Storage URL per
  * look-back print, before a single pixel renders. Until this file existed the
- * only feedback was `NavigationVeil`, which by design lifts the moment the
+ * only feedback was `NavigationProgress`, which by design lifts the moment the
  * navigation *commits*, leaving the rest of the wait silent.
  *
  * ## Why this one has no title, unlike the others
@@ -33,7 +33,7 @@ export default function AppLoading() {
     >
       <WaitingScene />
       <span className="relative">
-        <Waiting label="Opening the book…" size="lg" />
+        <Waiting label="Opening the book…" size="lg" onScene />
       </span>
     </main>
   );

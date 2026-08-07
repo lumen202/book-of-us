@@ -50,7 +50,7 @@ export function PageWaiting({
       <div className="relative flex flex-1 items-center justify-center pb-24 pt-10">
         <WaitingScene />
         <span className="relative">
-          <Waiting label={label} size="lg" />
+          <Waiting label={label} size="lg" onScene />
         </span>
       </div>
     </main>
