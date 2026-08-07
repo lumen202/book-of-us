@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { recordPlaceShown } from "@/app/(app)/places/actions";
 import { pickManyPlaces } from "@/lib/places/engine";
 import { getAllPlaces } from "@/lib/places/source";
@@ -10,11 +10,22 @@ import { PlaceRevealOverlay } from "./PlaceRevealOverlay";
 const CARD_COUNT = 4;
 
 /**
- * Mystery cards, face down, chosen once when this section mounts (`useState`
- * initializer, not an effect) so the same four stay put across re-renders —
- * flipping one shouldn't reshuffle the others. A fresh set only appears on
- * "New cards" or a full page reload, which is the same "don't repeat the
- * spread you just saw" idea `pickManyPlaces` already gives one draw.
+ * Mystery cards, face down, drawn once **after mount** — and the timing there
+ * is a correctness requirement, not a preference.
+ *
+ * `pickManyPlaces` is `Math.random()`-backed, and a `useState` initializer runs
+ * twice for a client component inside an RSC page: once on the server to
+ * produce the HTML, once on the client to hydrate it. Two random draws, two
+ * different sets of four names in the same `<span>`, and React threw
+ * "server rendered text didn't match the client" on every single load of
+ * `/places`. Drawing in an effect means the server renders four card *backs*
+ * with no place data in them at all, which is also the honest markup: which
+ * four you drew is not something the server should have an opinion about.
+ *
+ * Once drawn, the set stays put across re-renders — flipping one card must not
+ * reshuffle the others. A fresh set only appears on "New cards" or a reload,
+ * which is the same "don't repeat the spread you just saw" idea
+ * `pickManyPlaces` already gives one draw.
  */
 export function LuckyDraw({
   recentlyShown,
@@ -27,11 +38,18 @@ export function LuckyDraw({
   wishlist: readonly string[];
   visited: readonly string[];
 }) {
-  const [cards, setCards] = useState<Place[]>(() =>
-    pickManyPlaces(getAllPlaces(), CARD_COUNT, { excludeSlugs: new Set(recentlyShown), month }),
-  );
+  const [cards, setCards] = useState<Place[] | null>(null);
   const [flipped, setFlipped] = useState<Set<string>>(new Set());
   const [openPlace, setOpenPlace] = useState<Place | null>(null);
+
+  // Empty dependency list on purpose: this draws the opening spread once, and
+  // must not redraw when `recentlyShown` changes underneath it after a card is
+  // flipped (flipping writes to the shown-log, which is where that prop comes
+  // from — a reactive dependency here would reshuffle the hand mid-turn).
+  useEffect(() => {
+    setCards(pickManyPlaces(getAllPlaces(), CARD_COUNT, { excludeSlugs: new Set(recentlyShown), month }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function flip(card: Place) {
     if (flipped.has(card.slug)) {
@@ -65,7 +83,23 @@ export function LuckyDraw({
        * over, and the set still fits one screen.
        */}
       <div className="grid w-full max-w-md grid-cols-2 gap-5 sm:max-w-xl sm:gap-6">
-        {cards.map((card) => {
+        {/*
+         * Before the draw (server render, and the first client frame) the hand
+         * is four plain backs. Same box, same aspect ratio, same face-down
+         * face — so the real cards arriving is not a layout shift, it's just
+         * the moment the hand becomes yours.
+         */}
+        {cards === null &&
+          Array.from({ length: CARD_COUNT }, (_, i) => (
+            <div key={`back-${i}`} className="[perspective:1000px]">
+              <div className="relative aspect-[5/7] w-full">
+                <div className="absolute inset-0 flex items-center justify-center rounded-2xl border border-border bg-[color-mix(in_srgb,var(--color-accent)_16%,var(--color-surface))] shadow-[0_14px_28px_-18px_rgba(76,59,48,0.5)]">
+                  <span className="font-serif text-5xl text-accent">?</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        {cards?.map((card) => {
           const isFlipped = flipped.has(card.slug);
           return (
             <button

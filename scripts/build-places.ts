@@ -7,6 +7,18 @@
  * not something that should silently re-fetch Wikipedia on every deploy. See
  * `docs/agent/codebase-map/places.md`.
  *
+ * A seed is sourced one of two ways, and both end in the same shape:
+ *
+ *   - **`wikipedia`** — the default. Coordinates, prose and photos all come
+ *     from one article. Point it at the *destination*, not the town around it:
+ *     `Tumalog Falls`, not `Oslob`.
+ *   - **`wikidata` + `commonsCategory`** — for the places English Wikipedia
+ *     simply has no article for. Osmeña Peak, Sambawan Island, Simala Shrine
+ *     and Bantayan Island are all in that set, and all four are among the
+ *     most-visited places in the two provinces this book is written from.
+ *     These entries get coordinates and photographs but no `description`; the
+ *     detail page falls back to the seed's editorial note.
+ *
  * For every `PlaceSeed.wikipedia` title, this pulls from the public MediaWiki
  * API — no key required, but a descriptive `User-Agent` is: Wikimedia blocks
  * anonymous-looking bot traffic:
@@ -14,8 +26,10 @@
  *   1. Coordinates (`prop=coordinates`)
  *   2. Plain-text extract, whole article with wiki-style section markers
  *      (`prop=extracts&explaintext=1&exsectionformat=wiki`), split locally
- *      into "intro" (everything before the first `==`) and "History"
- *      (the `== History ==` section, if the article has one).
+ *      into "intro" (everything before the first `==`) and every named
+ *      section — "History" becomes the detail page's history block, and
+ *      "Tourism" becomes the description for area articles whose intro is a
+ *      census stub (see `looksLikeAreaArticle`).
  *   3. The canonical article URL (`prop=info&inprop=url`)
  *   4. Every image linked from the article (`prop=images`), filtered to
  *      photographs (drops flags/logos/locator-maps/icons by filename and
@@ -71,8 +85,14 @@ function chunk<T>(items: readonly T[], size: number): T[][] {
   return out;
 }
 
-/** Splits a `exsectionformat=wiki` extract into intro text and a named section, if present. */
-function splitSections(extract: string): { intro: string; history: string | null } {
+type Extract = {
+  intro: string;
+  /** Section body by lower-cased section title, e.g. `"history"`, `"tourism"`. */
+  sections: Map<string, string>;
+};
+
+/** Splits a `exsectionformat=wiki` extract into intro text and its named sections. */
+function splitSections(extract: string): Extract {
   const headerRe = /^={2,}\s*(.+?)\s*={2,}$/gm;
   const marks: { title: string; index: number; end: number }[] = [];
   let match: RegExpExecArray | null;
@@ -81,25 +101,93 @@ function splitSections(extract: string): { intro: string; history: string | null
   }
 
   const intro = (marks.length > 0 ? extract.slice(0, marks[0].index) : extract).trim();
+  const sections = new Map<string, string>();
 
-  const historyIdx = marks.findIndex((m) => /^history$/i.test(m.title));
-  if (historyIdx === -1) return { intro, history: null };
-
-  // A section's body runs until the next header AT THE SAME OR SHALLOWER
-  // depth (fewer or equal '='), not just the very next header — otherwise a
-  // "=== Pre-Colonial Era ===" subsection under "== History ==" would look
-  // like the end of History instead of part of it.
-  const historyDepth = extract.slice(marks[historyIdx].index).match(/^=+/)?.[0].length ?? 2;
-  let end = extract.length;
-  for (let i = historyIdx + 1; i < marks.length; i += 1) {
+  for (let i = 0; i < marks.length; i += 1) {
+    // A section's body runs until the next header AT THE SAME OR SHALLOWER
+    // depth (fewer or equal '='), not just the very next header — otherwise a
+    // "=== Pre-Colonial Era ===" subsection under "== History ==" would look
+    // like the end of History instead of part of it.
     const depth = extract.slice(marks[i].index).match(/^=+/)?.[0].length ?? 2;
-    if (depth <= historyDepth) {
-      end = marks[i].index;
-      break;
+    let end = extract.length;
+    for (let j = i + 1; j < marks.length; j += 1) {
+      const next = extract.slice(marks[j].index).match(/^=+/)?.[0].length ?? 2;
+      if (next <= depth) {
+        end = marks[j].index;
+        break;
+      }
+    }
+    // A section body still carries its own subsection markers — Camiguin's
+    // "Natural attractions" opens with a literal "=== Volcanoes ===" line.
+    // Keep the subsection *titles* (they read as headings in the prose block)
+    // and drop the `=` fencing, which only ever looked like markup on a card.
+    const body = extract
+      .slice(marks[i].end, end)
+      .replace(/^={2,}\s*(.+?)\s*={2,}$/gm, "$1")
+      .trim();
+    const key = marks[i].title.toLowerCase();
+    // First occurrence wins — an article with both "== History ==" and a
+    // "=== History ===" under some other heading should use the top-level one.
+    if (body.length > 0 && !sections.has(key)) sections.set(key, body);
+  }
+
+  return { intro, sections };
+}
+
+/**
+ * Does this article's intro read as an *area* rather than a destination?
+ *
+ * Every Philippine municipality, city and province has a bot-maintained
+ * en.wikipedia article whose intro is a census stub — "Oslob, officially the
+ * Municipality of Oslob […] is a municipality in the province of Cebu.
+ * According to the 2024 census, it has a population of 29,378 people." Printed
+ * on a reveal card under a photograph of a whale shark, that is a population
+ * figure where the reason to go should be. When the article has a Tourism
+ * section, that section is what a reader actually came for, so `describe()`
+ * prefers it.
+ *
+ * Seeds should still point at the destination itself wherever an article for
+ * it exists (`Tumalog Falls`, not `Oslob`) — this is the graceful degradation
+ * for when one doesn't, not a licence to seed municipalities.
+ */
+function looksLikeAreaArticle(intro: string): boolean {
+  const firstSentence = intro.split(/(?<=\.)\s/)[0] ?? intro;
+  return /\bis (?:a|an|the)\b[^.]*\b(?:municipality|component city|highly urbanized city|independent component city|island province|province|island municipality|barangay|city)\b/i.test(
+    firstSentence,
+  );
+}
+
+/**
+ * Section titles that mean "the part a traveller came for", in preference
+ * order. Philippine LGU articles are not consistent about which one they use —
+ * Moalboal has "Tourism", Oslob has "Tourist attractions", Biliran has "Points
+ * of interest", Camiguin splits into "Natural attractions" and "Man-made
+ * attractions", Guiuan has the singular "Point of Interest".
+ */
+const TOURISM_SECTIONS = [
+  "tourism",
+  "tourist attractions",
+  "tourist attraction",
+  "points of interest",
+  "point of interest",
+  "natural attractions",
+  "attractions",
+] as const;
+
+/** The prose a card shows: an explicit section, else Tourism for area articles, else the intro. */
+function describe(extract: Extract, preferred?: string): string {
+  if (preferred) {
+    const named = extract.sections.get(preferred.toLowerCase());
+    if (named) return named;
+    console.warn(`  ! descriptionSection "${preferred}" not found — falling back to the intro`);
+  }
+  if (looksLikeAreaArticle(extract.intro)) {
+    for (const title of TOURISM_SECTIONS) {
+      const body = extract.sections.get(title);
+      if (body) return body;
     }
   }
-  const history = extract.slice(marks[historyIdx].end, end).trim();
-  return { intro, history: history.length > 0 ? history : null };
+  return extract.intro;
 }
 
 type Coord = { lat: number; lon: number };
@@ -163,10 +251,8 @@ async function fetchUrls(titles: readonly string[]): Promise<Map<string, string>
   return out;
 }
 
-async function fetchExtracts(
-  titles: readonly string[],
-): Promise<Map<string, { intro: string; history: string | null }>> {
-  const out = new Map<string, { intro: string; history: string | null }>();
+async function fetchExtracts(titles: readonly string[]): Promise<Map<string, Extract>> {
+  const out = new Map<string, Extract>();
   // MediaWiki silently caps `exlimit` at 1 for whole-article (non-`exintro`)
   // extracts, no matter what's requested — one title per call is not an
   // optimisation choice here, it's the only mode the API actually supports
@@ -188,6 +274,58 @@ async function fetchExtracts(
     }
   }
   return out;
+}
+
+/**
+ * Coordinates and a lead image from a Wikidata entity, for seeds English
+ * Wikipedia has no article for (Osmeña Peak, Sambawan Island) or has an
+ * article for but no coordinates on (Bantayan Island, Simala Shrine).
+ *
+ * `Special:EntityData/<id>.json` rather than `wbsearchentities` — a Q-id is
+ * pinned in the seed by a person who checked it, and a name search would
+ * happily return the wrong entity. "Sumilon Island", searched, resolves to a
+ * lighthouse off Surigao, not the sandbar off Cebu.
+ */
+async function fetchWikidata(id: string): Promise<{ coord: Coord | null; image: string | null }> {
+  const res = await fetch(`https://www.wikidata.org/wiki/Special:EntityData/${id}.json`, {
+    headers: { "User-Agent": USER_AGENT, Accept: "application/json" },
+  });
+  if (!res.ok) throw new Error(`wikidata ${res.status} for ${id}`);
+  const data = (await res.json()) as { entities: Record<string, Json> };
+  const entity = data.entities?.[id];
+  if (!entity) return { coord: null, image: null };
+
+  const claims = (entity.claims ?? {}) as Record<string, { mainsnak?: { datavalue?: { value?: unknown } } }[]>;
+  const point = claims.P625?.[0]?.mainsnak?.datavalue?.value as
+    | { latitude: number; longitude: number }
+    | undefined;
+  const image = claims.P18?.[0]?.mainsnak?.datavalue?.value as string | undefined;
+
+  return {
+    coord: point ? { lat: point.latitude, lon: point.longitude } : null,
+    image: image ? `File:${image}` : null,
+  };
+}
+
+/**
+ * Every photograph filed under a Commons category. Category *membership*, not
+ * Commons' `list=search` — a free-text search for "Ulan-Ulan Falls" returns a
+ * US National Archives photograph of Luzon as its top hit, and a wrong photo
+ * on a card is precisely the failure the "no placeholders" rule exists to
+ * prevent. A category is maintained by people who looked at the pictures.
+ */
+async function fetchCategoryImageTitles(category: string): Promise<string[]> {
+  const data = await mwApi("commons.wikimedia.org", {
+    action: "query",
+    list: "categorymembers",
+    cmtitle: `Category:${category}`,
+    cmtype: "file",
+    cmlimit: "100",
+  });
+  const members = ((data.query as Json)?.categorymembers ?? []) as { title: string }[];
+  return members
+    .map((m) => m.title)
+    .filter((t) => IMAGE_EXT.test(t) && !BAD_FILENAME.test(t));
 }
 
 async function fetchArticleImageTitles(title: string): Promise<string[]> {
@@ -300,36 +438,64 @@ async function fetchBlurDataUrl(fileTitle: string): Promise<string | undefined> 
 }
 
 async function main() {
-  const titles = EDITORIAL_SEEDS.map((s) => s.wikipedia);
-  console.log(`Fetching ${titles.length} articles…`);
+  const articleTitles = EDITORIAL_SEEDS.map((s) => s.wikipedia).filter((t): t is string => Boolean(t));
+  console.log(
+    `Fetching ${articleTitles.length} articles (${EDITORIAL_SEEDS.length - articleTitles.length} seed(s) sourced from Wikidata + Commons)…`,
+  );
 
   const [coords, urls, extracts] = await Promise.all([
-    fetchCoordinates(titles),
-    fetchUrls(titles),
-    fetchExtracts(titles),
+    fetchCoordinates(articleTitles),
+    fetchUrls(articleTitles),
+    fetchExtracts(articleTitles),
   ]);
 
   const atlas: Record<string, PlaceAtlasEntry> = {};
   const failures: string[] = [];
 
   for (const seed of EDITORIAL_SEEDS) {
-    const coord = coords.get(seed.wikipedia);
-    const wikipediaUrl = urls.get(seed.wikipedia);
-    const extract = extracts.get(seed.wikipedia);
-
-    if (!coord || !wikipediaUrl || !extract) {
-      failures.push(`${seed.slug}: missing ${!coord ? "coordinates" : !wikipediaUrl ? "url" : "extract"}`);
+    if (!seed.wikipedia && !seed.wikidata) {
+      failures.push(`${seed.slug}: seed has neither a wikipedia title nor a wikidata id`);
       continue;
     }
 
-    const candidateTitles =
-      seed.imageOverride && seed.imageOverride.length > 0
-        ? seed.imageOverride
-        : await fetchArticleImageTitles(seed.wikipedia);
+    const extract = seed.wikipedia ? extracts.get(seed.wikipedia) : undefined;
+    const wikipediaUrl = seed.wikipedia ? (urls.get(seed.wikipedia) ?? null) : null;
+
+    if (seed.wikipedia && (!extract || !wikipediaUrl)) {
+      failures.push(`${seed.slug}: "${seed.wikipedia}" resolved to no ${!extract ? "extract" : "url"}`);
+      continue;
+    }
+
+    // Wikidata is the fallback for coordinates, not the default: an article's
+    // own `prop=coordinates` is the more specific of the two when both exist.
+    let coord = seed.wikipedia ? coords.get(seed.wikipedia) : undefined;
+    let wikidataImage: string | null = null;
+    if (seed.wikidata && (!coord || !seed.wikipedia)) {
+      const wd = await fetchWikidata(seed.wikidata);
+      coord = coord ?? wd.coord ?? undefined;
+      wikidataImage = wd.image;
+    }
+    if (!coord) {
+      failures.push(`${seed.slug}: no coordinates (add a wikidata id, or fix the article title)`);
+      continue;
+    }
+
+    // Most specific source of photographs first: a hand-pinned file list, then
+    // a hand-pinned Commons category, then whatever the article happens to
+    // illustrate itself with, then Wikidata's single lead image.
+    let candidateTitles: readonly string[] = [];
+    if (seed.imageOverride && seed.imageOverride.length > 0) {
+      candidateTitles = seed.imageOverride;
+    } else if (seed.commonsCategory) {
+      candidateTitles = await fetchCategoryImageTitles(seed.commonsCategory);
+    } else if (seed.wikipedia) {
+      candidateTitles = await fetchArticleImageTitles(seed.wikipedia);
+    }
+    if (candidateTitles.length === 0 && wikidataImage) candidateTitles = [wikidataImage];
 
     const infos = (await fetchImageInfo(candidateTitles)).filter((i) => i.width >= 640);
     if (infos.length === 0) {
-      failures.push(`${seed.slug}: no usable images`);
+      failures.push(`${seed.slug}: no usable images (try commonsCategory or imageOverride)`);
       continue;
     }
 
@@ -340,17 +506,28 @@ async function main() {
 
     const gallery = galleryRaw.slice(0, 7).map((info) => toPlaceImage(info, seed.name));
 
+    const description = extract ? describe(extract, seed.descriptionSection) : null;
+    // A seed whose reason to exist *is* its history (`Limasawa`, where the
+    // first Mass in the country was said) sets `descriptionSection: "History"`
+    // — printing the same text again under "A little history" would just be
+    // the page repeating itself.
+    const historySection = extract?.sections.get("history") ?? null;
+    const history = historySection && historySection !== description ? historySection : null;
+
     atlas[seed.slug] = {
       latitude: coord.lat,
       longitude: coord.lon,
-      description: extract.intro,
-      history: extract.history,
+      description,
+      history,
       wikipediaUrl,
       heroImage,
       gallery,
       fetchedAt: new Date().toISOString(),
     };
-    console.log(`✓ ${seed.slug} (hero ${heroRaw.width}×${heroRaw.height}, ${gallery.length} gallery)`);
+    const via = seed.wikipedia ? "wikipedia" : `wikidata:${seed.wikidata}`;
+    console.log(
+      `✓ ${seed.slug} (${via}, hero ${heroRaw.width}×${heroRaw.height}, ${gallery.length} gallery)`,
+    );
   }
 
   if (failures.length > 0) {

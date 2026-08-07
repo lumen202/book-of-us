@@ -164,12 +164,23 @@ export default async function PlaceDetailPage({
          * orient, and the full article is one tap away via the Wikipedia
          * link in Practical below.
          */}
+        {/*
+         * `description` is null for the seeds sourced from Wikidata + Commons
+         * rather than an article (Osmeña Peak, Sambawan Island — English
+         * Wikipedia has no article for either). The editorial note is the
+         * fallback rather than an empty section or a "no description
+         * available" line: it is the one sentence written in this book's own
+         * voice, and reading it alone is a better answer to "what is this
+         * place" than an apology for missing prose.
+         */}
         <section className="flex flex-col gap-3">
           <h2 className="font-serif text-2xl text-ink">The story</h2>
-          <p className="whitespace-pre-line text-ink">{leadParagraphs(place.description, 2)}</p>
+          <p className="whitespace-pre-line text-ink">
+            {place.description ? leadParagraphs(place.description, 2) : place.note}
+          </p>
         </section>
 
-        {place.history && (
+        {place.history && place.wikipediaUrl && (
           <section className="flex flex-col gap-3">
             <h2 className="font-serif text-2xl text-ink">A little history</h2>
             <p className="whitespace-pre-line text-ink">{leadParagraphs(place.history, 1)}</p>
@@ -247,11 +258,13 @@ export default async function PlaceDetailPage({
                 Places to eat nearby
               </a>
             </li>
-            <li>
-              <a href={place.wikipediaUrl} target="_blank" rel="noreferrer noopener" className="underline decoration-border underline-offset-4 transition hover:text-accent">
-                Read more on Wikipedia
-              </a>
-            </li>
+            {place.wikipediaUrl && (
+              <li>
+                <a href={place.wikipediaUrl} target="_blank" rel="noreferrer noopener" className="underline decoration-border underline-offset-4 transition hover:text-accent">
+                  Read more on Wikipedia
+                </a>
+              </li>
+            )}
             {place.officialWebsite && (
               <li>
                 <a href={place.officialWebsite} target="_blank" rel="noreferrer noopener" className="underline decoration-border underline-offset-4 transition hover:text-accent">

@@ -159,8 +159,46 @@ export type Month = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
 export type PlaceSeed = {
   slug: string;
   name: string;
-  /** The en.wikipedia article `scripts/build-places.ts` pulls facts from. */
-  wikipedia: string;
+  /**
+   * The en.wikipedia article `scripts/build-places.ts` pulls facts from.
+   *
+   * Optional, because English Wikipedia's coverage of this country is very
+   * uneven: it has an article for every municipality and every colonial-era
+   * church, and *no* article for Osmeña Peak, Sambawan Island, Tumalog Falls
+   * or Simala Shrine — several of the most-visited places in the two provinces
+   * this book is actually written from. A seed with no article sources its
+   * coordinates from `wikidata` and its photographs from `commonsCategory`
+   * instead, and simply has no `description` (see `PlaceAtlasEntry`).
+   */
+  wikipedia?: string;
+  /**
+   * Wikidata Q-id (e.g. `"Q2034393"`). Used for coordinates when there is no
+   * article, or when the article has none — `Bantayan Island` and
+   * `Simala Shrine` both have en.wikipedia articles with no `P625` equivalent
+   * on the page, and Wikidata knows where they are.
+   */
+  wikidata?: string;
+  /**
+   * A Commons *category* (without the `Category:` prefix) to take photographs
+   * from, instead of the article's own image list.
+   *
+   * Category membership, never Commons' free-text file search: searching
+   * `"Ulan-Ulan Falls"` returns a US National Archives photograph of Luzon as
+   * its top hit. A category is curated by a person; a search result is a guess,
+   * and a guess that lands a wrong photo on a card is exactly the failure this
+   * feature's "no placeholders" rule exists to prevent.
+   */
+  commonsCategory?: string;
+  /**
+   * Take the description from this named article section rather than the
+   * intro. For municipality/province articles whose intro is a census stub
+   * ("…is a municipality in the province of Cebu. According to the 2024
+   * census…"), `"Tourism"` is the section a reader actually wants. The build
+   * script falls back to this automatically for area articles — see
+   * `scripts/build-places.ts` — so setting it by hand is only for overriding
+   * that guess.
+   */
+  descriptionSection?: string;
   province: string;
   region: string;
   city: string | null;
@@ -200,11 +238,21 @@ export type PlaceSeed = {
 export type PlaceAtlasEntry = {
   latitude: number;
   longitude: number;
-  /** Plain-text intro from the Wikipedia article. */
-  description: string;
+  /**
+   * Plain-text prose from the Wikipedia article — its intro, or the section
+   * named by `PlaceSeed.descriptionSection`.
+   *
+   * `null` for the Wikidata+Commons-sourced seeds that have no article at all.
+   * The detail page falls back to the seed's editorial `note` there, which is
+   * the honest thing to show: a hand-written line in the book's voice is
+   * editorial, and always was, whereas a hand-written *fact* would be the one
+   * thing this data model refuses to hold.
+   */
+  description: string | null;
   /** The article's History section, if it has one. `null` is normal and fine. */
   history: string | null;
-  wikipediaUrl: string;
+  /** `null` when the seed has no Wikipedia article — see `description`. */
+  wikipediaUrl: string | null;
   heroImage: PlaceImage;
   gallery: readonly PlaceImage[];
   /** ISO date the atlas was last built. */
@@ -212,7 +260,10 @@ export type PlaceAtlasEntry = {
 };
 
 /** Seed ⋈ atlas. What every consumer in the app actually sees. */
-export type Place = Omit<PlaceSeed, "wikipedia" | "imageOverride"> &
+export type Place = Omit<
+  PlaceSeed,
+  "wikipedia" | "wikidata" | "commonsCategory" | "descriptionSection" | "imageOverride"
+> &
   Omit<PlaceAtlasEntry, "fetchedAt"> & {
     id: string;
     /** True once a person has checked the entry against the real place. */

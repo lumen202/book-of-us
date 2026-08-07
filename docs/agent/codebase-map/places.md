@@ -9,7 +9,7 @@ the Wheel, Lucky Draw, Daily Pick, Weekend Escape, Hidden Gem Mode) is the front
 ## The data model: seed ⋈ atlas, never hand-typed facts
 
 Every fact that could go stale (coordinates, description, history, licensed photography) is
-**fetched, not hand-typed** — from Wikipedia and Wikimedia Commons, at build time, by
+**fetched, not hand-typed** — from Wikipedia, Wikidata and Wikimedia Commons, at build time, by
 `scripts/build-places.ts`. Only the editorial judgment (which category, when to go, how hard,
 one line in the book's own voice, hand-picked tips) is written by a person.
 
@@ -20,14 +20,53 @@ lib/places/data/index.ts              joins the two into PLACES: Place[]
 scripts/build-places.ts               the fetcher — run via `npm run build:places`
 ```
 
-**Adding a place:** add a `PlaceSeed` to `editorial.ts` with a real `wikipedia` article title,
-then run `npm run build:places`. The script fails the whole build (no partial/placeholder entries)
-if that title doesn't resolve to an article with coordinates and at least one landscape-ish,
-usably-licensed image — see the script's own header comment for exactly what it fetches and why
-each step is shaped the way it is (in particular: MediaWiki caps `exlimit` at 1 for whole-article
-extracts no matter what's requested, so extracts are fetched one title at a time, and `redirects=1`
-means every fetcher has to register results under both the resolved *and* the requested title or a
-redirected title like `"Oslob, Cebu"` → `"Oslob"` silently loses its data).
+**Adding a place:** add a `PlaceSeed` to `editorial.ts`, then run `npm run build:places`. The
+script fails the whole build (no partial/placeholder entries) if a seed doesn't resolve to
+coordinates plus at least one landscape-ish, usably-licensed image — see the script's own header
+comment for exactly what it fetches and why each step is shaped the way it is (in particular:
+MediaWiki caps `exlimit` at 1 for whole-article extracts no matter what's requested, so extracts
+are fetched one title at a time, and `redirects=1` means every fetcher has to register results
+under both the resolved *and* the requested title or a redirected title like `"Oslob, Cebu"` →
+`"Oslob"` silently loses its data).
+
+### Two ways a seed is sourced
+
+English Wikipedia's coverage of this country is very uneven — an article for every municipality
+and every colonial church, and *nothing* for Osmeña Peak, Sambawan Island, Casa Gorordo or
+Sumilon. So a seed picks one of two paths:
+
+| Field | When |
+|---|---|
+| `wikipedia` | The default. Coordinates, prose and photos from one article. |
+| `wikidata` | A pinned Q-id. Coordinates when there's no article, or the article has none (`Bantayan Island`, `Simala Shrine`, `Langun-Gobingob Cave` all have articles with no coordinates). |
+| `commonsCategory` | Photographs from a Commons *category* instead of the article's own images. |
+| `imageOverride` | Explicit Commons file titles. Beats everything else. |
+| `descriptionSection` | Take the prose from a named article section instead of the intro. |
+
+Two rules that are not negotiable here, both learned the hard way:
+
+1. **Pin Wikidata Q-ids and Commons categories, never search for them.** A name search for
+   `"Sumilon Island"` returns a *lighthouse off Surigao*; a Commons file search for
+   `"Ulan-Ulan Falls"` returns a US National Archives photograph of Luzon. A category is curated
+   by people who looked at the pictures; a search result is a guess, and a wrong photo on a card
+   is exactly what the "no placeholders" rule exists to prevent.
+2. **A `wikidata`-sourced seed has `description: null`**, and the detail page falls back to the
+   seed's editorial `note`. A hand-written *line in the book's voice* is editorial and always
+   was; a hand-written *fact* is the one thing this data model refuses to hold.
+
+### Point a seed at the destination, not the town around it
+
+Every municipality has a bot-maintained article whose intro is a census stub, so
+`wikipedia: "Oslob"` used to put *"a population of 29,378 people"* on a card under a photograph of
+a whale shark. Seed the destination itself where an article exists (`Tumalog Falls`, not `Oslob`).
+Where it doesn't, `descriptionSection` reaches the part of the area's article that is actually
+about the place — `oslob` uses `"Whale shark watching"`, `tacloban` uses `"Culture"`, `limasawa`
+uses `"History"` because the first Mass in the country *is* the reason to go.
+
+As a safety net, `looksLikeAreaArticle` in the build script detects a census-stub intro and
+prefers a Tourism-ish section automatically (`TOURISM_SECTIONS` covers the seven spellings
+Philippine LGU articles actually use — "Tourism", "Tourist attractions", "Points of interest",
+"Natural attractions", …). The net is a fallback, not a licence to seed municipalities.
 
 Images are Wikimedia Commons thumbnails capped at 1600px wide (not the raw originals, several of
 which are 10,000px+ panoramas) with `utm_*` tracking params stripped, plus a 16px blur-up JPEG
@@ -54,6 +93,37 @@ time a restaurant closes.
 | `images.ts` | The image provider-swap seam — `resizedCommonsUrl`, `HERO_SIZES`/`CARD_SIZES` |
 | `trip.ts` | `HOME_BASE` + real haversine distance — see "Distance, not Manila" below |
 | `journal/` | Supabase-backed saves (wishlist/visited) and the shown-log — see below |
+
+## Cebu and Leyte deliberately dominate the atlas
+
+Of 91 places, 22 are in Cebu and 24 are Leyte-and-its-neighbours (Leyte, Southern Leyte, Biliran,
+Samar, Eastern Samar) — about half the atlas in two people's home provinces. That is intentional
+and is the same reasoning as `FAVORITE_REGIONS` in `preferences.ts` taken one level down: a
+weighting boost can only favour places that are in the atlas at all, so making home turf come up
+often is first a *content* decision and only then a weighting one. A general Philippine travel
+list would be roughly the inverse, and would be the wrong book.
+
+### What the free sources cannot reach
+
+Some of the best-loved spots in both provinces have **no** Wikipedia article, no Wikidata item and
+no Commons photograph — checked, not assumed. Tan-awan Peak and the Leyte sea-of-clouds
+viewpoints, Mount Lobi, Aguinid Falls, Tumalog Falls (a Wikidata item exists but carries no
+coordinates), Higatangan Island, Tinago and Ulan-Ulan Falls in Biliran, Osmeña Peak's neighbours
+Lugsangan Peak and Mount Lanaya, Tops Lookout, the Temple of Leah, Sirao Flower Garden, the roses
+cafés. These are documented almost exclusively on Facebook — LGU tourism pages and travel-blog
+posts.
+
+**Facebook was evaluated as a source and rejected.** Page posts require Page Public Content
+Access, which requires App Review and which Meta's own documentation says does not cover external
+research use; unofficial scrapers violate the terms. More decisively, LGU and blogger photographs
+are all-rights-reserved, so they cannot ship next to the Commons attribution block
+`PlaceGallery` renders. Facebook is legitimate *reading* for whoever writes a seed's editorial
+`note` — it is not an automated feed, and shouldn't become one.
+
+Reaching those places needs a third source path (a hand-authored description plus a photograph
+this couple owns or has permission for, credited as such and flagged so it never masquerades as
+licensed third-party work). That is a deliberate loosening of the "never hand-typed facts" rule
+and has not been built — see `log/2026-08-08-places-cebu-leyte-hydration.md`.
 
 ## Personalization: hand-set, like `CURRENT_SEASON`
 
