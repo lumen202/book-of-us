@@ -1,4 +1,5 @@
 import { Waiting } from "@/components/ui/Waiting";
+import { WaitingScene } from "@/components/ui/WaitingScene";
 
 /**
  * No title here, unlike the other `loading.tsx` files — the whole point of a
@@ -11,10 +12,13 @@ import { Waiting } from "@/components/ui/Waiting";
 export default function PlaceLoading() {
   return (
     <main
-      className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-6 px-6 pb-24 pt-8"
+      className="relative mx-auto flex w-full max-w-3xl flex-1 flex-col items-center justify-center gap-6 px-6 pb-24 pt-8"
       aria-busy="true"
     >
-      <Waiting label="Getting there…" size="lg" />
+      <WaitingScene />
+      <span className="relative">
+        <Waiting label="Getting there…" size="lg" onScene />
+      </span>
     </main>
   );
 }

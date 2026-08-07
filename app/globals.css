@@ -731,42 +731,48 @@ body {
 }
 
 /*
- * The veil over a navigation in flight — see `components/nav/NavigationVeil.tsx`.
+ * The line at the top edge while a navigation is in flight — see
+ * `components/nav/NavigationProgress.tsx`.
  *
- * The **450ms delay is the point of this rule**, not a flourish, and the number
- * has already been raised once. `NavigationVeil` mounts the instant a link is
- * clicked, but a prefetched route often arrives within a frame or two, and at
- * an earlier 180ms threshold those quick navigations still caught the leading
- * edge of the fade — a full-screen wash appearing and vanishing inside a fifth
- * of a second, which reads as the screen glitching rather than as anything
- * loading. A flash is strictly worse than no indicator: it draws the eye to
- * something that is already gone by the time you look.
+ * **Indeterminate, and never arrives.** Next reports pending as a boolean, not
+ * a fraction, so there is no real progress to draw. The curve moves quickly at
+ * first and then keeps slowing, approaching the full width without ever
+ * reaching it: a bar that filled to 100% and sat there would be claiming the
+ * page had loaded while it plainly hadn't. Arrival is the new page appearing,
+ * which unmounts the element.
  *
- * 450ms is past the point where a transition still feels immediate, so anything
- * that resolves before it never paints a pixel, and anything slower was going
- * to be noticed anyway. The 350ms fade then brings it up gently rather than
- * cutting to it, so even a navigation that lands just over the line reads as a
- * scene settling in rather than a panel appearing.
+ * The 250ms delay holds it at `scaleX(0)` — genuinely zero pixels wide, not
+ * merely transparent — so a prefetched navigation that resolves quickly never
+ * draws anything at all. (This replaced a full-screen veil where that
+ * threshold had to be 450ms and *still* flashed; the cost of being briefly
+ * visible is much lower for a 3px line at the edge than for a wash over the
+ * whole screen.)
  *
- * `both` fill so it holds at 0 through the delay and at 1 afterwards.
+ * `transform` only, so it composites and cannot trigger layout on a page that
+ * is still busy rendering the route it is announcing.
  *
  * Deliberately *not* named `ambient-*`: the kill switch at the bottom of this
- * file would freeze it at its `from` state — permanently invisible — which
- * would silently delete the feature for reduced-motion readers. What it
- * animates is opacity alone, no movement, which is not what that preference is
- * asking to be spared.
+ * file would freeze it at `scaleX(0)` — permanently invisible — silently
+ * deleting the feature for reduced-motion readers. A single line easing along
+ * an edge is not the kind of motion that preference is asking to be spared.
  */
-@keyframes veil-in {
-  from {
-    opacity: 0;
+@keyframes nav-progress {
+  0% {
+    transform: scaleX(0);
   }
-  to {
-    opacity: 1;
+  25% {
+    transform: scaleX(0.42);
+  }
+  55% {
+    transform: scaleX(0.68);
+  }
+  100% {
+    transform: scaleX(0.94);
   }
 }
 
-.nav-veil {
-  animation: veil-in 350ms ease-out 450ms both;
+.nav-progress {
+  animation: nav-progress 9s cubic-bezier(0.16, 1, 0.3, 1) 250ms both;
 }
 
 /*
