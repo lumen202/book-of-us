@@ -36,3 +36,8 @@ next-env.d.ts
 # supabase
 supabase/.branches
 supabase/.temp
+
+# internal agent docs (local-only, not pushed to GitHub)
+/docs/agent/
+/AGENTS.md
+/CLAUDE.md
