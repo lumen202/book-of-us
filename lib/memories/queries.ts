@@ -1,8 +1,10 @@
-import { toLocalDate } from "@/lib/format/date";
 import { getAppNow } from "@/lib/relationship/devClock";
 import { createClient } from "@/lib/supabase/server";
 import { getSignedUrl } from "@/lib/storage/getSignedUrl";
+import { filterEligibleChapters } from "./chapterEligibility";
 import type { Memory } from "./types";
+
+export { filterEligibleChapters } from "./chapterEligibility";
 
 export type MemoryWithMedia = Memory & {
   thumbnailUrl: string | null;
@@ -253,13 +255,7 @@ export async function findLookBackPrints(
   depth = 4,
   { now = getAppNow(), excludeCurrentMonth = true }: { now?: Date; excludeCurrentMonth?: boolean } = {},
 ): Promise<Awaited<ReturnType<typeof getChapterPrints>>> {
-  const currentMonthKey = `${now.getFullYear()}-${now.getMonth()}`;
-  const eligible = excludeCurrentMonth
-    ? chapters.filter((chapter) => {
-        const chapterDate = toLocalDate(chapter.month);
-        return `${chapterDate.getFullYear()}-${chapterDate.getMonth()}` !== currentMonthKey;
-      })
-    : chapters;
+  const eligible = filterEligibleChapters(chapters, now, excludeCurrentMonth);
 
   for (const chapter of eligible.slice(0, depth)) {
     const prints = await getChapterPrints(chapter.id);

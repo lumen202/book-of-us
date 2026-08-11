@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test lib/**/*.test.ts",
+    "test": "tsx --test \"lib/**/*.test.ts\" && npm run check:demo-parity",
+    "check:demo-parity": "tsx scripts/check-demo-parity.ts",
     "build:places": "tsx scripts/build-places.ts"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
+    "playwright": "^1.62.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.5",
     "typescript": "^5"
