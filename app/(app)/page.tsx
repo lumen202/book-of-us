@@ -119,7 +119,7 @@ export default async function HomePage({
     >
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-14 px-6 pb-6 pt-8">
         <section className="mx-auto flex max-w-2xl flex-col items-center gap-4 text-center">
-          <span className="ink-legible text-[11px] uppercase tracking-[0.32em] text-accent">
+          <span className="ink-legible ink-legible-label text-[11px] uppercase tracking-[0.32em] text-accent">
             Open gently
           </span>
           <p className="ink-legible font-serif text-4xl leading-tight text-ink sm:text-5xl">

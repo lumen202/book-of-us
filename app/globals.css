@@ -301,6 +301,25 @@ body {
 }
 
 /*
+ * `.ink-legible`'s halo is tuned for large serif type with room around each
+ * glyph. Small uppercase eyebrow labels (letter-spaced, thin strokes) don't
+ * build up enough opaque edge from that halo alone, and go unreadable over
+ * the busiest parts of the scene — the tree canopy, the meadow's own green —
+ * where ink and backdrop sit close in value even though they're different
+ * hues. Same mechanism, pushed further: a tighter, more opaque inner ring so
+ * the paper-edge actually separates the letterform from a textured backdrop,
+ * not just a smooth sky. See BUG-007, BUG-008.
+ */
+.ink-legible-label {
+  text-shadow:
+    0 0 1px color-mix(in srgb, var(--color-surface) 98%, transparent),
+    0 0 2px color-mix(in srgb, var(--color-surface) 95%, transparent),
+    0 0 4px color-mix(in srgb, var(--color-surface) 90%, transparent),
+    0 0 9px color-mix(in srgb, var(--color-surface) 75%, transparent),
+    0 1px 3px color-mix(in srgb, var(--color-surface) 55%, transparent);
+}
+
+/*
  * The painted scene itself lives in components/ambient/StorybookSky.tsx.
  * These keyframes drive it. They're here rather than inline because several
  * elements share them at different durations/offsets, and because every one of

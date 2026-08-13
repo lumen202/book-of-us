@@ -104,7 +104,7 @@ export function VaultGate({ isDemo = false }: { isDemo?: boolean }) {
             <button
               type="submit"
               disabled={demoPending}
-              className="w-full cursor-pointer rounded-full border border-accent px-5 py-2.5 text-[11px] uppercase tracking-[0.22em] text-accent transition hover:bg-accent hover:text-surface disabled:cursor-default disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+              className="w-full cursor-pointer rounded-full border border-accent bg-surface/80 px-5 py-2.5 text-[11px] uppercase tracking-[0.22em] text-accent transition hover:bg-accent hover:text-surface disabled:cursor-default disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               {demoPending ? "Opening…" : "Peek inside — no password needed"}
             </button>

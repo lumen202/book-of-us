@@ -308,26 +308,40 @@ async function main() {
   await ensureRelationship();
 
   const chapterIds = await ensureChapters([
+    { slug: "2026-05", title: "May 2026", month: "2026-05-01" },
     { slug: "2026-06", title: "June 2026", month: "2026-06-01" },
     { slug: "2026-07", title: "July 2026", month: "2026-07-01" },
     { slug: "2026-08", title: "August 2026", month: "2026-08-01" },
   ]);
 
+  const may = chapterIds.get("2026-05")!;
   const june = chapterIds.get("2026-06")!;
   const july = chapterIds.get("2026-07")!;
   const august = chapterIds.get("2026-08")!;
 
+  await ensureMemory({ chapterSlug: "2026-05", title: "First rain of the season", occurredAt: "2026-05-03", seed: "demo-11", createdBy: demoUserId }, may);
+  await ensureMemory({ chapterSlug: "2026-05", title: "Lazy Sunday", occurredAt: "2026-05-18", seed: "demo-12", createdBy: demoUserId }, may);
   await ensureMemory({ chapterSlug: "2026-06", title: "Rainy afternoon in", occurredAt: "2026-06-08", seed: "demo-1", createdBy: demoUserId }, june);
   await ensureMemory({ chapterSlug: "2026-06", title: "Farmers market", occurredAt: "2026-06-21", seed: "demo-2", createdBy: demoUserId }, june);
+  await ensureMemory({ chapterSlug: "2026-06", title: "Late bike ride", occurredAt: "2026-06-27", seed: "demo-9", createdBy: demoUserId }, june);
   await ensureMemory({ chapterSlug: "2026-07", title: "Beach day", occurredAt: "2026-07-04", seed: "demo-3", createdBy: demoUserId }, july);
   await ensureMemory({ chapterSlug: "2026-07", title: "Late-night fries", occurredAt: "2026-07-19", seed: "demo-4", createdBy: demoUserId }, july);
+  await ensureMemory({ chapterSlug: "2026-07", title: "Rooftop sunset", occurredAt: "2026-07-28", seed: "demo-10", createdBy: demoUserId }, july);
   await ensureMemory({ chapterSlug: "2026-08", title: "Sunday morning", occurredAt: "2026-08-02", seed: "demo-5", createdBy: demoUserId }, august);
+  await ensureMemory({ chapterSlug: "2026-08", title: "Coffee run", occurredAt: "2026-08-05", seed: "demo-6", createdBy: demoUserId }, august);
+  await ensureMemory({ chapterSlug: "2026-08", title: "Grocery aisle nonsense", occurredAt: "2026-08-09", seed: "demo-7", createdBy: demoUserId }, august);
+  await ensureMemory({ chapterSlug: "2026-08", title: "Movie night blanket fort", occurredAt: "2026-08-11", seed: "demo-8", createdBy: demoUserId }, august);
 
   // Open promises — one plain, one with a reference photo (exercises
-  // BucketItemRow's "with a picture" state on a not-yet-kept item).
+  // BucketItemRow's "with a picture" state on a not-yet-kept item). Spread
+  // across categories so every filter chip on /bucket-list has at least one
+  // open item to show, not just kept ones.
   await ensureBucketItem({ title: "learn to make pasta from scratch", category: "food", status: "open", createdBy: demoUserId });
   const stargazing = await ensureBucketItem({ title: "go stargazing somewhere dark", category: "adventure", note: "away from the city lights", status: "open", createdBy: demoUserId });
   await attachAlbumPhoto({ itemId: stargazing, title: "what we're picturing", seed: "demo-stars", occurredAt: "2026-07-25", createdBy: demoUserId, asCover: false });
+  await ensureBucketItem({ title: "plan a surprise date night", category: "date", status: "open", createdBy: demoUserId });
+  await ensureBucketItem({ title: "road trip somewhere neither of us has been", category: "travel", status: "open", createdBy: demoUserId });
+  await ensureBucketItem({ title: "try an escape room", category: "adventure", status: "open", createdBy: demoUserId });
 
   // Kept promises — one with just a cover (also in a chapter), one with a
   // full multi-photo album (exercises the cover + grid split).
@@ -339,8 +353,13 @@ async function main() {
   await attachAlbumPhoto({ itemId: picnic, title: "Golden hour", seed: "demo-picnic-2", occurredAt: "2026-07-11", createdBy: demoUserId, asCover: false });
   await attachAlbumPhoto({ itemId: picnic, title: "The walk back", seed: "demo-picnic-3", occurredAt: "2026-07-11", createdBy: demoUserId, asCover: false });
 
+  const tastingMenu = await ensureBucketItem({ title: "cook a whole tasting menu together", category: "food", status: "done", createdBy: demoUserId });
+  await attachAlbumPhoto({ itemId: tastingMenu, title: "Course three", seed: "demo-tasting", occurredAt: "2026-05-20", createdBy: demoUserId, asCover: true, chapterId: may });
+
   await ensureVaultItem({ title: "just us", seed: "demo-vault-1", createdBy: demoUserId });
   await ensureVaultItem({ title: "silly one", seed: "demo-vault-2", createdBy: demoUserId });
+  await ensureVaultItem({ title: "movie night selfie", seed: "demo-vault-3", createdBy: demoUserId });
+  await ensureVaultItem({ title: "the one from that trip", seed: "demo-vault-4", createdBy: demoUserId });
 
   // One soft-deleted memory and one soft-deleted promise, so the keeper's
   // archive page (Removed) has something to demonstrate restore/purge on —

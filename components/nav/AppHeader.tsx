@@ -20,7 +20,7 @@ export async function AppHeader() {
   return (
     <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-x-5 px-6 pb-2 pt-6">
       <Link href="/" className="group flex flex-col text-ink">
-        <span className="ink-legible text-[10px] uppercase tracking-[0.28em] text-ink-muted">A keepsake</span>
+        <span className="ink-legible ink-legible-label text-[10px] uppercase tracking-[0.28em] text-ink-muted">A keepsake</span>
         <span className="ink-legible font-serif text-2xl leading-none transition group-hover:text-accent">
           The Book of Us
         </span>

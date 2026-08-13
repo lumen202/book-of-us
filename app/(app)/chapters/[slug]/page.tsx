@@ -72,7 +72,7 @@ export default async function ChapterPage({
 
         {/* The album's title page, before any prints */}
         <section className="flex max-w-2xl flex-col gap-3">
-          <span className="ink-legible text-[11px] uppercase tracking-[0.3em] text-accent">
+          <span className="ink-legible ink-legible-label text-[11px] uppercase tracking-[0.3em] text-accent">
             {formatMonthYear(chapter.month)}
           </span>
           <h1 className="ink-legible font-serif text-4xl leading-tight text-ink sm:text-5xl">{chapter.title}</h1>

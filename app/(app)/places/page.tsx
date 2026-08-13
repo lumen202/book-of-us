@@ -68,8 +68,8 @@ export default async function PlacesPage() {
         {today && (
           <section className="flex flex-col items-center gap-4">
             <div className="flex flex-col items-center gap-1 text-center">
-              <span className="ink-legible text-[11px] uppercase tracking-[0.3em] text-accent">Today&apos;s pick</span>
-              <p className="ink-legible max-w-md font-serif text-lg italic text-ink-muted">
+              <span className="ink-legible ink-legible-label text-[11px] uppercase tracking-[0.3em] text-accent">Today&apos;s pick</span>
+              <p className="ink-legible ink-legible-label max-w-md font-serif text-lg italic text-ink-muted">
                 One destination, the same for both of you, until midnight.
               </p>
             </div>
