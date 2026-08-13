@@ -27,6 +27,7 @@ export function MemoryDetail({
   currentUserId,
   onClose,
   onEditCaption,
+  onToggleResurface,
   resolveFullUrl,
   onReact,
   onUnreact,
@@ -42,6 +43,8 @@ export function MemoryDetail({
   currentUserId: string | null;
   onClose: () => void;
   onEditCaption: (title: string) => Promise<void>;
+  /** The "keep this out of surprises" toggle — see `lib/surprises/`. */
+  onToggleResurface: (excluded: boolean) => Promise<void>;
   resolveFullUrl: () => Promise<string | null>;
   onReact: (emoji: string) => Promise<void>;
   onUnreact: () => Promise<void>;
@@ -117,6 +120,14 @@ export function MemoryDetail({
   /** Tapping the print opens it full-screen — see `PhotoLightbox`. */
   const [zoomed, setZoomed] = useState(false);
 
+  const [resurfacePending, setResurfacePending] = useState(false);
+  function toggleResurface() {
+    setResurfacePending(true);
+    onToggleResurface(!memory.resurface_excluded)
+      .then(() => router.refresh())
+      .finally(() => setResurfacePending(false));
+  }
+
   /**
    * Stepping to a neighbour (`onPrev`/`onNext`) swaps the `memory` prop on
    * this same mounted component rather than remounting it under a new key —
@@ -133,6 +144,10 @@ export function MemoryDetail({
     setCaptionDraft(memory.title);
     setEditingCaption(false);
     setZoomed(false);
+    // New per-item state joins this block — see the brain lesson on this
+    // component's stable key + prev/next stepping (no remount to reset it
+    // for free).
+    setResurfacePending(false);
   }
 
   useEffect(() => {
@@ -304,6 +319,16 @@ export function MemoryDetail({
             <span>· Kept by {memory.created_by === currentUserId ? "you" : "your partner"}</span>
           )}
         </div>
+        <button
+          type="button"
+          onClick={toggleResurface}
+          disabled={resurfacePending}
+          className="mt-2 text-xs text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink disabled:opacity-60"
+        >
+          {memory.resurface_excluded
+            ? "Let this resurface again someday"
+            : "Keep this out of surprises"}
+        </button>
         {memory.body && <p className="mt-6 whitespace-pre-wrap text-base leading-relaxed text-ink">{memory.body}</p>}
         <MemoryReactions
           memoryId={memory.id}

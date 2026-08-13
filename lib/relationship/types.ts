@@ -14,3 +14,9 @@ export type LoveLetter = {
   body: string;
   signoff: string;
 };
+
+/** Per-role resurfacing cooldown — see `lib/surprises/` and `getSurpriseCooldown`. */
+export type SurpriseCooldown = {
+  recentIds: string[];
+  lastShownAt: string | null;
+};

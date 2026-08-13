@@ -8,6 +8,7 @@ import {
 } from "@/lib/comments/mutations";
 import {
   createMemory,
+  setResurfaceExcluded,
   softDeleteMemory,
   updateMemoryCaption,
   type NewMemoryInput,
@@ -82,4 +83,10 @@ export async function editMemoryCaption(id: string, title: string, chapterSlug: 
   await updateMemoryCaption(id, title);
   revalidatePath(`/chapters/${chapterSlug}`);
   revalidatePath("/");
+}
+
+/** The "keep this out of surprises" toggle — see `setResurfaceExcluded`. */
+export async function toggleMemoryResurface(id: string, excluded: boolean, chapterSlug: string) {
+  await setResurfaceExcluded(id, excluded);
+  revalidatePath(`/chapters/${chapterSlug}`);
 }

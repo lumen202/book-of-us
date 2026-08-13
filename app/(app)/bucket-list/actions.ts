@@ -14,7 +14,7 @@ import {
 import type { BucketCategory } from "@/lib/bucket-list/types";
 import { addComment as writeComment, editComment as editCommentBody, removeComment as deleteComment } from "@/lib/comments/mutations";
 import { resolveTargetChapter } from "@/lib/chapters/queries";
-import { softDeleteMemory, updateMemoryCaption } from "@/lib/memories/mutations";
+import { setResurfaceExcluded, softDeleteMemory, updateMemoryCaption } from "@/lib/memories/mutations";
 import { getBucketItemMemoryFullUrl } from "@/lib/memories/queries";
 import { clearReaction, setReaction } from "@/lib/reactions/mutations";
 
@@ -145,5 +145,11 @@ export async function removeAlbumMemory(memoryId: string, itemId: string) {
 
 export async function editAlbumMemoryCaption(id: string, title: string, itemId: string) {
   await updateMemoryCaption(id, title);
+  revalidatePath(`/bucket-list/${itemId}`);
+}
+
+/** The album's copy of `toggleMemoryResurface` — see that file's comment. */
+export async function toggleAlbumMemoryResurface(id: string, excluded: boolean, itemId: string) {
+  await setResurfaceExcluded(id, excluded);
   revalidatePath(`/bucket-list/${itemId}`);
 }

@@ -173,6 +173,7 @@ export function PromiseAlbumGrid({
             currentUserId={currentUserId}
             onClose={() => setCoverOpen(false)}
             onEditCaption={(title) => actions.onEditCaption(cover.id, title)}
+            onToggleResurface={(excluded) => actions.onToggleResurface(cover.id, excluded)}
             resolveFullUrl={() => actions.resolveFullUrl(cover.id)}
             onReact={(emoji) => actions.onReact(cover.id, emoji)}
             onUnreact={() => actions.onUnreact(cover.id)}

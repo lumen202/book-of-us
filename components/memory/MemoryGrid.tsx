@@ -11,6 +11,7 @@ import {
   addComment as addChapterComment,
   editMemoryComment,
   removeMemoryComment,
+  toggleMemoryResurface,
   unreactToMemory,
 } from "@/app/(app)/chapters/[slug]/actions";
 import {
@@ -21,8 +22,20 @@ import {
   reactToAlbumPhoto,
   removeAlbumComment,
   removeAlbumMemory,
+  toggleAlbumMemoryResurface,
   unreactToAlbumPhoto,
 } from "@/app/(app)/bucket-list/actions";
+import {
+  addTripComment,
+  editTripComment,
+  editTripMemoryCaption,
+  loadTripMemoryFullUrl,
+  reactToTripPhoto,
+  removeTripComment,
+  removeTripMemory,
+  toggleTripMemoryResurface,
+  unreactToTripPhoto,
+} from "@/app/(app)/trips/actions";
 import type { Comment } from "@/lib/comments/types";
 import type { BucketCategory } from "@/lib/bucket-list/types";
 import type { MemoryWithMedia } from "@/lib/memories/queries";
@@ -33,7 +46,8 @@ import { MemoryDetail } from "./MemoryDetail";
 
 export type MemoryGridContext =
   | { kind: "chapter"; chapterId: string; chapterSlug: string }
-  | { kind: "album"; itemId: string };
+  | { kind: "album"; itemId: string }
+  | { kind: "trip"; tripId: string };
 
 /**
  * The one component that knows "chapter" from "bucket-list album" — every
@@ -61,22 +75,44 @@ export function bindMemoryActions(context: MemoryGridContext) {
       onEditComment: (commentId: string, body: string) => editMemoryComment(commentId, body, chapterSlug),
       onRemoveComment: (commentId: string) => removeMemoryComment(commentId, chapterSlug),
       onEditCaption: (memoryId: string, title: string) => editMemoryCaption(memoryId, title, chapterSlug),
+      onToggleResurface: (memoryId: string, excluded: boolean) =>
+        toggleMemoryResurface(memoryId, excluded, chapterSlug),
       resolveFullUrl: (memoryId: string) => loadMemoryFullUrl(chapterId, memoryId),
     };
   }
 
-  const { itemId } = context;
+  if (context.kind === "album") {
+    const { itemId } = context;
+    return {
+      removeLabel: "this album",
+      removalBody: "It won't be gone for good — it just won't be in this album anymore.",
+      onRemove: (memoryId: string) => removeAlbumMemory(memoryId, itemId),
+      onReact: (memoryId: string, emoji: string) => reactToAlbumPhoto(memoryId, emoji, itemId),
+      onUnreact: (memoryId: string) => unreactToAlbumPhoto(memoryId, itemId),
+      onAddComment: (memoryId: string, body: string) => addAlbumComment(memoryId, body, itemId),
+      onEditComment: (commentId: string, body: string) => editAlbumComment(commentId, body, itemId),
+      onRemoveComment: (commentId: string) => removeAlbumComment(commentId, itemId),
+      onEditCaption: (memoryId: string, title: string) => editAlbumMemoryCaption(memoryId, title, itemId),
+      onToggleResurface: (memoryId: string, excluded: boolean) =>
+        toggleAlbumMemoryResurface(memoryId, excluded, itemId),
+      resolveFullUrl: (memoryId: string) => loadPromiseAlbumFullUrl(itemId, memoryId),
+    };
+  }
+
+  const { tripId } = context;
   return {
-    removeLabel: "this album",
-    removalBody: "It won't be gone for good — it just won't be in this album anymore.",
-    onRemove: (memoryId: string) => removeAlbumMemory(memoryId, itemId),
-    onReact: (memoryId: string, emoji: string) => reactToAlbumPhoto(memoryId, emoji, itemId),
-    onUnreact: (memoryId: string) => unreactToAlbumPhoto(memoryId, itemId),
-    onAddComment: (memoryId: string, body: string) => addAlbumComment(memoryId, body, itemId),
-    onEditComment: (commentId: string, body: string) => editAlbumComment(commentId, body, itemId),
-    onRemoveComment: (commentId: string) => removeAlbumComment(commentId, itemId),
-    onEditCaption: (memoryId: string, title: string) => editAlbumMemoryCaption(memoryId, title, itemId),
-    resolveFullUrl: (memoryId: string) => loadPromiseAlbumFullUrl(itemId, memoryId),
+    removeLabel: "this trip",
+    removalBody: "It won't be gone for good — it just won't be filed under this trip anymore.",
+    onRemove: (memoryId: string) => removeTripMemory(memoryId, tripId),
+    onReact: (memoryId: string, emoji: string) => reactToTripPhoto(memoryId, emoji, tripId),
+    onUnreact: (memoryId: string) => unreactToTripPhoto(memoryId, tripId),
+    onAddComment: (memoryId: string, body: string) => addTripComment(memoryId, body, tripId),
+    onEditComment: (commentId: string, body: string) => editTripComment(commentId, body, tripId),
+    onRemoveComment: (commentId: string) => removeTripComment(commentId, tripId),
+    onEditCaption: (memoryId: string, title: string) => editTripMemoryCaption(memoryId, title, tripId),
+    onToggleResurface: (memoryId: string, excluded: boolean) =>
+      toggleTripMemoryResurface(memoryId, excluded, tripId),
+    resolveFullUrl: (memoryId: string) => loadTripMemoryFullUrl(tripId, memoryId),
   };
 }
 
@@ -243,6 +279,7 @@ export function MemoryGrid({
             currentUserId={currentUserId}
             onClose={() => setSelectedId(null)}
             onEditCaption={(title) => actions.onEditCaption(selected.id, title)}
+            onToggleResurface={(excluded) => actions.onToggleResurface(selected.id, excluded)}
             resolveFullUrl={() => actions.resolveFullUrl(selected.id)}
             onReact={(emoji) => actions.onReact(selected.id, emoji)}
             onUnreact={() => actions.onUnreact(selected.id)}

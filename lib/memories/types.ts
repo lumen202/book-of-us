@@ -22,6 +22,10 @@ export type Memory = {
   unlock_at: string | null;
   /** Set when this memory is a bucket-list promise's cover — see `docs/agent/codebase-map/bucket-list.md`. */
   bucket_list_item_id: string | null;
+  /** Set when this memory is filed under a trip — see `docs/agent/codebase-map/trips.md`. */
+  trip_id: string | null;
+  /** Opted out of `lib/surprises/` resurfacing by hand — see `docs/agent/codebase-map/surprises.md`. */
+  resurface_excluded: boolean;
   created_by: string | null;
   created_at: string;
   updated_at: string;

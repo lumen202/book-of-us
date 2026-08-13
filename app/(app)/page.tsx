@@ -17,7 +17,10 @@ import { formatMonthDay, toLocalDate } from "@/lib/format/date";
 import { ordinal } from "@/lib/format/ordinal";
 import { getAppNow } from "@/lib/relationship/devClock";
 import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
+import { shouldRollSurprise } from "@/lib/surprises/pick";
+import { getSurpriseCandidate } from "@/lib/surprises/queries";
 import { ClosingReflection } from "@/components/story/ClosingReflection";
+import { SurprisePrint } from "@/components/surprises/SurprisePrint";
 
 export default async function HomePage({
   searchParams,
@@ -106,6 +109,18 @@ export default async function HomePage({
       ? await findLookBackPrints(chapters, undefined, { excludeCurrentMonth: !previewing })
       : [];
 
+  /**
+   * The "on this day / from the book" beat — see `lib/surprises/`. Never on
+   * a Celebration day (that already has its own look-back beat) or while
+   * previewing one, and only ~1 visit in 3 even then: unpredictability is
+   * the point, and a surprise that shows up every visit is just a widget.
+   * `getSurpriseCandidate` itself returns `null` below the archive-size floor
+   * or when every eligible memory is in cooldown, so this can still be `null`
+   * even when the coin flip says yes.
+   */
+  const showSurprise = !isCelebrationDay(now) && !previewing && shouldRollSurprise();
+  const surprise = showSurprise ? await getSurpriseCandidate(isKeeper) : null;
+
   return (
     <HomeCover
       title="The Book of Us"
@@ -129,6 +144,14 @@ export default async function HomePage({
             Move slowly. Pick a month. Let a memory arrive before you ask it to.
           </p>
         </section>
+
+        {surprise && (
+          <SurprisePrint
+            memory={surprise.memory}
+            chapterSlug={surprise.chapterSlug}
+            thumbnailUrl={surprise.thumbnailUrl}
+          />
+        )}
 
         <section className="mx-auto w-full max-w-3xl">
           <h1 className="ink-legible mb-6 font-serif text-3xl text-ink">Chapters</h1>

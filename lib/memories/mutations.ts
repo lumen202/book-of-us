@@ -23,6 +23,8 @@ export type NewMemoryInput = {
   thumbnailPath: string | null;
   meta?: Record<string, unknown>;
   bucketListItemId?: string | null;
+  /** Files this memory under a trip — see `lib/trips/mutations.ts`. */
+  tripId?: string | null;
 };
 
 /**
@@ -55,6 +57,7 @@ export async function createMemory(input: NewMemoryInput): Promise<void> {
     thumbnail_path: input.thumbnailPath,
     meta: input.meta ?? {},
     bucket_list_item_id: input.bucketListItemId ?? null,
+    trip_id: input.tripId ?? null,
     created_by: user.id,
   });
 
@@ -78,6 +81,23 @@ export async function updateMemoryCaption(id: string, title: string): Promise<vo
   const { error } = await supabase
     .from("memories")
     .update({ title: trimmed })
+    .eq("id", id)
+    .is("deleted_at", null);
+
+  if (error) throw error;
+}
+
+/**
+ * Opts a memory in or out of `lib/surprises/`'s resurfacing pool — the "keep
+ * this out of surprises" toggle in `MemoryDetail`. Shared, not "mine": same
+ * reasoning as `updateMemoryCaption` — either half of the couple can decide a
+ * given print shouldn't resurface unprompted.
+ */
+export async function setResurfaceExcluded(id: string, excluded: boolean): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("memories")
+    .update({ resurface_excluded: excluded })
     .eq("id", id)
     .is("deleted_at", null);
 

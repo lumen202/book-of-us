@@ -1,17 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { formatMonthDay, formatMonthYear } from "@/lib/format/date";
-import { getBucketItemCategories } from "@/lib/bucket-list/queries";
+import { formatMonthDay, formatMonthYear, toLocalDate } from "@/lib/format/date";
+import { getBucketItemCategories, listBucketItems } from "@/lib/bucket-list/queries";
 import { getChapterBySlug } from "@/lib/chapters/queries";
 import { getCommentsForMemories, groupCommentsByMemory } from "@/lib/comments/queries";
 import { albumPrints, getChapterMemories, resolveMemoryMedia } from "@/lib/memories/queries";
+import { pickComposerPrompt } from "@/lib/memories/prompts";
 import { getAppNow } from "@/lib/relationship/devClock";
+import { listTrips } from "@/lib/trips/queries";
 import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
 import { getReactionsForMemories, groupReactionsByMemory } from "@/lib/reactions/queries";
 import { createClient } from "@/lib/supabase/server";
 import { MemoryGrid } from "@/components/memory/MemoryGrid";
 import { MemoryComposer } from "@/components/memory/MemoryComposer";
 import { ClosingReflection } from "@/components/story/ClosingReflection";
+import { ExportChapterButton } from "@/components/chapter/ExportChapterButton";
 
 export default async function ChapterPage({
   params,
@@ -48,11 +51,12 @@ export default async function ChapterPage({
   // kept promise's cover have nothing to do with each other; awaiting them in
   // sequence just stacked four round trips end to end in front of the first
   // paint.
-  const [reactions, comments, auth, albumInfoByItemId] = await Promise.all([
+  const [reactions, comments, auth, albumInfoByItemId, trips] = await Promise.all([
     getReactionsForMemories(memoryIds),
     getCommentsForMemories(memoryIds),
     createClient().then((supabase) => supabase.auth.getUser()),
     getBucketItemCategories(albumItemIds),
+    listTrips(),
   ]);
   const reactionsByMemory = groupReactionsByMemory(reactions);
   const commentsByMemory = groupCommentsByMemory(comments);
@@ -60,15 +64,40 @@ export default async function ChapterPage({
   const now = getAppNow();
   const nextChapterDate = getNextChapterDate(now);
 
+  /**
+   * The composer's whispered prompt — see `lib/memories/prompts.ts`. Prefers
+   * a line about a promise kept in the last two weeks (something concrete
+   * and recent to write about) over the static bank, since "anything come
+   * of it?" beats a generic prompt whenever there's a real answer to give.
+   */
+  const recentlyKept = (await listBucketItems())
+    .filter((item) => item.status === "done" && item.completedAt)
+    .sort((a, b) => (b.completedAt as string).localeCompare(a.completedAt as string))[0];
+  const daysSinceKept = recentlyKept
+    ? Math.round(
+        (now.getTime() - toLocalDate(recentlyKept.completedAt as string).getTime()) / 86_400_000,
+      )
+    : null;
+  const composerPrompt =
+    daysSinceKept !== null && daysSinceKept >= 0 && daysSinceKept <= 14
+      ? `It's been ${daysSinceKept === 0 ? "today" : daysSinceKept === 1 ? "a day" : `${daysSinceKept} days`} since you kept "${recentlyKept!.title}" — anything come of it?`
+      : pickComposerPrompt(chapter.id, now);
+
   return (
     <>
       <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-10 px-6 pt-8">
-        <Link
-          href="/"
-          className="ink-legible w-fit text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink"
-        >
-          &larr; Back to the shelf
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Link
+            href="/"
+            className="ink-legible w-fit text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink"
+          >
+            &larr; Back to the shelf
+          </Link>
+          {/* Only worth offering once there's something to export — the
+              route itself refuses an empty chapter, but a dead-ending link
+              is worse than no link. */}
+          {memories.length > 0 && <ExportChapterButton chapterSlug={chapter.slug} />}
+        </div>
 
         {/* The album's title page, before any prints */}
         <section className="flex max-w-2xl flex-col gap-3">
@@ -83,7 +112,12 @@ export default async function ChapterPage({
           </p>
         </section>
 
-        <MemoryComposer chapterId={chapter.id} chapterSlug={chapter.slug} />
+        <MemoryComposer
+          chapterId={chapter.id}
+          chapterSlug={chapter.slug}
+          prompt={composerPrompt}
+          trips={trips.map((trip) => ({ id: trip.id, title: trip.title }))}
+        />
 
         <MemoryGrid
           memories={memories}

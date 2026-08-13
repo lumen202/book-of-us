@@ -1,12 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import { isAdminEmail } from "@/lib/auth/admin";
-import { getRelationship } from "./queries";
+import { getRelationship, getSurpriseCooldown } from "./queries";
+import { RECENT_CAP } from "@/lib/surprises/pick";
 import type { LoveLetter } from "./types";
 
 /** Existing by-role slots for a settings key, preserved so saving one side never clobbers the other. */
 function existingByRole(
   relationship: { settings: Record<string, unknown> },
-  key: "loveLetter" | "whisperLines",
+  key: "loveLetter" | "whisperLines" | "surprises",
 ): Record<string, unknown> {
   const candidate = relationship.settings[key];
   if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) return {};
@@ -85,6 +86,46 @@ export async function updateWhisperLines(lines: string[]): Promise<void> {
       settings: {
         ...relationship.settings,
         whisperLines: { ...existingByRole(relationship, "whisperLines"), [role]: trimmed },
+      },
+    })
+    .eq("id", true);
+
+  if (error) throw error;
+}
+
+/**
+ * Records that a surprise print was actually shown to the current viewer —
+ * called once, right after `SurprisePrint` renders (see `app/(app)/page.tsx`).
+ * Pushes onto the *front* of `recentIds` and caps it at `RECENT_CAP`, so
+ * `pickSurprise`'s cooldown filter always sees the most recent handful, not
+ * an ever-growing list.
+ */
+export async function recordSurpriseShown(memoryId: string): Promise<void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return;
+
+  const relationship = await getRelationship();
+  if (!relationship) return;
+
+  const role = isAdminEmail(user.email) ? "keeper" : "partner";
+  const cooldown = getSurpriseCooldown(relationship, role === "keeper");
+  const recentIds = [memoryId, ...cooldown.recentIds.filter((id) => id !== memoryId)].slice(
+    0,
+    RECENT_CAP,
+  );
+
+  const { error } = await supabase
+    .from("relationship")
+    .update({
+      settings: {
+        ...relationship.settings,
+        surprises: {
+          ...existingByRole(relationship, "surprises"),
+          [role]: { recentIds, lastShownAt: new Date().toISOString() },
+        },
       },
     })
     .eq("id", true);

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { addMemory } from "@/app/(app)/chapters/[slug]/actions";
+import { startTrip } from "@/app/(app)/trips/actions";
 import { formatMonthDay, todayIso } from "@/lib/format/date";
 import { uploadMemoryMedia } from "@/lib/media/uploadMemoryMedia";
 
@@ -29,9 +30,15 @@ import { uploadMemoryMedia } from "@/lib/media/uploadMemoryMedia";
 export function MemoryComposer({
   chapterId,
   chapterSlug,
+  prompt,
+  trips = [],
 }: {
   chapterId: string;
   chapterSlug: string;
+  /** A whispered suggestion above the caption field — see `lib/memories/prompts.ts`. */
+  prompt?: string;
+  /** Existing trips to file this batch under — see `lib/trips/`. */
+  trips?: { id: string; title: string }[];
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -39,6 +46,10 @@ export function MemoryComposer({
   const [caption, setCaption] = useState("");
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [promptDismissed, setPromptDismissed] = useState(false);
+  const [tripExpanded, setTripExpanded] = useState(false);
+  const [tripId, setTripId] = useState("");
+  const [newTripTitle, setNewTripTitle] = useState("");
 
   const busy = progress !== null;
 
@@ -47,6 +58,9 @@ export function MemoryComposer({
     setCaption("");
     setProgress(null);
     setError(null);
+    setTripExpanded(false);
+    setTripId("");
+    setNewTripTitle("");
   }
 
   async function handleSave() {
@@ -57,6 +71,14 @@ export function MemoryComposer({
     setError(null);
 
     try {
+      // A new trip is started once, up front, so every photo in this batch
+      // files under the same one — not one trip per photo.
+      let resolvedTripId: string | null = tripId || null;
+      if (newTripTitle.trim()) {
+        resolvedTripId = crypto.randomUUID();
+        await startTrip({ id: resolvedTripId, title: newTripTitle.trim(), chapterSlug });
+      }
+
       for (const [index, file] of files.entries()) {
         setProgress(
           files.length === 1 ? "Tucking it in…" : `Tucking in ${index + 1} of ${files.length}…`,
@@ -82,6 +104,7 @@ export function MemoryComposer({
           storagePath,
           thumbnailPath,
           meta,
+          tripId: resolvedTripId,
         });
       }
 
@@ -129,6 +152,28 @@ export function MemoryComposer({
           >
             <p className="font-serif text-2xl italic text-ink">Add to this chapter</p>
 
+            {prompt && !promptDismissed && (
+              <div className="mt-3 flex items-start gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!caption) setCaption(prompt);
+                  }}
+                  className="text-left font-serif text-sm italic text-ink-muted underline decoration-border decoration-dashed underline-offset-4 transition hover:text-ink"
+                >
+                  {prompt}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPromptDismissed(true)}
+                  aria-label="Dismiss this suggestion"
+                  className="shrink-0 text-xs leading-none text-ink-muted/60 transition hover:text-ink-muted"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+
             <label className="mt-6 block text-[11px] uppercase tracking-[0.22em] text-ink-muted">
               Photos
               <input
@@ -159,6 +204,46 @@ export function MemoryComposer({
                 className="mt-2 block w-full border-b border-border bg-transparent py-1.5 font-serif text-lg normal-case tracking-normal text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none"
               />
             </label>
+
+            {!tripExpanded ? (
+              <button
+                type="button"
+                onClick={() => setTripExpanded(true)}
+                disabled={busy}
+                className="mt-4 text-[11px] uppercase tracking-[0.2em] text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink disabled:opacity-60"
+              >
+                Part of a trip?
+              </button>
+            ) : (
+              <div className="mt-5">
+                <label className="block text-[11px] uppercase tracking-[0.22em] text-ink-muted">
+                  Trip <span className="normal-case tracking-normal">(optional)</span>
+                  {trips.length > 0 && (
+                    <select
+                      value={tripId}
+                      disabled={busy || newTripTitle.trim().length > 0}
+                      onChange={(event) => setTripId(event.target.value)}
+                      className="mt-2 block w-full border-b border-border bg-transparent py-1.5 text-sm normal-case tracking-normal text-ink focus:border-accent focus:outline-none"
+                    >
+                      <option value="">Not part of a trip</option>
+                      {trips.map((trip) => (
+                        <option key={trip.id} value={trip.id}>
+                          {trip.title}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={newTripTitle}
+                  disabled={busy || tripId.length > 0}
+                  onChange={(event) => setNewTripTitle(event.target.value)}
+                  placeholder="…or start a new trip"
+                  className="mt-2 block w-full border-b border-border bg-transparent py-1.5 text-sm normal-case tracking-normal text-ink placeholder:text-ink-muted/60 focus:border-accent focus:outline-none"
+                />
+              </div>
+            )}
 
             {error && <p className="mt-4 text-sm text-accent">{error}</p>}
 

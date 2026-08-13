@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { recordSurpriseShown } from "@/lib/relationship/mutations";
 import { createClient } from "@/lib/supabase/server";
 import { ACTIVE_PROJECT_COOKIE } from "@/lib/supabase/project";
 
@@ -12,4 +13,9 @@ export async function signOut() {
   // routed to the demo project on the next visit, including to /login itself.
   (await cookies()).delete(ACTIVE_PROJECT_COOKIE);
   redirect("/login");
+}
+
+/** `SurprisePrint` fires this once, on mount, to put the cooldown to work. */
+export async function markSurpriseShown(memoryId: string) {
+  await recordSurpriseShown(memoryId);
 }

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { LoveLetter, Relationship } from "./types";
+import type { LoveLetter, Relationship, SurpriseCooldown } from "./types";
 
 /** Singleton settings row — see supabase/migrations/0001_init.sql. Null until seeded. */
 export async function getRelationship(): Promise<Relationship | null> {
@@ -48,7 +48,7 @@ function parseWhisperLines(candidate: unknown): string[] | null {
  */
 function byRole(
   relationship: Relationship | null,
-  key: "loveLetter" | "whisperLines",
+  key: "loveLetter" | "whisperLines" | "surprises",
 ): Record<"keeper" | "partner", unknown> {
   const candidate = relationship?.settings[key];
   if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) {
@@ -86,4 +86,30 @@ export function getWhisperLines(relationship: Relationship | null, viewerIsKeepe
 export function getMyWhisperDraft(relationship: Relationship | null, viewerIsKeeper: boolean): string[] | null {
   const whispers = byRole(relationship, "whisperLines");
   return parseWhisperLines(viewerIsKeeper ? whispers.keeper : whispers.partner);
+}
+
+function parseSurpriseCooldown(candidate: unknown): SurpriseCooldown {
+  if (typeof candidate !== "object" || candidate === null || Array.isArray(candidate)) {
+    return { recentIds: [], lastShownAt: null };
+  }
+  const { recentIds, lastShownAt } = candidate as Record<string, unknown>;
+  return {
+    recentIds: Array.isArray(recentIds) ? recentIds.filter((id): id is string => typeof id === "string") : [],
+    lastShownAt: typeof lastShownAt === "string" ? lastShownAt : null,
+  };
+}
+
+/**
+ * The current viewer's own resurfacing cooldown — which prints `lib/surprises/`'s `pickSurprise`
+ * should steer away from. Per-role, not shared: each side of the couple gets shown surprises on
+ * their own visits, so each needs its own "don't repeat this" memory. Never defaults to empty
+ * silently past `parseSurpriseCooldown`'s own fallback — an unset/malformed value just means
+ * "nothing shown yet", which is the correct starting state.
+ */
+export function getSurpriseCooldown(
+  relationship: Relationship | null,
+  viewerIsKeeper: boolean,
+): SurpriseCooldown {
+  const byRoleValue = byRole(relationship, "surprises");
+  return parseSurpriseCooldown(viewerIsKeeper ? byRoleValue.keeper : byRoleValue.partner);
 }

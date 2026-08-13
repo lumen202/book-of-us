@@ -64,6 +64,16 @@ export function DesktopMoreMenu({ isAdmin, isDemo = false }: { isAdmin: boolean;
             className="absolute right-0 top-full z-10 mt-2 flex w-56 flex-col gap-2 rounded-card border border-border bg-surface p-3 shadow-[0_20px_40px_-24px_rgba(76,59,48,0.45)]"
           >
             <NavLink
+              href="/trips"
+              onClick={() => setOpen(false)}
+              className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] transition hover:bg-accent-muted/40"
+              activeClassName="bg-accent-muted/40 text-ink"
+              inactiveClassName="text-ink-muted hover:text-ink"
+            >
+              Trips
+            </NavLink>
+
+            <NavLink
               href="/settings"
               onClick={() => setOpen(false)}
               className="rounded-lg px-3 py-2 text-[11px] uppercase tracking-[0.2em] transition hover:bg-accent-muted/40"

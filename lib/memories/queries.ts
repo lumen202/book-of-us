@@ -90,6 +90,18 @@ export async function listDeletedMemories(): Promise<Memory[]> {
   return (data ?? []) as Memory[];
 }
 
+/**
+ * A trip's photos — same sanctioned-RPC treatment as `getChapterMemories`,
+ * keyed on `trip_id` instead of `chapter_id`. See `supabase/functions/get_trip_memories.sql`.
+ */
+export async function getTripMemories(tripId: string): Promise<Memory[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("get_trip_memories", { p_trip_id: tripId });
+
+  if (error) throw error;
+  return (data ?? []) as Memory[];
+}
+
 export async function getAllMemories(): Promise<Memory[]> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc("get_all_memories");

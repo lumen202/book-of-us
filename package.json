@@ -12,6 +12,7 @@
     "build:places": "tsx scripts/build-places.ts"
   },
   "dependencies": {
+    "@react-pdf/renderer": "^4.6.0",
     "@supabase/ssr": "^0.12.3",
     "@supabase/supabase-js": "^2.110.8",
     "framer-motion": "^12.42.2",
