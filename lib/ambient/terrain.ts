@@ -271,7 +271,10 @@ const PORTRAIT: HillStage = {
   ]),
   crest: { from: 107, to: 340 },
   shade: { from: -20, to: 138 },
-  blooms: { base: 2, spread: 2 },
+  // Same drift counts as landscape rather than scaled down: the phone's
+  // mid-ground is part of the only stretch of garden its bottom sections get,
+  // and fewer flower drifts there read as mown, not minimal.
+  blooms: { base: 3, spread: 3 },
   /*
    * The story, re-staged rather than re-scaled. The fence still runs down the
    * left and recedes, the bench still sits right and faces the light, the creek

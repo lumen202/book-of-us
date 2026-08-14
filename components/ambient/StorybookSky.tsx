@@ -9,7 +9,7 @@ import { GrainOverlay } from "./paint/GrainOverlay";
 import { FarRange, NearHills } from "./paint/HillRange";
 import { LightRays } from "./paint/LightRays";
 import { NightSky } from "./paint/NightSky";
-import { MeadowLayer, Pollen } from "./paint/Meadow";
+import { MeadowLayer, Petals, Pollen } from "./paint/Meadow";
 import { DistantFlock, LivingThings } from "./paint/LivingThings";
 import { PaintFilters } from "./paint/PaintFilters";
 import { Plate } from "./paint/Plate";
@@ -164,6 +164,9 @@ export function StorybookSky() {
       {/* foreground */}
       <MeadowLayer composition={composition} />
       <Pollen />
+      {/* Blossom coming down off the cherry — in front of the meadow and
+          behind the boughs it falls from. */}
+      <Petals />
       <Band id="boughs">
         <FramingBoughs />
       </Band>

@@ -56,14 +56,15 @@ function Bough({ seed }: { seed: number }) {
         ))}
       </g>
 
-      {/* structure, mostly buried */}
+      {/* structure — dark and visible: the blossom reads as luminous only
+          against limbs markedly darker than anything in the canopy */}
       <g filter="url(#brush-prop)">
-        <g fill={veil(pigment.bark, 88)}>
+        <g fill={pigment.cherryBark}>
           {bough.limbs.map((d, i) => (
             <path key={i} d={d} />
           ))}
         </g>
-        <g stroke={veil(pigment.bark, 62)} strokeWidth="1.7" strokeLinecap="round">
+        <g stroke={veil(pigment.cherryBark, 78)} strokeWidth="1.7" strokeLinecap="round">
           {bough.twigs.map((d, i) => (
             <path key={i} d={d} />
           ))}
@@ -84,11 +85,37 @@ function Bough({ seed }: { seed: number }) {
         ))}
       </g>
 
-      {/* blossom, out where the light is */}
+      {/*
+        The blossom — which on a cherry is most of the canopy, not a garnish.
+
+        Three passes in the same order and the same light logic as the leaves
+        under them, so the mass keeps its volume: dusty and cool underneath,
+        pink through the body, near-white where the afternoon lands. Painting
+        it as one flat pink was what made an earlier pass read as confetti
+        stuck to a green tree.
+      */}
       <g className="brush-leaf" filter="url(#brush-leaf)">
-        {bough.blossoms.map((d, i) => (
-          <path key={i} d={d} fill={veil(pigment.blossom, i % 3 === 0 ? 94 : 66)} />
-        ))}
+        <g fill={pigment.cherryShade}>
+          {bough.blossomShade.map((d, i) => (
+            <path key={i} d={d} />
+          ))}
+        </g>
+        <g fill={pigment.cherryMid}>
+          {bough.blossomMid.map((d, i) => (
+            <path key={i} d={d} />
+          ))}
+        </g>
+        <g fill={pigment.cherryLit}>
+          {bough.blossomLit.map((d, i) => (
+            <path key={i} d={d} />
+          ))}
+        </g>
+        {/* the white, touched on last — see pigment.cherryHigh */}
+        <g fill={pigment.cherryHigh}>
+          {bough.blossomHigh.map((d, i) => (
+            <path key={i} d={d} />
+          ))}
+        </g>
       </g>
 
       {/* chinks of sky through the leaves */}

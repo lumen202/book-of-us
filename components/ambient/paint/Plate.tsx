@@ -1,6 +1,6 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { parallax } from "@/lib/ambient/depth";
 import { platePath, type PlateSpec } from "@/lib/ambient/plates";
@@ -91,6 +91,25 @@ function useSceneIsNight(): boolean {
 
 export function Plate({ spec, priority = false }: { spec: PlateSpec; priority?: boolean }) {
   const showNight = useSceneIsNight();
+  /*
+   * Dusk waits for the night painting to actually exist.
+   *
+   * The night plates are (deliberately) not preloaded — 30 days out of 31
+   * nobody sees them — which means that at the moment `showNight` flips, the
+   * night image still has a network fetch and a decode ahead of it. Starting
+   * the cross-fade on the flip therefore animated against a blank: the day
+   * plate held its 1200ms and cut on schedule while the night plate was still
+   * empty, so the reader saw daylight linger, then vanish, then night pop in —
+   * which reads as a loading glitch, not as dusk.
+   *
+   * So both animations are keyed to `nightReady` — set per-band when the
+   * night `<img>` has finished decoding — and until then the day plate simply
+   * stays. The bands therefore go to night as their paintings arrive, back to
+   * front on a cold cache, which is not a defect worth engineering away: dusk
+   * taking the sky before it takes the tree is how an evening actually falls.
+   */
+  const [nightReady, setNightReady] = useState(false);
+  if (!showNight && nightReady) setNightReady(false);
 
   return (
     <div className="absolute inset-0" {...parallax(spec.travel)}>
@@ -108,16 +127,25 @@ export function Plate({ spec, priority = false }: { spec: PlateSpec; priority?: 
        */}
       <div
         className="absolute inset-0"
-        style={showNight ? { animation: "plate-daylight-out 1200ms ease-out both" } : undefined}
+        style={nightReady ? { animation: "plate-daylight-out 1200ms ease-out both" } : undefined}
       >
         <PlatePicture spec={spec} light="day" priority={priority} />
       </div>
       {showNight && (
         <div
           className="absolute inset-0"
-          style={{ animation: "plate-nightfall 1200ms ease-out both" }}
+          style={
+            nightReady
+              ? { animation: "plate-nightfall 1200ms ease-out both" }
+              : { opacity: 0 }
+          }
         >
-          <PlatePicture spec={spec} light="night" priority={false} />
+          <PlatePicture
+            spec={spec}
+            light="night"
+            priority={false}
+            onReady={() => setNightReady(true)}
+          />
         </div>
       )}
     </div>
@@ -128,11 +156,32 @@ function PlatePicture({
   spec,
   light,
   priority,
+  onReady,
 }: {
   spec: PlateSpec;
   light: "day" | "night";
   priority: boolean;
+  /** Fires once the image is decoded and safe to fade in against. */
+  onReady?: () => void;
 }) {
+  /*
+   * `onLoad` misses an image that was already in the cache when the element
+   * mounted (the event can fire before React attaches the listener), so a
+   * ref-effect checks `complete` and settles the race: whichever of the two
+   * runs second finds the work already done.
+   */
+  const readyRef = useRef(false);
+  const settle = () => {
+    if (readyRef.current) return;
+    readyRef.current = true;
+    onReady?.();
+  };
+  const img = useRef<HTMLImageElement>(null);
+  useEffect(() => {
+    if (onReady && img.current?.complete) settle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <picture>
       <source
@@ -151,6 +200,8 @@ function PlatePicture({
         // `alt=""`, not a description: the scene root is already `aria-hidden`,
         // and the painting is atmosphere rather than content.
         alt=""
+        ref={img}
+        onLoad={onReady ? settle : undefined}
         src={platePath(spec.id, light, "landscape", "webp")}
         /*
          * `object-cover` so a viewport whose aspect sits between the two baked

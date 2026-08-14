@@ -1,6 +1,6 @@
 import { DEFAULT_COMPOSITION, type Composition } from "@/lib/ambient/composition";
 import { parallax, TRAVEL } from "@/lib/ambient/depth";
-import { meadow, MEADOW_STAGE, motes } from "@/lib/ambient/flora";
+import { meadow, MEADOW_STAGE, motes, petals } from "@/lib/ambient/flora";
 import { mix, pigment, species, veil } from "@/lib/ambient/palette";
 
 /**
@@ -233,6 +233,65 @@ export function MeadowLayer({
         ))}
         </g>
       </svg>
+    </div>
+  );
+}
+
+/**
+ * Petals coming down off the cherry.
+ *
+ * The one layer in the scene that crosses the whole frame, foreground
+ * included, and the reason it earns that: the garden is a still painting with
+ * a few things stirring in it, and until now everything that moved was either
+ * far away (clouds, birds) or ankle-height (grass, pollen). Falling blossom is
+ * the thing that makes a static picture read as *a moment* — weather passing
+ * through, rather than scenery.
+ *
+ * It stays within the composition rules that govern everything else here:
+ *
+ * - **Nothing crosses the reading band quickly.** These take fourteen to
+ *   twenty-seven seconds to cross the whole viewport, which is slower than a
+ *   cloud looks and far below the speed at which motion pulls the eye off text.
+ * - **Nothing loops visibly.** Each petal is a single pass with its own
+ *   duration and a negative delay, so they never arrive together and no petal
+ *   ever retraces another's path. See `petal-fall` in globals.css.
+ * - **The resting state must look finished.** Under `prefers-reduced-motion`
+ *   the `ambient-` class kills the animation and each petal keeps the resting
+ *   transform and opacity declared inline — so they sit in the air as blossom
+ *   caught mid-fall, which is a painting, not a bug.
+ *
+ * Shape rather than a dot: an ellipse with one corner rounded off through
+ * asymmetric `border-radius`, which at this size is all it takes. The tones
+ * come from the same three cherry pigments the canopy is painted in, so the
+ * petals in the air and the blossom they fell from are the same flower.
+ */
+const PETAL_TONE = [pigment.cherryLit, pigment.petal, pigment.cherryMid] as const;
+
+export function Petals() {
+  return (
+    <div className="absolute inset-0 overflow-hidden" {...parallax(TRAVEL.motes)}>
+      {petals().map((petal) => (
+        <div
+          key={petal.id}
+          className={`ambient-petal absolute${petal.blur ? " petal-soft" : ""}`}
+          style={{
+            left: `${petal.left}%`,
+            top: 0,
+            height: petal.size,
+            width: petal.size * 1.35,
+            background: PETAL_TONE[petal.tone],
+            // One end rounded, the other drawn to a soft point.
+            borderRadius: "60% 60% 60% 12%",
+            filter: petal.blur ? `blur(${petal.blur}px)` : undefined,
+            opacity: petal.opacity,
+            ["--petal-o" as string]: petal.opacity,
+            ["--petal-drift" as string]: `${petal.drift}px`,
+            ["--petal-spin" as string]: `${petal.spin}deg`,
+            animation: `petal-fall ${petal.duration}s linear infinite`,
+            animationDelay: `${petal.delay}s`,
+          }}
+        />
+      ))}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { DEFAULT_COMPOSITION, type Composition } from "@/lib/ambient/composition
 import { parallax, TRAVEL } from "@/lib/ambient/depth";
 import { paintedTree, TREE_VIEW } from "@/lib/ambient/flora";
 import { mix, pigment, veil } from "@/lib/ambient/palette";
-import { swing } from "@/lib/ambient/props";
+import { picnic, swing } from "@/lib/ambient/props";
 
 /**
  * Where the tree stands, per composition.
@@ -73,6 +73,13 @@ const TREE_STAGE: Record<Composition, string> = {
 export function BigTree({ composition = DEFAULT_COMPOSITION }: { composition?: Composition }) {
   const tree = paintedTree(6247);
   const ropes = swing(tree.swingAnchor, { drop: 132, width: 44, seed: 1553 });
+  // The hanami blanket, spread to the front-right of the trunk where the
+  // petals come down — in the tree's own SVG so it bakes into the tree band
+  // and lands under the falling blossom at zero runtime cost.
+  const spread = picnic(
+    { x: TREE_VIEW.width * 0.74, y: TREE_VIEW.height - 14 },
+    { width: TREE_VIEW.width * 0.34, seed: 2741 },
+  );
 
   return (
     <div className="absolute inset-0" {...parallax(TRAVEL.tree)}>
@@ -104,6 +111,76 @@ export function BigTree({ composition = DEFAULT_COMPOSITION }: { composition?: C
           </g>
 
           {/*
+            The picnic — blanket, basket, two cups. Under the fallen petals
+            (drawn next), so blossom lies on the cloth as well as the grass:
+            the blanket has been out long enough to catch some, which is the
+            whole story it is telling. Kept low-contrast like every prop; the
+            check is two stripes each way, not gingham.
+          */}
+          <g filter="url(#brush-shade)">
+            <path d={spread.shade} fill={veil(pigment.contact, 26)} />
+          </g>
+          <g filter="url(#brush-prop)">
+            <path d={spread.blanket} fill={veil(pigment.lantern, 88)} />
+            {spread.stripes.map((d, i) => (
+              <path
+                key={i}
+                d={d}
+                stroke={veil(i % 2 === 0 ? pigment.blossom : pigment.butter, 38)}
+                strokeWidth="2.2"
+                fill="none"
+              />
+            ))}
+            <path d={spread.fold} fill={veil(pigment.light, 84)} />
+            <path d={spread.basket} fill={pigment.wood} />
+            <path d={spread.basket} fill={veil(pigment.barkLit, 30)} transform="translate(1 -1)" />
+            <path
+              d={spread.basketRim}
+              stroke={veil(pigment.barkLit, 62)}
+              strokeWidth="1.6"
+              strokeLinecap="round"
+            />
+            <path
+              d={spread.handle}
+              stroke={veil(pigment.wood, 78)}
+              strokeWidth="1.8"
+              fill="none"
+              strokeLinecap="round"
+            />
+            {spread.cups.map((cup, i) => (
+              <g key={i}>
+                <ellipse cx={cup.cx} cy={cup.cy} rx={cup.r} ry={cup.r * 0.72} fill={pigment.sparkle} />
+                <ellipse
+                  cx={cup.cx}
+                  cy={cup.cy - cup.r * 0.14}
+                  rx={cup.r * 0.62}
+                  ry={cup.r * 0.4}
+                  fill={veil(pigment.shadow, 34)}
+                />
+              </g>
+            ))}
+          </g>
+
+          {/*
+            The drift of petals on the grass, lying on top of the shade. Half
+            the reason the falling petals read as real is that the ground
+            answers where they end up — a cherry dropping blossom all afternoon
+            stands in the evidence of it.
+          */}
+          <g filter="url(#brush-prop)">
+            {tree.fallenPetals.map((petal, i) => (
+              <path
+                key={i}
+                d={petal.d}
+                fill={veil(
+                  [pigment.cherryLit, pigment.petal, pigment.cherryMid][petal.tone],
+                  petal.tone === 2 ? 62 : 78,
+                )}
+              />
+            ))}
+          </g>
+
+          {/*
             Trunk and limbs.
 
             The sun sits off the top-right (see `SunGlow`), so the shaded side of
@@ -112,11 +189,17 @@ export function BigTree({ composition = DEFAULT_COMPOSITION }: { composition?: C
             something round; it is the same light/mid/dark banding the canopy
             uses below, at the scale of a single form.
           */}
+          {/*
+            Cherry wood is nearly black — and that darkness is load-bearing,
+            not a palette taste: the blossom only reads as luminous against
+            limbs markedly darker than anything in the canopy. The mid-brown
+            the old leafy tree wore let the branches dissolve into the pink.
+          */}
           <g filter="url(#brush-prop)">
-            <path d={tree.trunk} fill={pigment.barkShade} />
-            <path d={tree.trunk} fill={pigment.bark} transform="translate(2 0)" />
-            <path d={tree.trunk} fill={veil(pigment.barkLit, 52)} transform="translate(5 0)" />
-            <g fill={pigment.bark}>
+            <path d={tree.trunk} fill={pigment.cherryBark} />
+            <path d={tree.trunk} fill={pigment.barkShade} transform="translate(2 0)" />
+            <path d={tree.trunk} fill={veil(pigment.barkLit, 38)} transform="translate(5 0)" />
+            <g fill={pigment.cherryBark}>
               {tree.limbs.map((d, i) => (
                 <path key={i} d={d} />
               ))}
@@ -163,7 +246,12 @@ export function BigTree({ composition = DEFAULT_COMPOSITION }: { composition?: C
               <path key={i} d={d} />
             ))}
           </g>
-          <g filter="url(#brush-prop)" stroke={veil(pigment.bark, 52)} strokeWidth="1.6" strokeLinecap="round">
+          <g
+            filter="url(#brush-prop)"
+            stroke={veil(pigment.cherryBark, 74)}
+            strokeWidth="1.6"
+            strokeLinecap="round"
+          >
             {tree.twigs.map((d, i) => (
               <path key={i} d={d} />
             ))}
@@ -179,11 +267,36 @@ export function BigTree({ composition = DEFAULT_COMPOSITION }: { composition?: C
             ))}
           </g>
 
-          {/* blossom */}
+          {/*
+            The blossom — which on a cherry is most of the canopy, not a
+            garnish. Three passes in the same order and the same light logic as
+            the leaves under them, so the mass keeps its volume: dusty and cool
+            underneath, pink through the body, near-white where the afternoon
+            lands. Kept in step with `FramingBoughs`, which is the same tree
+            seen from underneath.
+          */}
           <g className="brush-leaf" filter="url(#brush-leaf)">
-            {tree.blossoms.map((d, i) => (
-              <path key={i} d={d} fill={veil(pigment.blossom, i % 3 === 0 ? 92 : 68)} />
-            ))}
+            <g fill={pigment.cherryShade}>
+              {tree.blossomShade.map((d, i) => (
+                <path key={i} d={d} />
+              ))}
+            </g>
+            <g fill={pigment.cherryMid}>
+              {tree.blossomMid.map((d, i) => (
+                <path key={i} d={d} />
+              ))}
+            </g>
+            <g fill={pigment.cherryLit}>
+              {tree.blossomLit.map((d, i) => (
+                <path key={i} d={d} />
+              ))}
+            </g>
+            {/* the white, touched on last — see pigment.cherryHigh */}
+            <g fill={pigment.cherryHigh}>
+              {tree.blossomHigh.map((d, i) => (
+                <path key={i} d={d} />
+              ))}
+            </g>
           </g>
 
           {/* sunlight through the leaves */}

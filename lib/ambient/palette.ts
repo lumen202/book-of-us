@@ -186,6 +186,54 @@ export const pigment = {
   blossom: T.blossom,
   lilac: T.lilac,
   butter: T.butter,
+
+  /* cherry ---------------------------------------------------------------- */
+  /*
+   * The tree and the framing boughs are cherry, so their canopies are mostly
+   * blossom with green showing through rather than green with blossom on it.
+   * That needs its own three-value ramp for the same reason the green canopy
+   * does: a mass painted in one pink is a sticker, and pink is *harder* than
+   * green to keep from going flat, because it has less room at the dark end
+   * before it turns muddy or, worse, purple.
+   *
+   * So the shade end goes toward `lilac` and `shade` rather than toward red —
+   * blossom in shadow is cool and dusty, never a deeper pink — and the lit end
+   * runs almost to `surface`, because the top of a cherry canopy in afternoon
+   * sun is very nearly white with only a blush left in it. The mid is the only
+   * one that is actually pink.
+   *
+   * Deliberately still mixes of the six garden pigments: no literal hex reaches
+   * the scene, so the seasons keep re-tinting the world for free.
+   */
+  /**
+   * The underside of a blossom canopy: dusty rose, deeper than the body.
+   *
+   * The obvious construction — blossom mixed toward `lilac` — is wrong, and it
+   * is worth recording because it looks right in a swatch and fails in the
+   * picture. `lilac` is a violet, and at the 40–50% a shadow needs it stops
+   * reading as "pink in shade" and starts reading as *purple*: the canopy came
+   * out bruised, and it broke the palette's own rule that the six pigments must
+   * not be able to reach lavender by accident. Shadow here is made by taking
+   * warmth and light out of the blossom (`shade` against `warm`), not by
+   * walking it around the hue wheel.
+   */
+  cherryShade: mix(T.blossom, 70, mix(T.shade, 52, T.warm)),
+  /** The body of it — the one that is unmistakably pink. */
+  cherryMid: mix(T.blossom, 88, T.surface),
+  /** The clusters the sun is actually on: blush over near-white. */
+  cherryLit: mix(T.surface, 74, T.blossom),
+  /** A single petal, in the air or lying on the grass. */
+  petal: mix(T.blossom, 76, T.surface),
+  /**
+   * The white touched onto the centre of a lit clump — the last pass of the
+   * painting, per every cherry tutorial worth reading: pink dots first, then
+   * white "gently touched" into the ones the sun is on. It is what makes the
+   * canopy luminous instead of merely pink, and it must stay a touch — used
+   * broadly it bleaches the tree.
+   */
+  cherryHigh: mix(T.surface, 86, T.blossom),
+  /** Cherry wood: the near-black limbs blossom reads brightest against. */
+  cherryBark: mix(T.ink, 74, T.warm),
 } as const;
 
 /**

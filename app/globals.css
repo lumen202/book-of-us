@@ -179,10 +179,19 @@
  * So `.scene-card` opacifies rather than inverting, and dark ink on light paper
  * survives untouched — the same reason the UI tokens never move. Reach for this
  * on anything translucent that sits over the scene and contains type.
+ *
+ * **72%, revised down from 94%.** The first version went nearly opaque, and on
+ * the 5th the chapter cards read as blank slabs blocking the one night the
+ * scene is worth looking at — the reader asked for the day-mode translucency
+ * back. 72% is the compromise the numbers support: the night garden clearly
+ * shows through, while the cream under the ink stays light enough that dark
+ * type keeps roughly a 6:1 contrast over the indigo backdrop. Do not drift
+ * back toward the day values (55%) — that is the muddy midtone the paragraph
+ * above describes; ~70% is the floor, not a starting point.
  */
 :root[data-celebration="true"] .scene-card,
 :root[data-night-preview="true"] .scene-card {
-  background-color: color-mix(in srgb, var(--color-surface) 94%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 72%, transparent);
 }
 
 /*
@@ -242,6 +251,20 @@
 :root[data-celebration="true"] .lantern-flame,
 :root[data-night-preview="true"] .lantern-flame {
   opacity: 1 !important;
+}
+
+/*
+ * Text selection, tinted to the garden.
+ *
+ * The browser's default selection blue reads as a rendering glitch against the
+ * painted backdrop — dragging across a single space in a heading leaves a bare
+ * blue box floating in the scene (reported as "a hole in the rendered scene").
+ * Blossom at low alpha instead: it keeps selected text legible over both
+ * palettes, because `--color-blossom` is one of the pigments that deliberately
+ * does not move at night or with the seasons.
+ */
+::selection {
+  background: color-mix(in srgb, var(--color-blossom) 45%, transparent);
 }
 
 @theme inline {
@@ -654,6 +677,49 @@ body {
   }
   100% {
     transform: translate3d(var(--mote-drift, 0px), -86vh, 0) scale(1.05);
+    opacity: 0;
+  }
+}
+
+/*
+ * Cherry petals coming down.
+ *
+ * The opposite journey to `mote-rise`, and deliberately not just that keyframe
+ * reversed. Pollen hangs in the light and drifts upward on warm air; a petal
+ * has weight and a flat face, so it *falls*, and what makes it read as a petal
+ * rather than as a pink dot is that it does not fall straight. Two rotations
+ * run at once — the element's own spin in `--petal-spin`, and a lateral swing
+ * that reverses either side of the midpoint — so it tips, catches, slides
+ * sideways and tips back, the way a real one seesaws down.
+ *
+ * The sideways travel is per-petal (`--petal-drift`) and the whole path is one
+ * pass rather than a loop: a petal that reappears at the top having faded out
+ * at the bottom is a particle system, and the rule in `StorybookSky` is that
+ * nothing may loop visibly. With durations of 14–26s and negative delays, the
+ * arrivals never resolve into a rhythm.
+ */
+@keyframes petal-fall {
+  0% {
+    transform: translate3d(0, -12vh, 0) rotate(0deg);
+    opacity: 0;
+  }
+  12% {
+    opacity: var(--petal-o, 0.7);
+  }
+  35% {
+    transform: translate3d(calc(var(--petal-drift, 12px) * 0.55), 22vh, 0)
+      rotate(calc(var(--petal-spin, 180deg) * 0.4));
+  }
+  65% {
+    transform: translate3d(calc(var(--petal-drift, 12px) * -0.35), 58vh, 0)
+      rotate(calc(var(--petal-spin, 180deg) * 0.75));
+  }
+  88% {
+    opacity: calc(var(--petal-o, 0.7) * 0.7);
+  }
+  100% {
+    transform: translate3d(var(--petal-drift, 12px), 108vh, 0)
+      rotate(var(--petal-spin, 180deg));
     opacity: 0;
   }
 }
@@ -1137,6 +1203,9 @@ body {
  * `mote-soft` is the same trade one layer forward: the deliberately
  * out-of-focus pollen, each grain its own composited layer with a blur pass on
  * it. The sharp motes stay, so there is still something floating in the light.
+ * `petal-soft` is the identical trade for the near, blurred cherry petals —
+ * same reasoning, same blur cost, and the sharp petals keep falling, so the
+ * blossom is still coming down.
  *
  * Unlike the rules above, this one is a real, visible reduction in density —
  * "desktop can afford the fuller garden" (see `ambient-life-density.md`), not
@@ -1150,7 +1219,8 @@ body {
   }
 
   .meadow-thin,
-  .mote-soft {
+  .mote-soft,
+  .petal-soft {
     display: none;
   }
 

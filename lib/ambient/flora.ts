@@ -60,14 +60,38 @@ export type Canopy = {
   shadow: string[];
   mid: string[];
   lit: string[];
-  /** Pink blossom sitting in the leaves. */
-  blossoms: string[];
+  /**
+   * The blossom, in the same three tones as the leaves beneath it.
+   *
+   * Three arrays rather than one, because these trees are cherry: blossom is
+   * the *mass* of the canopy here, not a decoration scattered over it, and any
+   * mass painted in a single flat colour reads as a sticker. It needs the same
+   * shade/body/light banding a green canopy gets — see `pigment.cherry*` in
+   * `palette.ts` for why pink is the harder of the two to keep from going flat.
+   */
+  blossomShade: string[];
+  blossomMid: string[];
+  blossomLit: string[];
+  /** The white touched onto the centres of the lit clumps — tiny, sparse,
+   *  and the pass that makes the canopy luminous. See `pigment.cherryHigh`. */
+  blossomHigh: string[];
   /** Chinks of open sky the light comes through. */
   gaps: string[];
 };
 
 function emptyCanopy(): Canopy {
-  return { limbs: [], twigs: [], shadow: [], mid: [], lit: [], blossoms: [], gaps: [] };
+  return {
+    limbs: [],
+    twigs: [],
+    shadow: [],
+    mid: [],
+    lit: [],
+    blossomShade: [],
+    blossomMid: [],
+    blossomLit: [],
+    blossomHigh: [],
+    gaps: [],
+  };
 }
 
 /** A limb that thins as it goes, built as a closed shape around a quadratic. */
@@ -97,7 +121,31 @@ function taperedLimb(from: Point, to: Point, bend: Point, w0: number, w1: number
  */
 function leafMass(
   rand: Rng,
-  opts: { cx: number; cy: number; spread: number; radius: number; count: number; blossom?: number },
+  opts: {
+    cx: number;
+    cy: number;
+    spread: number;
+    radius: number;
+    count: number;
+    /** Chance a blob also carries blossom. */
+    blossom?: number;
+    /**
+     * Paint this mass as cherry rather than as a green tree wearing blossom.
+     *
+     * It changes three things at once, and they only work together: blossom
+     * covers nearly every blob instead of a third of them, the clumps are large
+     * enough to read as the canopy's own surface rather than as dots on it, and
+     * they are allowed in toward the middle of the mass instead of being kept
+     * to the outside. Turn on any one alone and the tree looks diseased rather
+     * than in flower.
+     *
+     * The green passes underneath are deliberately still generated in full.
+     * They are what shows through the gaps and around the edges, and they are
+     * the reason the canopy has structure at all — a cherry tree in blossom is
+     * not a pink cloud, it is a tree you can still see the shape of.
+     */
+    cherry?: boolean;
+  },
   into: Canopy,
 ): void {
   for (let i = 0; i < opts.count; i += 1) {
@@ -118,23 +166,94 @@ function leafMass(
 
     // How far up the light vector this blob sits, normalised to the mass.
     const lift = ((cx - opts.cx) * LIGHT.x + (cy - opts.cy) * LIGHT.y) / (opts.spread || 1);
-    if (lift > 0.38 && rand.chance(0.78)) into.lit.push(d);
-    else if (lift < -0.2) into.shadow.push(d);
-    else into.mid.push(d);
+    const litBlob = lift > 0.38 && rand.chance(0.78);
+    /*
+     * On a cherry, about half the green never gets painted at all. The blossom
+     * is the canopy's surface, so green survives as glimpses — painting a full
+     * green mass under every clump made the tree read as a green tree wearing
+     * pink, however much blossom went over it. The blob's *tone* is still
+     * computed either way, because the blossom above inherits it.
+     */
+    if (!opts.cherry || rand.chance(0.32)) {
+      if (litBlob) into.lit.push(d);
+      else if (lift < -0.2) into.shadow.push(d);
+      else into.mid.push(d);
+    }
 
-    // Blossom rides on the outside of the mass, where it would actually get
-    // light — never buried in the middle where it would read as noise.
-    if (opts.blossom && rand.chance(opts.blossom) && dist > opts.spread * 0.35) {
-      into.blossoms.push(
-        blobPath(rand, {
-          cx: cx + rand.around(0, r * 0.5),
-          cy: cy + rand.around(0, r * 0.5),
-          radius: r * rand.float(0.16, 0.34),
-          wobble: 0.42,
-          points: rand.int(6, 8),
-          squash: rand.float(0.7, 1),
-        }),
-      );
+    if (opts.cherry) {
+      /*
+       * The stipple — the whole difference between "pink patches" and a
+       * hand-painted cherry.
+       *
+       * An earlier version painted one blossom clump per leaf blob, nearly the
+       * blob's own size, and it read as a collage of flat pink cutouts however
+       * the tones were tuned. The reference look (and every cherry tutorial's
+       * actual instruction) is the opposite grain: MANY small dots, spaced
+       * unevenly, layered so the dark sits beneath and the light above, with
+       * white touched sparingly onto the sunlit centres. So every leaf blob
+       * scatters a handful of small clumps over itself instead of one big one.
+       *
+       * The tones dither rather than band: each clump mostly inherits its
+       * blob's tone but steps up or down one in four times, so adjacent tones
+       * interleave along the boundary and the canopy grades instead of
+       * striping. The brush-leaf displacement (scale 17) then shreds these
+       * small shapes far more than it ever marked the big ones — at this size
+       * that shredding IS the feathered petal edge.
+       *
+       * Node budget: this multiplies blossom paths several-fold, which is fine
+       * because the cherry layers are baked — the phone decodes pixels. The
+       * live SVG fallback carries the extra paths but they are static and
+       * filtered once. Do not add per-clump animation here.
+       */
+      if (opts.blossom && rand.chance(opts.blossom)) {
+        const clumps = rand.int(3, 5);
+        for (let c = 0; c < clumps; c += 1) {
+          const bloom = blobPath(rand, {
+            cx: cx + rand.around(0, r * 0.72),
+            cy: cy + rand.around(0, r * 0.6),
+            radius: r * rand.float(0.2, 0.42),
+            wobble: 0.5,
+            points: rand.int(5, 7),
+            squash: rand.float(0.7, 1),
+          });
+
+          // Mostly inherit the blob's tone; one in four steps toward the
+          // neighbouring band, which is what turns banding into gradation.
+          const step = rand.chance(0.25);
+          if (litBlob) (step ? into.blossomMid : into.blossomLit).push(bloom);
+          else if (lift < -0.2) (step ? into.blossomMid : into.blossomShade).push(bloom);
+          else (step ? (rand.chance(0.5) ? into.blossomLit : into.blossomShade) : into.blossomMid).push(bloom);
+        }
+
+        // White, touched onto the centre of a lit clump. Sparse on purpose.
+        if (litBlob && rand.chance(0.55)) {
+          into.blossomHigh.push(
+            blobPath(rand, {
+              cx: cx + rand.around(0, r * 0.4),
+              cy: cy - rand.float(0, r * 0.35),
+              radius: r * rand.float(0.12, 0.24),
+              wobble: 0.5,
+              points: 5,
+              squash: rand.float(0.7, 1),
+            }),
+          );
+        }
+      }
+    } else if (opts.blossom && rand.chance(opts.blossom) && dist > opts.spread * 0.35) {
+      // The leafy-tree case: blossom is a garnish riding on the outside of the
+      // mass, where it would actually get the light — never buried in the
+      // middle, where it would read as noise.
+      const bloom = blobPath(rand, {
+        cx: cx + rand.around(0, r * 0.5),
+        cy: cy + rand.around(0, r * 0.5),
+        radius: r * rand.float(0.16, 0.34),
+        wobble: 0.42,
+        points: rand.int(6, 8),
+        squash: rand.float(0.7, 1),
+      });
+      if (litBlob) into.blossomLit.push(bloom);
+      else if (lift < -0.2) into.blossomShade.push(bloom);
+      else into.blossomMid.push(bloom);
     }
   }
 }
@@ -182,17 +301,25 @@ export function paintedBough(seed: number): Canopy {
     );
   }
 
-  leafMass(rand, { cx: 40, cy: 16, spread: 152, radius: 48, count: 16, blossom: 0.4 }, canopy);
+  // Tighter masses than the old leafy version (spread 152/104 → 110/72): a
+  // cherry bough is clumps of blossom strung along a visible dark limb, and
+  // the limb showing between them is what the corner framing is made of.
+  leafMass(
+    rand,
+    { cx: 40, cy: 16, spread: 112, radius: 40, count: 24, blossom: 0.97, cherry: true },
+    canopy,
+  );
   for (const tip of tips) {
     leafMass(
       rand,
       {
         cx: tip.x + rand.around(0, 20),
         cy: tip.y + rand.around(0, 20),
-        spread: rand.float(58, 104),
-        radius: rand.float(22, 40),
-        count: rand.int(6, 10),
-        blossom: 0.44,
+        spread: rand.float(40, 76),
+        radius: rand.float(19, 32),
+        count: rand.int(13, 17),
+        blossom: 0.96,
+        cherry: true,
       },
       canopy,
     );
@@ -220,15 +347,26 @@ export type Tree = Canopy & {
   swingAnchor: Point;
   /** The tree's own shadow, pooling on the grass. */
   groundShade: string;
+  /**
+   * Petals lying on the grass under the canopy, sorted by tone like everything
+   * else. A cherry that is dropping petals all afternoon stands in a drift of
+   * them — the ground is half the reason the falling ones read as real, because
+   * it answers the question of where they go.
+   */
+  fallenPetals: { d: string; tone: number }[];
 };
 
 /**
  * The big tree. The one everything else in the garden is arranged around.
  *
- * A broad, rounded, slightly lopsided dome on a warm curved trunk — the shape a
- * child draws when asked for a tree, which is exactly right here. The canopy is
- * built from four overlapping masses rather than one, so its outline has soft
- * shoulders instead of a single arc, and it carries blossom.
+ * A cherry in full bloom on a warm curved trunk. It used to be a broad green
+ * dome — "the shape a child draws" — and the dome generator survived being
+ * recoloured pink exactly as badly as you'd guess: a pink glob. A cherry is
+ * the opposite silhouette, drawn by its *branches*: dark limbs that fork and
+ * reach and stay visible, blossom hanging on them in distinct clumps, and sky
+ * showing between the clumps. So the canopy is built as one modest mass per
+ * branch point rather than four overlapping domes, and about half the green
+ * under the blossom is never painted at all (see `leafMass`).
  *
  * One low branch reaches out further than the others. That is not decoration:
  * it is the branch the swing hangs from, and the whole tree is composed to make
@@ -247,8 +385,10 @@ export function paintedTree(seed: number): Tree {
     base,
     crotch,
     { x: w * 0.44 + rand.around(0, 10), y: h * 0.74 },
-    rand.float(17, 22),
-    rand.float(8, 11),
+    // Slimmer than the old broadleaf's trunk: cherry wood is slender, and the
+    // slenderness is part of why the canopy reads as floating blossom.
+    rand.float(12, 16),
+    rand.float(6, 9),
   );
 
   // The branch the swing hangs from: low, long, and reaching left into the
@@ -264,44 +404,135 @@ export function paintedTree(seed: number): Tree {
     ),
   );
 
+  /*
+   * The branch skeleton — and it IS a skeleton now, not scaffolding.
+   *
+   * The old generator grew four short limbs and buried them under four big
+   * dome masses: right for a leafy broadleaf, where the canopy is a solid
+   * volume and structure only peeks through. A cherry is the opposite
+   * silhouette. The tree is *drawn by its branches* — dark, visible, reaching —
+   * and the blossom hangs on them in distinct clumps with sky in between. So
+   * the limbs are longer, there are more of them, most carry a secondary
+   * branchlet, and every mass below is anchored to a point ON a branch rather
+   * than to the idea of a dome. The glob was the dome's fault.
+   */
   const tips: Point[] = [swingBranch];
-  for (let i = 0; i < 4; i += 1) {
-    const angle = -Math.PI * (0.22 + i * 0.19) - rand.around(0, 0.1);
-    const len = rand.float(h * 0.2, h * 0.3);
+  const anchors: Point[] = [];
+  for (let i = 0; i < 6; i += 1) {
+    const angle = -Math.PI * (0.16 + i * 0.135) - rand.around(0, 0.08);
+    const len = rand.float(h * 0.24, h * 0.38);
     const to: Point = {
-      x: crotch.x + Math.cos(angle) * len * 1.35,
+      x: crotch.x + Math.cos(angle) * len * 1.3,
       y: crotch.y + Math.sin(angle) * len,
     };
     canopy.limbs.push(
-      taperedLimb(crotch, to, { x: (crotch.x + to.x) / 2, y: crotch.y - len * 0.34 }, 8.5 - i * 0.9, 2.6),
+      taperedLimb(crotch, to, { x: (crotch.x + to.x) / 2, y: crotch.y - len * 0.3 }, 7 - i * 0.55, 2.1),
     );
     tips.push(to);
+    // TWO cluster points along each limb, not one — coverage has to be
+    // continuous along the branch or the canopy resolves into bouquets at
+    // the tips with bare wood between them.
+    for (const t of [0.42, 0.72]) {
+      anchors.push({
+        x: crotch.x + (to.x - crotch.x) * (t + rand.around(0, 0.05)) + rand.around(0, 8),
+        y: crotch.y + (to.y - crotch.y) * (t + rand.around(0, 0.05)) - rand.float(4, 16),
+      });
+    }
+
+    // Most limbs fork once. The fork is half of what makes a winter-visible
+    // branch structure read as cherry rather than as spokes.
+    if (rand.chance(0.7)) {
+      const from: Point = {
+        x: crotch.x + (to.x - crotch.x) * 0.55,
+        y: crotch.y + (to.y - crotch.y) * 0.55,
+      };
+      const fork: Point = { x: from.x + rand.around(0, 44), y: from.y - rand.float(16, 44) };
+      canopy.limbs.push(
+        taperedLimb(from, fork, { x: (from.x + fork.x) / 2, y: from.y - 12 }, 3.2, 1.4),
+      );
+      tips.push(fork);
+    }
   }
 
-  for (let i = 0; i < 8; i += 1) {
+  /*
+   * Fewer and shorter than the leafy tree's twigs. Those were "mostly buried"
+   * under a solid dome, so their length cost nothing; the cherry canopy is
+   * deliberately airy, and at the old length the unburied ones read as bare
+   * antennae poking out of the blossom — reported as branches "floating".
+   * A twig now reaches at most about one clump-radius past its cluster.
+   */
+  for (let i = 0; i < 6; i += 1) {
     const anchor = rand.pick(tips);
     canopy.twigs.push(
       catmullRomPath([
         anchor,
-        { x: anchor.x + rand.around(0, 30), y: anchor.y - rand.float(6, 30) },
-        { x: anchor.x + rand.around(0, 54), y: anchor.y - rand.float(20, 56) },
+        { x: anchor.x + rand.around(0, 20), y: anchor.y - rand.float(4, 18) },
+        { x: anchor.x + rand.around(0, 34), y: anchor.y - rand.float(10, 30) },
       ]),
     );
   }
 
-  // Four overlapping masses make a dome with shoulders. One arc would make a
-  // lollipop.
-  const dome: { cx: number; cy: number; spread: number; radius: number; count: number }[] = [
-    { cx: w * 0.5, cy: h * 0.26, spread: 118, radius: 54, count: 16 },
-    { cx: w * 0.27, cy: h * 0.34, spread: 84, radius: 46, count: 11 },
-    { cx: w * 0.73, cy: h * 0.33, spread: 88, radius: 48, count: 12 },
-    { cx: w * 0.52, cy: h * 0.13, spread: 92, radius: 40, count: 10 },
-  ];
-  for (const mass of dome) leafMass(rand, { ...mass, blossom: 0.36 }, canopy);
-  for (const tip of tips.slice(1)) {
+  /*
+   * Blossom clusters: one modest mass per tip and per mid-branch anchor,
+   * NOT four big domes. Small spreads leave air between the clumps, and the
+   * air is the point — the gaps are where the branch shows and where the sky
+   * comes through, and they are what stop the canopy congealing back into a
+   * glob. The swing branch (tips[0]) stays bare so the ropes hang clear.
+   */
+  /*
+   * The lushness knob, and the lesson of three failed tunings. Pass one made a
+   * pink glob (domes recoloured). Pass two anchored everything but tightened
+   * the spreads so far the canopy resolved into separate bouquets — "a bald
+   * tree". The reference look is a *continuous* cloud of blossom the branches
+   * pierce through, and the way to get it without re-floating anything is
+   * overlap: every cluster is still seeded ON wood (a tip or a mid-branch
+   * anchor, two per limb), but the spreads are wide enough and the counts high
+   * enough that neighbouring clusters merge. A clump midway between two
+   * branches stops reading as floating the moment it is part of one connected
+   * mass — support is read from the mass, not from the nearest limb.
+   *
+   * If the canopy ever thins again, raise `count` before touching `spread`:
+   * count fills, spread scatters.
+   */
+  for (const p of [...tips.slice(1), ...anchors]) {
     leafMass(
       rand,
-      { cx: tip.x, cy: tip.y - 10, spread: rand.float(44, 70), radius: rand.float(20, 34), count: rand.int(5, 8), blossom: 0.4 },
+      {
+        cx: p.x + rand.around(0, 6),
+        cy: p.y - rand.float(2, 10),
+        spread: rand.float(34, 58),
+        radius: rand.float(19, 32),
+        count: rand.int(15, 20),
+        blossom: 0.97,
+        cherry: true,
+      },
+      canopy,
+    );
+  }
+
+  /*
+   * Two crown masses centred on the upper tips themselves (not on a fixed
+   * point — that was the floating-clump mistake). With the cluster field above
+   * now continuous, these sit inside supported mass and just round the top of
+   * the silhouette off, the way the reference crown reads as one umbrella.
+   */
+  const upper = [...tips].sort((a, b) => a.y - b.y).slice(0, 3);
+  const crown: Point = {
+    x: upper.reduce((s, p) => s + p.x, 0) / upper.length,
+    y: upper.reduce((s, p) => s + p.y, 0) / upper.length,
+  };
+  for (let i = 0; i < 2; i += 1) {
+    leafMass(
+      rand,
+      {
+        cx: crown.x + rand.around(0, 26),
+        cy: crown.y - rand.float(0, 14),
+        spread: rand.float(50, 70),
+        radius: rand.float(21, 32),
+        count: rand.int(14, 18),
+        blossom: 0.97,
+        cherry: true,
+      },
       canopy,
     );
   }
@@ -318,6 +549,34 @@ export function paintedTree(seed: number): Tree {
     );
   }
 
+  /*
+   * The drift of fallen petals. Densest under the canopy's edge — petals slide
+   * off the outside of the crown, not out of its middle — and thinning with
+   * distance, with a few strays carried further by the same breeze that leans
+   * the grass. Squashed flat: a petal on the ground is seen edge-on.
+   *
+   * Generated last, deliberately: these draws are appended to the end of the
+   * seeded sequence, so every part of the tree above keeps the exact geometry
+   * it had before petals existed.
+   */
+  const fallenPetals: { d: string; tone: number }[] = [];
+  for (let i = 0; i < 46; i += 1) {
+    const stray = rand.chance(0.22);
+    const spread = stray ? rand.float(150, 250) : rand.mid(40, 160);
+    const angle = rand.float(0, Math.PI * 2);
+    fallenPetals.push({
+      tone: rand.int(0, 2),
+      d: blobPath(rand, {
+        cx: w * 0.44 + Math.cos(angle) * spread,
+        cy: h - 8 + Math.sin(angle) * spread * 0.1 + rand.around(0, 4),
+        radius: rand.float(2.2, 4.6),
+        wobble: 0.38,
+        points: 6,
+        squash: rand.float(0.3, 0.5),
+      }),
+    });
+  }
+
   return {
     ...canopy,
     trunk,
@@ -330,6 +589,7 @@ export function paintedTree(seed: number): Tree {
       points: 10,
       squash: 0.16,
     }),
+    fallenPetals,
   };
 }
 
@@ -413,6 +673,9 @@ export type MeadowStage = {
   readonly undergrowth: { readonly count: number; readonly from: number; readonly to: number };
   /** Drifts of a single flower species. */
   readonly drifts: number;
+  /** How many flowers land in one drift. Portrait runs richer drifts as well as
+   *  more of them — see the note on `PORTRAIT_MEADOW`. */
+  readonly perDrift: { readonly min: number; readonly max: number };
   readonly pebbles: { readonly count: number; readonly from: number; readonly to: number };
   readonly sparkles: { readonly count: number; readonly from: number; readonly to: number };
 };
@@ -431,6 +694,7 @@ const LANDSCAPE_MEADOW: MeadowStage = {
   ],
   undergrowth: { count: 9, from: 200, to: 300 },
   drifts: 12,
+  perDrift: { min: 3, max: 6 },
   pebbles: { count: 11, from: 190, to: 290 },
   sparkles: { count: 16, from: 160, to: 292 },
 };
@@ -451,20 +715,39 @@ const LANDSCAPE_MEADOW: MeadowStage = {
  * around the reading column — now rises at the phone's own left and right edges
  * instead of at the edges of a 1440-wide field the phone could only see the
  * middle of. And the counts come down with the width, because a tuft is the
- * same size in pixels here: the same density over a third of the width is a
- * third of the tufts, not a thicket.
+ * same size in pixels here — but they come down *less than proportionally*.
+ * A first pass matched landscape's per-pixel density (6/5/4 tufts, 4 drifts)
+ * and the bottom of every page read as an empty lawn: on a phone the meadow
+ * is the only part of the garden that survives below the reading column, so
+ * it has to carry the "you are sitting in a field" feeling alone. Roughly
+ * half of landscape's counts over a third of its width is the density that
+ * fills the foreground without turning it into a thicket; the meadow's node
+ * budget still lands well under the landscape total.
  */
 const PORTRAIT_MEADOW: MeadowStage = {
   view: { width: 430, height: 308 },
   rows: [
-    { y: 154, count: 6, scale: 0.5, sway: 1.1, height: 28 },
-    { y: 216, count: 5, scale: 0.8, sway: 2, height: 40 },
-    { y: 285, count: 4, scale: 1.2, sway: 3.1, height: 52 },
+    { y: 154, count: 9, scale: 0.5, sway: 1.1, height: 28 },
+    { y: 216, count: 7, scale: 0.8, sway: 2, height: 40 },
+    { y: 285, count: 6, scale: 1.2, sway: 3.1, height: 52 },
   ],
-  undergrowth: { count: 3, from: 205, to: 308 },
-  drifts: 4,
-  pebbles: { count: 4, from: 195, to: 298 },
-  sparkles: { count: 6, from: 164, to: 300 },
+  undergrowth: { count: 5, from: 205, to: 308 },
+  /*
+   * Far more flower drifts than a per-pixel scaling of landscape would give
+   * (7 -> 16, each drift richer too). The phone is the primary surface, and on
+   * it the meadow band is the only garden left below the reading column: the
+   * bottom of every page ends in it. At landscape density that stretch read as
+   * a plain green lawn while the same field looked lush on a desktop, because
+   * desktop shows the hills, the tree, the bridge and the fence in the same
+   * glance and the meadow is only a strip at the foot of it.
+   *
+   * So this is deliberately NOT proportional. It is the density the foreground
+   * needs to carry a whole viewport on its own.
+   */
+  drifts: 16,
+  perDrift: { min: 5, max: 9 },
+  pebbles: { count: 6, from: 195, to: 298 },
+  sparkles: { count: 10, from: 164, to: 300 },
 };
 
 export const MEADOW_STAGE: Record<Composition, MeadowStage> = {
@@ -649,11 +932,14 @@ export function meadow(
   // in a field and exactly what you would never do by hand.
   for (let drift = 0; drift < stage.drifts; drift += 1) {
     const species = rand.pick(SPECIES_NAMES);
-    const rowIndex = rand.chance(0.62) ? rand.int(1, 2) : 0;
+    // Biased to the two near rows — those are the ones with drawn petals
+    // rather than single dots, and on a phone the near row is what fills the
+    // very bottom of the frame, where the page actually ends.
+    const rowIndex = rand.chance(0.76) ? rand.int(1, 2) : 0;
     const row = stage.rows[rowIndex];
     const centre = rand.float(-40, width + 40);
     const spread = rand.float(60, 200);
-    const count = rand.int(3, 6);
+    const count = rand.int(stage.perDrift.min, stage.perDrift.max);
 
     for (let i = 0; i < count; i += 1) {
       const x = centre + rand.around(0, spread);
@@ -729,6 +1015,47 @@ export function pathVerge(centre: Point[], scale = 1, seed = 3313) {
       r: rand.float(1.4, 3.4) * scale * (1 - t * 0.6),
       species: rand.pick(SPECIES_NAMES),
     }));
+  });
+}
+
+/**
+ * Cherry petals on the way down.
+ *
+ * Distinct from `motes` below, which rise: pollen hangs on warm air, a petal
+ * has weight. The two are also at different depths on purpose — petals fall
+ * across the whole frame including in front of the tree, which is where the
+ * eye is, so they are the layer doing the most to make the scene feel like it
+ * is happening rather than sitting still.
+ *
+ * Everything here is per-petal and coprime-ish by construction: its own size,
+ * fall time, sideways drift, spin, and a negative delay drawn from the whole
+ * duration so the sky is already full at first paint rather than filling up
+ * over the first half-minute. Nothing about the group can resolve into a
+ * rhythm, which is the rule the whole scene is built on.
+ *
+ * `spin` is signed, so roughly half turn one way. A field of petals all
+ * rotating clockwise is the tell that gives away a particle system.
+ */
+export function petals(seed = 90210, count = 34) {
+  const rand = makeRng(seed);
+  return Array.from({ length: count }, (_, i) => {
+    // A few are close to the viewer and out of focus. Same trick as the motes:
+    // a blurred one buys a couple of metres of depth for one CSS property.
+    const near = rand.chance(0.28);
+    return {
+      id: i,
+      left: rand.float(-4, 102),
+      size: near ? rand.float(7, 11) : rand.float(3.5, 6.5),
+      blur: near ? rand.float(1.2, 2.6) : 0,
+      // Near petals fall faster, because they are closer. The spread is wide
+      // so no two are ever in step.
+      duration: near ? rand.float(13, 19) : rand.float(18, 27),
+      delay: -rand.float(0, 27),
+      drift: rand.around(0, 130),
+      spin: (rand.chance(0.5) ? 1 : -1) * rand.float(140, 520),
+      opacity: near ? rand.float(0.5, 0.72) : rand.float(0.62, 0.92),
+      tone: rand.int(0, 2),
+    };
   });
 }
 
