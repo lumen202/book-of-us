@@ -55,7 +55,11 @@ export function ExportChapterButton({ chapterSlug }: { chapterSlug: string }) {
       <button
         type="button"
         onClick={handleExport}
-        className="text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink"
+        // `ink-legible`: this link sits directly on the scene with no card
+        // under it, and at night it lands on the moon's halo — muted ink on a
+        // bright glow was BUG-015. Same treatment as every other bare-scene
+        // label (BUG-007/008/009): pale letterforms + dark halo on the 5th.
+        className="ink-legible text-sm text-ink-muted underline decoration-border underline-offset-4 transition hover:text-ink"
       >
         Export this chapter
       </button>

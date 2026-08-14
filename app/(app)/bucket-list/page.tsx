@@ -3,7 +3,7 @@ import { formatMonthDay } from "@/lib/format/date";
 import { listBucketItems } from "@/lib/bucket-list/queries";
 import { getBucketItemPhotoFlags, getMemoryChapterLinks } from "@/lib/memories/queries";
 import { getAppNow } from "@/lib/relationship/devClock";
-import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
+import { getDaysUntil, getNextMonthsaryDate } from "@/lib/relationship/nextChapter";
 import { createClient } from "@/lib/supabase/server";
 import { BucketList } from "@/components/bucket-list/BucketList";
 import { ClosingReflection } from "@/components/story/ClosingReflection";
@@ -34,7 +34,7 @@ export default async function BucketListPage() {
   const currentUserId = auth.data.user?.id ?? null;
 
   const now = getAppNow();
-  const nextChapterDate = getNextChapterDate(now);
+  const nextMonthsaryDate = getNextMonthsaryDate(now);
 
   return (
     <>
@@ -69,8 +69,8 @@ export default async function BucketListPage() {
       </main>
 
       <ClosingReflection
-        nextChapterLabel={formatMonthDay(nextChapterDate)}
-        daysUntilNextChapter={getDaysUntil(nextChapterDate, now)}
+        nextMonthsaryLabel={formatMonthDay(nextMonthsaryDate)}
+        daysUntilNextMonthsary={getDaysUntil(nextMonthsaryDate, now)}
       />
     </>
   );

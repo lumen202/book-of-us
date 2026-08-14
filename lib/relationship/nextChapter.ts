@@ -22,6 +22,22 @@ export function getNextChapterDate(from: Date = new Date()): Date {
   return next;
 }
 
+/**
+ * The next monthsary — the 5th, the same day `isCelebrationDay` keys off.
+ *
+ * This is what the closing reflection counts toward now, not the chapter
+ * drop: the 1st is when the *container* appears, which is plumbing, but the
+ * 5th is the date that belongs to the two of them. Same today-not-next-month
+ * rule as above, for the same reason.
+ */
+const MONTHSARY_DAY = 5;
+
+export function getNextMonthsaryDate(from: Date = new Date()): Date {
+  const next = new Date(from.getFullYear(), from.getMonth(), MONTHSARY_DAY);
+  if (from.getDate() > MONTHSARY_DAY) next.setMonth(next.getMonth() + 1);
+  return next;
+}
+
 /** Whole days from `from` until `target`, counted in calendar days, never negative. */
 export function getDaysUntil(target: Date, from: Date = new Date()): number {
   const startOfFrom = new Date(from.getFullYear(), from.getMonth(), from.getDate());

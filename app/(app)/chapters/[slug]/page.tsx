@@ -8,7 +8,7 @@ import { albumPrints, getChapterMemories, resolveMemoryMedia } from "@/lib/memor
 import { pickComposerPrompt } from "@/lib/memories/prompts";
 import { getAppNow } from "@/lib/relationship/devClock";
 import { listTrips } from "@/lib/trips/queries";
-import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
+import { getDaysUntil, getNextMonthsaryDate } from "@/lib/relationship/nextChapter";
 import { getReactionsForMemories, groupReactionsByMemory } from "@/lib/reactions/queries";
 import { createClient } from "@/lib/supabase/server";
 import { MemoryGrid } from "@/components/memory/MemoryGrid";
@@ -62,7 +62,7 @@ export default async function ChapterPage({
   const commentsByMemory = groupCommentsByMemory(comments);
   const user = auth.data.user;
   const now = getAppNow();
-  const nextChapterDate = getNextChapterDate(now);
+  const nextMonthsaryDate = getNextMonthsaryDate(now);
 
   /**
    * The composer's whispered prompt — see `lib/memories/prompts.ts`. Prefers
@@ -130,8 +130,8 @@ export default async function ChapterPage({
       </main>
 
       <ClosingReflection
-        nextChapterLabel={formatMonthDay(nextChapterDate)}
-        daysUntilNextChapter={getDaysUntil(nextChapterDate, now)}
+        nextMonthsaryLabel={formatMonthDay(nextMonthsaryDate)}
+        daysUntilNextMonthsary={getDaysUntil(nextMonthsaryDate, now)}
       />
     </>
   );

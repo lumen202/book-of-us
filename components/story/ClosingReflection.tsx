@@ -8,26 +8,31 @@ import { motion } from "framer-motion";
  * 1. Reflection — a lot of empty space and one quiet line. Nothing to click.
  *    This is the pause after closing a scrapbook, and it only works if we
  *    resist putting anything useful in it.
- * 2. Looking forward — the story isn't finished, the next chapter has a date.
- *    An ending that creates anticipation instead of finality.
+ * 2. Looking forward — the story isn't finished, and the next monthsary has
+ *    a date. An ending that creates anticipation instead of finality.
+ *
+ * The date counted toward is the monthsary (the 5th), not the chapter drop
+ * (the 1st) — chapters appearing on the 1st is scheduling, but the 5th is the
+ * day that is actually theirs, and it is the same day Celebration Mode keys
+ * off. See `getNextMonthsaryDate`.
  *
  * Deliberately has no call to action. If a button ever ends up here, the beat
  * is gone.
  */
 export function ClosingReflection({
-  nextChapterLabel,
-  daysUntilNextChapter,
+  nextMonthsaryLabel,
+  daysUntilNextMonthsary,
 }: {
-  /** e.g. "August 1" — already formatted server-side. */
-  nextChapterLabel: string;
-  daysUntilNextChapter: number;
+  /** e.g. "September 5" — already formatted server-side. */
+  nextMonthsaryLabel: string;
+  daysUntilNextMonthsary: number;
 }) {
   const forwardLine =
-    daysUntilNextChapter === 0
-      ? "The next chapter arrives today."
-      : daysUntilNextChapter === 1
-        ? "The next chapter arrives tomorrow."
-        : `The next chapter arrives on the 1st — ${nextChapterLabel}.`;
+    daysUntilNextMonthsary === 0
+      ? "Today is our day."
+      : daysUntilNextMonthsary === 1
+        ? "Our day is tomorrow."
+        : `The next one is ${nextMonthsaryLabel}.`;
 
   return (
     <motion.section
@@ -38,7 +43,7 @@ export function ClosingReflection({
       transition={{ duration: 1.6, ease: "easeOut" }}
     >
       <p className="ink-legible font-serif text-2xl italic leading-relaxed text-ink sm:text-3xl">
-        That&apos;s enough for now. Let it sit a while.
+        The rest will keep.
       </p>
 
       <span

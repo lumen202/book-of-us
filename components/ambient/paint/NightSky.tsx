@@ -20,7 +20,13 @@ import { useNightPreview } from "@/lib/night-preview/NightPreviewProvider";
  * revealing it in CSS keeps one markup for both, the same trick the lit lantern
  * flames in `HillRange` use.
  *
- * It costs a handful of static circles and no animation frames while hidden.
+ * Hidden is not free by itself: `opacity: 0` does not pause CSS animations,
+ * so the shimmering stars and the moon kept ticking invisibly on every
+ * ordinary day until the `animation-play-state: paused` rule next to the
+ * reveal rules in globals.css. Anything animated added to this file is
+ * covered by that rule automatically (it pauses all `.night-sky` descendants
+ * while the sky is hidden) — meteors opt out of rendering entirely instead,
+ * see below.
  *
  * ## The moon is not a disc with a bite out of it
  *

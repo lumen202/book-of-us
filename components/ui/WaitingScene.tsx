@@ -64,7 +64,7 @@ export function WaitingScene() {
        * than no motes. Reduced motion gets the bloom and the mark, which is
        * the whole meaning without any of the movement.
        */}
-      {MOTES.map((mote) => (
+      {MOTES.map((mote, index) => (
         <span
           key={mote.left}
           className="ambient-mote absolute block rounded-full motion-reduce:hidden"
@@ -76,9 +76,12 @@ export function WaitingScene() {
             background:
               "radial-gradient(circle, color-mix(in srgb, var(--color-surface) 94%, transparent), color-mix(in srgb, var(--color-accent-warm) 40%, transparent) 70%, transparent)",
             opacity: mote.opacity,
-            ["--mote-o" as string]: mote.opacity,
-            ["--mote-drift" as string]: `${mote.drift}px`,
-            animation: `mote-rise ${mote.duration}s linear infinite`,
+            // `mote-rise` became four literal variants (`mote-rise-1..4`) —
+            // var() in keyframes forced per-frame style recalc; see the
+            // comment on them in globals.css. Alternate by index; the exact
+            // drift each mote had before matters less than that neighbours
+            // differ.
+            animation: `mote-rise-${(index % 4) + 1} ${mote.duration}s linear infinite`,
             animationDelay: `${mote.delay}s`,
           }}
         />

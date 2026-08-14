@@ -37,6 +37,17 @@ import { mix, pigment, species, veil } from "@/lib/ambient/palette";
  * lets the sky through at the edges of the meadow and the whole foreground goes
  * chalky — the lit tone is a lighter green, not a thinner one.
  */
+/**
+ * The literal `tuft-sway-N` keyframe nearest a generated amplitude — the
+ * amplitudes are quantised so the keyframes can hold literal values, which is
+ * what lets Chromium run the wave on the compositor. Deterministic from the
+ * seeded amplitude, so server and client agree.
+ */
+function swayKeyframe(sway: number): string {
+  const variant = Math.min(4, Math.max(1, Math.round(sway)));
+  return `tuft-sway-${variant}`;
+}
+
 const ROW_TONE = [
   // far row — bright and pale, continuous with the last rise
   { blade: mix(pigment.grassPale, 78, pigment.grass), lit: mix(pigment.grassLit, 54, pigment.grassPale) },
@@ -123,9 +134,24 @@ export function MeadowLayer({
                 // Far row, and every third one of it, are what the
                 // `(pointer: coarse)` meadow-thinning rule in globals.css takes
                 // out — the class goes on the outer group so hiding one removes
-                // its blades from the paint too, not just its animation.
+                // its blades from the paint too, not just its animation. The
+                // mid row keeps its paint but never sways (`meadow-mid`,
+                // frozen unconditionally in globals.css — the desktop-can-
+                // afford-it assumption measured false, see the rule): freezing
+                // a whole distance band, rather than every other tuft across
+                // the field, is what shrinks the repaint area — staggered
+                // phases mean interleaved frozen tufts leave every raster
+                // tile damaged anyway. The wind survives in the near row,
+                // whose lean is three times the far row's and carries the
+                // depth cue on its own.
                 className={
-                  row === 0 ? (i % 3 === 2 ? "meadow-far meadow-thin" : "meadow-far") : undefined
+                  row === 0
+                    ? i % 3 === 2
+                      ? "meadow-far meadow-thin"
+                      : "meadow-far"
+                    : row === 1
+                      ? "meadow-mid"
+                      : undefined
                 }
                 transform={`translate(${tuft.x} ${tuft.y}) scale(${tuft.scale})`}
               >
@@ -134,8 +160,11 @@ export function MeadowLayer({
                   style={{
                     transformBox: "fill-box",
                     transformOrigin: "bottom center",
-                    ["--sway" as string]: `${tuft.sway}deg`,
-                    animation: `tuft-sway ${tuft.period}s ease-in-out infinite`,
+                    // Nearest literal keyframe variant, not `--sway` — a
+                    // var() in keyframes forces the animation onto the main
+                    // thread per frame. See the tuft-sway comment in
+                    // globals.css.
+                    animation: `${swayKeyframe(tuft.sway)} ${tuft.period}s ease-in-out infinite`,
                     animationDelay: `${tuft.phase}s`,
                   }}
                 >
@@ -177,8 +206,11 @@ export function MeadowLayer({
           <g
             key={i}
             // Far-row flowers are two nodes each and read as dots of colour;
-            // they keep their colour on touch devices but stop swaying.
-            className={flower.row === 0 ? "meadow-far" : undefined}
+            // they keep their colour on touch devices but stop swaying. Mid
+            // row flowers hold still everywhere, with the grass they stand in.
+            className={
+              flower.row === 0 ? "meadow-far" : flower.row === 1 ? "meadow-mid" : undefined
+            }
             transform={`translate(${flower.x} ${flower.y}) scale(${flower.scale})`}
           >
             <g
@@ -186,8 +218,7 @@ export function MeadowLayer({
               style={{
                 transformBox: "fill-box",
                 transformOrigin: "bottom center",
-                ["--sway" as string]: `${flower.sway}deg`,
-                animation: `tuft-sway ${flower.period}s ease-in-out infinite`,
+                animation: `${swayKeyframe(flower.sway)} ${flower.period}s ease-in-out infinite`,
                 animationDelay: `${flower.phase}s`,
               }}
             >
@@ -273,7 +304,13 @@ export function Petals() {
       {petals().map((petal) => (
         <div
           key={petal.id}
-          className={`ambient-petal absolute${petal.blur ? " petal-soft" : ""}`}
+          // `petal-thin` marks every third sharp petal for the touch-device
+          // thinning rule in globals.css, the same trade as `meadow-thin`:
+          // each petal is its own animated compositor layer, and half as many
+          // of them reads as a lighter snowfall, not a missing one.
+          className={`ambient-petal absolute${petal.blur ? " petal-soft" : ""}${
+            !petal.blur && petal.id % 3 === 2 ? " petal-thin" : ""
+          }`}
           style={{
             left: `${petal.left}%`,
             top: 0,
@@ -284,10 +321,11 @@ export function Petals() {
             borderRadius: "60% 60% 60% 12%",
             filter: petal.blur ? `blur(${petal.blur}px)` : undefined,
             opacity: petal.opacity,
-            ["--petal-o" as string]: petal.opacity,
-            ["--petal-drift" as string]: `${petal.drift}px`,
-            ["--petal-spin" as string]: `${petal.spin}deg`,
-            animation: `petal-fall ${petal.duration}s linear infinite`,
+            // A literal keyframe variant by id, not `--petal-*` custom
+            // properties — var() in keyframes would pin every petal to
+            // per-frame main-thread style recalc. See petal-fall in
+            // globals.css.
+            animation: `petal-fall-${(petal.id % 6) + 1} ${petal.duration}s linear infinite`,
             animationDelay: `${petal.delay}s`,
           }}
         />
@@ -327,9 +365,9 @@ export function Pollen() {
             )} 70%, transparent)`,
             filter: mote.blur ? `blur(${mote.blur}px)` : undefined,
             opacity: mote.opacity,
-            ["--mote-o" as string]: mote.opacity,
-            ["--mote-drift" as string]: `${mote.drift}px`,
-            animation: `mote-rise ${mote.duration}s linear infinite`,
+            // Literal variant by id — same var()-in-keyframes trap as the
+            // petals; see mote-rise in globals.css.
+            animation: `mote-rise-${(mote.id % 4) + 1} ${mote.duration}s linear infinite`,
             animationDelay: `${mote.delay}s`,
           }}
         />

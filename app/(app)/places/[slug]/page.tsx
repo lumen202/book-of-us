@@ -35,7 +35,7 @@ import { estimateTrip, formatDistanceKm } from "@/lib/places/trip";
 import { toSummary } from "@/lib/places/types";
 import { recordPlaceShown } from "../actions";
 import { getAppNow } from "@/lib/relationship/devClock";
-import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
+import { getDaysUntil, getNextMonthsaryDate } from "@/lib/relationship/nextChapter";
 
 const ENTRANCE_FEE_LABELS = {
   none: "Free",
@@ -66,7 +66,7 @@ export default async function PlaceDetailPage({
   ]);
   const related = getRelatedPlaces(place).map(toSummary);
   const now = getAppNow();
-  const nextChapterDate = getNextChapterDate(now);
+  const nextMonthsaryDate = getNextMonthsaryDate(now);
 
   return (
     <>
@@ -296,8 +296,8 @@ export default async function PlaceDetailPage({
       </main>
 
       <ClosingReflection
-        nextChapterLabel={formatMonthDay(nextChapterDate)}
-        daysUntilNextChapter={getDaysUntil(nextChapterDate, now)}
+        nextMonthsaryLabel={formatMonthDay(nextMonthsaryDate)}
+        daysUntilNextMonthsary={getDaysUntil(nextMonthsaryDate, now)}
       />
     </>
   );

@@ -36,7 +36,15 @@ export async function AppHeader() {
       positioned behind the row, so it adds no height and cannot shift the
       header's own layout.
     */
-    <header className="sticky top-0 z-40 mx-auto flex w-full max-w-5xl items-center justify-between gap-x-5 px-6 pb-2 pt-6">
+    /*
+      Full-bleed, not `max-w-5xl`: the reading column is capped, but the header
+      is the frame around it, and a frame that stops 300px short of the window's
+      edges reads as a rendering fault on a wide screen — the scrim's edges
+      became visible seams in the sky, and the nav sat adrift mid-viewport
+      (user-reported). Title against the left edge, nav against the right, with
+      the padding stepping up a little on wide screens so neither touches glass.
+    */
+    <header className="sticky top-0 z-40 flex w-full items-center justify-between gap-x-5 px-6 pb-2 pt-6 lg:px-10">
       <span
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[calc(100%+1.75rem)] bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--color-scene-paper,var(--color-background))_82%,transparent)_0%,color-mix(in_srgb,var(--color-scene-paper,var(--color-background))_52%,transparent)_58%,transparent_100%)]"
@@ -57,7 +65,7 @@ export async function AppHeader() {
             Keeper/"Step out for now" are one level down behind `More` — see
             DesktopMoreMenu and BUG-004 for why a flat equal-weight row was
             itself the problem, not just a mobile-width one. */}
-        <div className="hidden items-center gap-5 sm:flex">
+        <div className="hidden items-center gap-5 whitespace-nowrap sm:flex">
           <NavLink
             href="/"
             className="ink-legible text-[11px] uppercase tracking-[0.2em] transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-accent"

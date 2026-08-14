@@ -8,7 +8,7 @@ import { PlaceRevealCard } from "@/components/places/PlaceRevealCard";
 import { PlacesHero } from "@/components/places/PlacesHero";
 import { ClosingReflection } from "@/components/story/ClosingReflection";
 import { formatMonthDay } from "@/lib/format/date";
-import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
+import { getDaysUntil, getNextMonthsaryDate } from "@/lib/relationship/nextChapter";
 
 /**
  * Destination discovery — the whole feature described in
@@ -42,7 +42,7 @@ export default async function PlacesPage() {
 
   const today = dailyPick(places, now);
   const hiddenGems = searchPlaces({ hiddenGemOnly: true }).map(toSummary);
-  const nextChapterDate = getNextChapterDate(now);
+  const nextMonthsaryDate = getNextMonthsaryDate(now);
 
   return (
     <>
@@ -88,8 +88,8 @@ export default async function PlacesPage() {
       </main>
 
       <ClosingReflection
-        nextChapterLabel={formatMonthDay(nextChapterDate)}
-        daysUntilNextChapter={getDaysUntil(nextChapterDate, now)}
+        nextMonthsaryLabel={formatMonthDay(nextMonthsaryDate)}
+        daysUntilNextMonthsary={getDaysUntil(nextMonthsaryDate, now)}
       />
     </>
   );

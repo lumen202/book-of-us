@@ -3,11 +3,11 @@ import { PlacesBrowser } from "@/components/places/PlacesBrowser";
 import { ClosingReflection } from "@/components/story/ClosingReflection";
 import { formatMonthDay } from "@/lib/format/date";
 import { getAppNow } from "@/lib/relationship/devClock";
-import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
+import { getDaysUntil, getNextMonthsaryDate } from "@/lib/relationship/nextChapter";
 
 export default async function PlacesBrowsePage() {
   const now = getAppNow();
-  const nextChapterDate = getNextChapterDate(now);
+  const nextMonthsaryDate = getNextMonthsaryDate(now);
 
   return (
     <>
@@ -30,8 +30,8 @@ export default async function PlacesBrowsePage() {
       </main>
 
       <ClosingReflection
-        nextChapterLabel={formatMonthDay(nextChapterDate)}
-        daysUntilNextChapter={getDaysUntil(nextChapterDate, now)}
+        nextMonthsaryLabel={formatMonthDay(nextMonthsaryDate)}
+        daysUntilNextMonthsary={getDaysUntil(nextMonthsaryDate, now)}
       />
     </>
   );

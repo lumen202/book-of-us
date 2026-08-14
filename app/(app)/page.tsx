@@ -16,7 +16,7 @@ import { pickMonthsaryMessage } from "@/lib/celebration/messages";
 import { formatMonthDay, toLocalDate } from "@/lib/format/date";
 import { ordinal } from "@/lib/format/ordinal";
 import { getAppNow } from "@/lib/relationship/devClock";
-import { getDaysUntil, getNextChapterDate } from "@/lib/relationship/nextChapter";
+import { getDaysUntil, getNextMonthsaryDate } from "@/lib/relationship/nextChapter";
 import { shouldRollSurprise } from "@/lib/surprises/pick";
 import { getSurpriseCandidate } from "@/lib/surprises/queries";
 import { ClosingReflection } from "@/components/story/ClosingReflection";
@@ -73,7 +73,7 @@ export default async function HomePage({
   const celebrationMessage = celebrationLabel
     ? pickMonthsaryMessage(monthsaryNumber ?? undefined)
     : undefined;
-  const nextChapterDate = getNextChapterDate(now);
+  const nextMonthsaryDate = getNextMonthsaryDate(now);
 
   /**
    * Last month's photographs, for the ceremony's look back (never the current
@@ -138,10 +138,10 @@ export default async function HomePage({
             Open gently
           </span>
           <p className="ink-legible font-serif text-4xl leading-tight text-ink sm:text-5xl">
-            Some days are big enough to deserve a chapter.
+            We kept everything.
           </p>
           <p className="ink-legible max-w-xl text-base text-ink sm:text-lg">
-            Move slowly. Pick a month. Let a memory arrive before you ask it to.
+            Pick a month and see.
           </p>
         </section>
 
@@ -173,8 +173,8 @@ export default async function HomePage({
       </main>
 
       <ClosingReflection
-        nextChapterLabel={formatMonthDay(nextChapterDate)}
-        daysUntilNextChapter={getDaysUntil(nextChapterDate, now)}
+        nextMonthsaryLabel={formatMonthDay(nextMonthsaryDate)}
+        daysUntilNextMonthsary={getDaysUntil(nextMonthsaryDate, now)}
       />
     </HomeCover>
   );
