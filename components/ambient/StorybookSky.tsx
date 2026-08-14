@@ -16,6 +16,7 @@ import { Plate } from "./paint/Plate";
 import { SkyLayer, SunGlow } from "./paint/Sky";
 import { BAKED_PLATES } from "@/lib/ambient/plate-manifest";
 import { PLATES, type PlateId } from "@/lib/ambient/plates";
+import { useSceneComposition } from "@/lib/ambient/useComposition";
 import { useParallax } from "@/lib/ambient/useParallax";
 
 /**
@@ -85,6 +86,14 @@ import { useParallax } from "@/lib/ambient/useParallax";
 export function StorybookSky() {
   const scene = useRef<HTMLDivElement>(null);
   useParallax(scene);
+  /*
+   * Only the meadow asks for this. Every other band here is either baked — and
+   * so had its composition decided at the easel, arriving as two sets of images
+   * `Plate` art-directs between — or sized in viewport units and aspect-blind.
+   * The meadow is deliberately never baked, so it is the one layer that has to
+   * be staged at runtime. See `useSceneComposition`.
+   */
+  const composition = useSceneComposition();
 
   return (
     <div
@@ -153,7 +162,7 @@ export function StorybookSky() {
       </Band>
 
       {/* foreground */}
-      <MeadowLayer />
+      <MeadowLayer composition={composition} />
       <Pollen />
       <Band id="boughs">
         <FramingBoughs />

@@ -1,11 +1,6 @@
 import { notFound } from "next/navigation";
 
-import { BigTree } from "@/components/ambient/paint/BigTree";
-import { FramingBoughs } from "@/components/ambient/paint/FramingBoughs";
-import { FarRange, NearHills } from "@/components/ambient/paint/HillRange";
-import { LightRays } from "@/components/ambient/paint/LightRays";
-import { SkyLayer, SunGlow } from "@/components/ambient/paint/Sky";
-import { PLATES, type PlateId } from "@/lib/ambient/plates";
+import { PLATES } from "@/lib/ambient/plates";
 import { PlateStage } from "./PlateStage";
 
 /**
@@ -36,24 +31,6 @@ import { PlateStage } from "./PlateStage";
  * should be `200` in dev, and an authenticated browser tab is precisely the test
  * that cannot tell you that.
  */
-const LAYERS: Record<PlateId, React.ReactNode> = {
-  sky: (
-    <>
-      <SkyLayer />
-      <SunGlow />
-    </>
-  ),
-  far: <FarRange />,
-  near: <NearHills />,
-  tree: (
-    <>
-      <BigTree />
-      <LightRays />
-    </>
-  ),
-  boughs: <FramingBoughs />,
-};
-
 export default async function PlatePage({
   params,
 }: {
@@ -67,5 +44,8 @@ export default async function PlatePage({
   const spec = PLATES.find((plate) => plate.id === layer);
   if (!spec) notFound();
 
-  return <PlateStage>{LAYERS[spec.id]}</PlateStage>;
+  // Which layers a band is made of, and which composition to stage them in,
+  // both live in `PlateStage` — the composition is client state read off the
+  // viewport, and a server component cannot hand that down.
+  return <PlateStage id={spec.id} />;
 }

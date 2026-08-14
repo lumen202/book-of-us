@@ -24,11 +24,22 @@
  * filter applications for a whole tree instead of eighty, which is what keeps
  * this affordable.
  */
+import { DEFAULT_COMPOSITION, type Composition } from "./composition";
 import { blobPath, catmullRomPath, type Point } from "./path";
 import { SPECIES_NAMES, type SpeciesName } from "./palette";
 import { makeRng, type Rng } from "./rng";
 
-export const MEADOW_VIEW = { width: 1440, height: 300 } as const;
+/**
+ * The bough and tree view boxes are *not* composition-dependent, and that is
+ * worth saying out loud because the meadow below is.
+ *
+ * Both are drawn into containers carrying a matching `aspectRatio`, so neither
+ * was ever stretched by `preserveAspectRatio="none"` — the tall-frame problem
+ * for these two is placement, not geometry. A portrait frame needs the tree
+ * moved and re-scaled and the boughs brought in from the sides rather than the
+ * top corners, and both of those belong to the container. See `TREE_STAGE` in
+ * `paint/BigTree.tsx` and `BOUGH_STAGE` in `paint/FramingBoughs.tsx`.
+ */
 export const BOUGH_VIEW = { width: 520, height: 520 } as const;
 export const TREE_VIEW = { width: 460, height: 520 } as const;
 
@@ -373,11 +384,93 @@ export type Meadow = {
 };
 
 /** Rows are the meadow's own depth ramp, independent of the hills behind it. */
-const ROWS = [
-  { y: 150, count: 18, scale: 0.5, sway: 1.1, height: 28 },
-  { y: 210, count: 16, scale: 0.8, sway: 2, height: 40 },
-  { y: 278, count: 13, scale: 1.2, sway: 3.1, height: 52 },
-];
+type MeadowRow = {
+  readonly y: number;
+  readonly count: number;
+  readonly scale: number;
+  readonly sway: number;
+  readonly height: number;
+};
+
+/**
+ * How the foreground is staged in one frame shape.
+ *
+ * The meadow is the one band that is never baked — the grass wave is the most
+ * alive thing in the frame, so it stays live and therefore has to be staged at
+ * runtime. See `composition.ts`.
+ *
+ * Note what does *not* change between the two: blade heights, tuft scales and
+ * sway. A meadow unit is about one CSS pixel in both compositions, because both
+ * view boxes are sized to the box they are drawn into, so a 52-unit blade is a
+ * 52-pixel blade either way. What changes is how many of them fit across, and
+ * that is the whole difference between a field seen wide and the same field
+ * seen through a narrow window.
+ */
+export type MeadowStage = {
+  readonly view: { readonly width: number; readonly height: number };
+  readonly rows: readonly MeadowRow[];
+  /** Soft shapeless masses under everything, and the band they sit in. */
+  readonly undergrowth: { readonly count: number; readonly from: number; readonly to: number };
+  /** Drifts of a single flower species. */
+  readonly drifts: number;
+  readonly pebbles: { readonly count: number; readonly from: number; readonly to: number };
+  readonly sparkles: { readonly count: number; readonly from: number; readonly to: number };
+};
+
+/**
+ * The wide frame. As shipped — and, unlike the hills, still the composition a
+ * narrow screen falls back to for its very first paint (see
+ * `useSceneComposition`).
+ */
+const LANDSCAPE_MEADOW: MeadowStage = {
+  view: { width: 1440, height: 300 },
+  rows: [
+    { y: 150, count: 18, scale: 0.5, sway: 1.1, height: 28 },
+    { y: 210, count: 16, scale: 0.8, sway: 2, height: 40 },
+    { y: 278, count: 13, scale: 1.2, sway: 3.1, height: 52 },
+  ],
+  undergrowth: { count: 9, from: 200, to: 300 },
+  drifts: 12,
+  pebbles: { count: 11, from: 190, to: 290 },
+  sparkles: { count: 16, from: 160, to: 292 },
+};
+
+/**
+ * The tall frame.
+ *
+ * 430x308 against a box that is `27vh + 56px` tall — which on a 430x932 phone
+ * is 430x308 exactly. That is the fix, and it replaces a real hack: the meadow
+ * used to handle narrow screens by drawing the SVG at 220% width and pulling it
+ * left so the container clipped it, on the reasoning that a *slice* of the field
+ * at a sane scale beats the whole field squeezed. It was the right instinct and
+ * it still left the grass 1.56x too tall, because a slice fixes how wide a blade
+ * is and does nothing about how tall.
+ *
+ * Two consequences worth knowing. The field is genuinely regenerated at this
+ * width rather than cropped, so `edgeBias` — the arch that wraps the foreground
+ * around the reading column — now rises at the phone's own left and right edges
+ * instead of at the edges of a 1440-wide field the phone could only see the
+ * middle of. And the counts come down with the width, because a tuft is the
+ * same size in pixels here: the same density over a third of the width is a
+ * third of the tufts, not a thicket.
+ */
+const PORTRAIT_MEADOW: MeadowStage = {
+  view: { width: 430, height: 308 },
+  rows: [
+    { y: 154, count: 6, scale: 0.5, sway: 1.1, height: 28 },
+    { y: 216, count: 5, scale: 0.8, sway: 2, height: 40 },
+    { y: 285, count: 4, scale: 1.2, sway: 3.1, height: 52 },
+  ],
+  undergrowth: { count: 3, from: 205, to: 308 },
+  drifts: 4,
+  pebbles: { count: 4, from: 195, to: 298 },
+  sparkles: { count: 6, from: 164, to: 300 },
+};
+
+export const MEADOW_STAGE: Record<Composition, MeadowStage> = {
+  landscape: LANDSCAPE_MEADOW,
+  portrait: PORTRAIT_MEADOW,
+};
 
 /**
  * How much taller things grow toward the left and right edges of the frame.
@@ -388,8 +481,8 @@ const ROWS = [
  * viewer ends up inside the meadow rather than in front of it, and the middle
  * of the screen — where the book actually is — stays clear.
  */
-function edgeBias(x: number): number {
-  const t = Math.abs((x / MEADOW_VIEW.width) * 2 - 1); // 0 centre, 1 edges
+function edgeBias(x: number, width: number): number {
+  const t = Math.abs((x / width) * 2 - 1); // 0 centre, 1 edges
   return 1 + Math.pow(t, 2.2) * 0.85;
 }
 
@@ -502,18 +595,22 @@ function makeFlower(rand: Rng, species: SpeciesName, row: number, scale: number)
  * about a lawn), and flowers grow in drifts of a single species seeded from
  * fourteen centres across the field.
  */
-export function meadow(seed = 20260727): Meadow {
+export function meadow(
+  composition: Composition = DEFAULT_COMPOSITION,
+  seed = 20260727,
+): Meadow {
   const rand = makeRng(seed);
-  const width = MEADOW_VIEW.width;
+  const stage = MEADOW_STAGE[composition];
+  const width = stage.view.width;
   const result: Meadow = { undergrowth: [], tufts: [], flowers: [], pebbles: [], sparkles: [] };
 
   // Soft masses under everything — the meadow's own depth, which is what gives
   // the individual blades something to sit against.
-  for (let i = 0; i < 9; i += 1) {
+  for (let i = 0; i < stage.undergrowth.count; i += 1) {
     result.undergrowth.push(
       blobPath(rand, {
         cx: rand.float(-60, width + 60),
-        cy: rand.float(200, 300),
+        cy: rand.float(stage.undergrowth.from, stage.undergrowth.to),
         radius: rand.mid(90, 230),
         wobble: 0.34,
         points: rand.int(8, 11),
@@ -522,7 +619,7 @@ export function meadow(seed = 20260727): Meadow {
     );
   }
 
-  ROWS.forEach((row, rowIndex) => {
+  stage.rows.forEach((row, rowIndex) => {
     let x = rand.float(-40, 20);
     for (let i = 0; i < row.count * 1.15; i += 1) {
       // Clumping: sometimes step barely at all, sometimes leave a gap.
@@ -532,7 +629,7 @@ export function meadow(seed = 20260727): Meadow {
       x += step;
       if (x > width + 50) break;
 
-      const bias = edgeBias(x);
+      const bias = edgeBias(x, width);
       result.tufts.push({
         x,
         y: row.y + rand.around(0, 9),
@@ -550,17 +647,17 @@ export function meadow(seed = 20260727): Meadow {
   // Fourteen drifts, each one species, each a different size. Two drifts of the
   // same species sometimes land near each other, which is exactly what happens
   // in a field and exactly what you would never do by hand.
-  for (let drift = 0; drift < 12; drift += 1) {
+  for (let drift = 0; drift < stage.drifts; drift += 1) {
     const species = rand.pick(SPECIES_NAMES);
     const rowIndex = rand.chance(0.62) ? rand.int(1, 2) : 0;
-    const row = ROWS[rowIndex];
+    const row = stage.rows[rowIndex];
     const centre = rand.float(-40, width + 40);
     const spread = rand.float(60, 200);
     const count = rand.int(3, 6);
 
     for (let i = 0; i < count; i += 1) {
       const x = centre + rand.around(0, spread);
-      const scale = row.scale * rand.float(0.72, 1.2) * edgeBias(x);
+      const scale = row.scale * rand.float(0.72, 1.2) * edgeBias(x, width);
       const flower = makeFlower(rand, species, rowIndex, scale);
       const lean = rand.around(0, flower.height * 0.22);
 
@@ -582,12 +679,12 @@ export function meadow(seed = 20260727): Meadow {
   }
 
   // Stones. Small, few, and half of them catching the light.
-  for (let i = 0; i < 11; i += 1) {
+  for (let i = 0; i < stage.pebbles.count; i += 1) {
     result.pebbles.push({
       tone: rand.chance(0.4) ? 1 : 0,
       d: blobPath(rand, {
         cx: rand.float(0, width),
-        cy: rand.float(190, 290),
+        cy: rand.float(stage.pebbles.from, stage.pebbles.to),
         radius: rand.mid(3.5, 11),
         wobble: 0.3,
         points: rand.int(6, 8),
@@ -599,10 +696,10 @@ export function meadow(seed = 20260727): Meadow {
   // Points of light on the grass — dew, or the sun off a leaf edge. They
   // twinkle on unrelated periods, so the meadow glitters faintly without ever
   // pulsing.
-  for (let i = 0; i < 16; i += 1) {
+  for (let i = 0; i < stage.sparkles.count; i += 1) {
     result.sparkles.push({
       x: rand.float(0, width),
-      y: rand.float(160, 292),
+      y: rand.float(stage.sparkles.from, stage.sparkles.to),
       r: rand.float(0.9, 2.3),
       period: rand.float(2.6, 7.4),
       phase: -rand.float(0, 7),
@@ -620,16 +717,16 @@ export function meadow(seed = 20260727): Meadow {
  * disturbed and the light gets in — so a path with flowers down both sides is
  * botanically why paths look like that, and emotionally it is an invitation.
  */
-export function pathVerge(centre: Point[], seed = 3313) {
+export function pathVerge(centre: Point[], scale = 1, seed = 3313) {
   const rand = makeRng(seed);
   return centre.flatMap((point, i) => {
     if (i % 2 !== 0 || i > centre.length - 3) return [];
     const t = i / centre.length;
-    const spread = 46 * (1 - t) + 5;
+    const spread = (46 * (1 - t) + 5) * scale;
     return Array.from({ length: rand.int(1, 3) }, () => ({
       x: point.x + (rand.chance(0.5) ? -1 : 1) * rand.float(spread * 0.5, spread * 1.5),
-      y: point.y + rand.around(0, 5),
-      r: rand.float(1.4, 3.4) * (1 - t * 0.6),
+      y: point.y + rand.around(0, 5) * scale,
+      r: rand.float(1.4, 3.4) * scale * (1 - t * 0.6),
       species: rand.pick(SPECIES_NAMES),
     }));
   });

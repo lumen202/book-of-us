@@ -1,7 +1,49 @@
+import { DEFAULT_COMPOSITION, type Composition } from "@/lib/ambient/composition";
 import { parallax, TRAVEL } from "@/lib/ambient/depth";
 import { paintedTree, TREE_VIEW } from "@/lib/ambient/flora";
 import { mix, pigment, veil } from "@/lib/ambient/palette";
 import { swing } from "@/lib/ambient/props";
+
+/**
+ * Where the tree stands, per composition.
+ *
+ * The tree is drawn into an aspect-locked box, so it was never *distorted* by
+ * the tall-frame problem — it was mis-*placed* by it. The landscape numbers put
+ * it far enough left that a 430px-wide frame cut the swing off the side of the
+ * screen, and at 52vw it was small enough that its crown sat below the horizon
+ * instead of breaking it.
+ *
+ * The portrait staging keeps it in the **left half of the frame**, which is the
+ * rule that matters and the one a tall frame makes easy to lose. A first pass
+ * at 88vw put the trunk near the middle with the canopy spread across the whole
+ * width; it was a fine tree and the wrong composition — it sat directly behind
+ * the reading column and became the subject, exactly what "the text has the
+ * middle" exists to prevent. Foliage at the edges, calm in the centre.
+ *
+ * The three numbers are tied together and cannot be tuned independently:
+ *
+ * - `w-[65vw]` — the width is *set by the swing*, not chosen. The swing hangs
+ *   at 15% of the tree's own box and the trunk stands at 46%, so the two are
+ *   only 31% of the box apart. Keeping the swing on screen while keeping the
+ *   trunk in the left quarter leaves no room above about 67vw; past that, every
+ *   offset either crops the swing or pushes the trunk into the middle.
+ * - `left-[-5vw]` — puts the trunk about a quarter of the way in and lands the
+ *   canopy across roughly 11%–44% of the frame. That is the other half of the
+ *   brief: the canopy has to stop before the creek, because in the wide frame
+ *   the bridge stands well clear of the tree in open ground, and a tree grown
+ *   to fill a narrow frame swallows it. See `HILL_STAGE.portrait.props`, which
+ *   moves the fold right to hold up its end of the same relationship.
+ * - `bottom-[32vh]` — stands it on the near slope with its crown breaking the
+ *   horizon rather than sitting under it, as it does in the wide frame.
+ *
+ * Whole class strings, never interpolated fragments: the Tailwind scanner only
+ * generates utilities it can see written out.
+ */
+const TREE_STAGE: Record<Composition, string> = {
+  landscape:
+    "bottom-[16vh] left-[-6vw] w-[52vw] sm:bottom-[18vh] sm:left-[1vw] sm:w-[34vw] lg:w-[27vw]",
+  portrait: "bottom-[32vh] left-[-5vw] w-[65vw]",
+};
 
 /**
  * The tree with the swing on it.
@@ -28,14 +70,14 @@ import { swing } from "@/lib/ambient/props";
  * are stretched with `preserveAspectRatio="none"` — a tree in there would be
  * squashed into a topiary at wide viewports.
  */
-export function BigTree() {
+export function BigTree({ composition = DEFAULT_COMPOSITION }: { composition?: Composition }) {
   const tree = paintedTree(6247);
   const ropes = swing(tree.swingAnchor, { drop: 132, width: 44, seed: 1553 });
 
   return (
     <div className="absolute inset-0" {...parallax(TRAVEL.tree)}>
       <div
-        className="absolute bottom-[16vh] left-[-6vw] w-[52vw] sm:bottom-[18vh] sm:left-[1vw] sm:w-[34vw] lg:w-[27vw]"
+        className={`absolute ${TREE_STAGE[composition]}`}
         style={{ aspectRatio: `${TREE_VIEW.width} / ${TREE_VIEW.height}` }}
       >
         <svg

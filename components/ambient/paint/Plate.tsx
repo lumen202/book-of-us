@@ -94,7 +94,24 @@ export function Plate({ spec, priority = false }: { spec: PlateSpec; priority?: 
 
   return (
     <div className="absolute inset-0" {...parallax(spec.travel)}>
-      <PlatePicture spec={spec} light="day" priority={priority} />
+      {/*
+       * The day plate is *taken away* under the night one rather than left
+       * beneath it. Plates are transparent PNGs, so a night plate laid over a
+       * day plate replaces the day art only where the night art happens to be
+       * opaque — everywhere else both paintings show at once. That is what put
+       * the sun's shafts in a night sky: the night `tree` plate carries no rays
+       * (they are faded out at night before the bake ever photographs them), so
+       * the day plate's rays underneath it were what the reader was seeing.
+       *
+       * See `plate-daylight-out` in globals.css for why it holds full opacity
+       * and then cuts, rather than cross-fading against the incoming plate.
+       */}
+      <div
+        className="absolute inset-0"
+        style={showNight ? { animation: "plate-daylight-out 1200ms ease-out both" } : undefined}
+      >
+        <PlatePicture spec={spec} light="day" priority={priority} />
+      </div>
       {showNight && (
         <div
           className="absolute inset-0"

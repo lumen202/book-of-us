@@ -24,7 +24,14 @@
  */
 import { blobPath, catmullRomPath, sampleAt, type Point } from "./path";
 import { makeRng } from "./rng";
-import { HILL_VIEW } from "./terrain";
+
+/**
+ * How large the objects in this composition are, relative to the wide frame
+ * they were authored in. See `HillStage.scale` in `terrain.ts` — it is one
+ * number per composition so the two cannot drift into different-sized worlds,
+ * and it defaults to 1 here so every landscape call site is untouched.
+ */
+type Scaled = { scale?: number };
 
 /**
  * A footpath climbing away from the viewer.
@@ -33,10 +40,23 @@ import { HILL_VIEW } from "./terrain";
  * a linear taper reads as a wedge rather than as distance. The centreline is
  * swayed by two out-of-phase sines so it wanders without ever repeating a
  * recognisable S.
+ *
+ * Where it starts and ends is composition, not geometry, so it comes in from
+ * the stage rather than being authored here: a path leaving the bottom of a
+ * tall frame is nearer the viewer than one leaving a wide frame, and it has to
+ * be wider and wander less to read that way.
  */
-export function footpath(): { body: string; centre: Point[] } {
-  const start = { x: 1016, y: HILL_VIEW.height + 30 };
-  const end = { x: 704, y: 292 };
+export function footpath(opts: {
+  start: Point;
+  end: Point;
+  /** Width where it leaves the bottom of the frame. */
+  width: number;
+  /** Width it never tapers below — the path goes over the knoll, it does not
+   *  come to a point. */
+  tail: number;
+  sway: readonly [number, number];
+}): { body: string; centre: Point[] } {
+  const { start, end, width: mouth, tail, sway: [swayLong, swayShort] } = opts;
   const steps = 26;
 
   const centre: Point[] = [];
@@ -45,10 +65,10 @@ export function footpath(): { body: string; centre: Point[] } {
 
   for (let i = 0; i <= steps; i += 1) {
     const t = i / steps;
-    const sway = Math.sin(t * 3.4) * 46 + Math.sin(t * 7.9 + 1.2) * 13;
+    const sway = Math.sin(t * 3.4) * swayLong + Math.sin(t * 7.9 + 1.2) * swayShort;
     const x = start.x + (end.x - start.x) * t + sway * (1 - t * 0.55);
     const y = start.y + (end.y - start.y) * Math.pow(t, 0.82);
-    const width = 82 * Math.pow(1 - t, 1.9) + 2.5;
+    const width = mouth * Math.pow(1 - t, 1.9) + tail;
 
     centre.push({ x, y });
     left.push({ x: x - width / 2, y });
@@ -94,19 +114,20 @@ export function fenceLine(
  * A slip of water in a fold of the land. Deliberately small — it exists to
  * catch a stripe of sky and to give the bridge something to cross.
  */
-export function stream(ridge: Point[], opts: { x: number; seed: number }): string {
+export function stream(ridge: Point[], opts: { x: number; seed: number } & Scaled): string {
   const rand = makeRng(opts.seed);
+  const s = opts.scale ?? 1;
   const steps = 14;
   const left: Point[] = [];
   const right: Point[] = [];
 
   for (let i = 0; i <= steps; i += 1) {
     const t = i / steps;
-    const x = opts.x + Math.sin(t * 2.6) * 30 - t * 46;
-    const y = sampleAt(ridge, x) + 16 + t * 74;
-    const width = 4 + t * 30;
-    left.push({ x: x - width / 2 + rand.around(0, 1.6), y });
-    right.push({ x: x + width / 2 + rand.around(0, 1.6), y });
+    const x = opts.x + Math.sin(t * 2.6) * 30 * s - t * 46 * s;
+    const y = sampleAt(ridge, x) + 16 * s + t * 74 * s;
+    const width = (4 + t * 30) * s;
+    left.push({ x: x - width / 2 + rand.around(0, 1.6) * s, y });
+    right.push({ x: x + width / 2 + rand.around(0, 1.6) * s, y });
   }
 
   return catmullRomPath([...left, ...right.reverse()], true);
@@ -232,18 +253,19 @@ export function bench(
 export function steppingStones(
   from: Point,
   to: Point,
-  opts: { count: number; seed: number },
+  opts: { count: number; seed: number } & Scaled,
 ): { d: string }[] {
   const rand = makeRng(opts.seed);
+  const s = opts.scale ?? 1;
   return Array.from({ length: opts.count }, (_, i) => {
     const t = (i + 0.5) / opts.count;
-    const cx = from.x + (to.x - from.x) * t + rand.around(0, 5);
-    const cy = from.y + (to.y - from.y) * t + rand.around(0, 3);
+    const cx = from.x + (to.x - from.x) * t + rand.around(0, 5) * s;
+    const cy = from.y + (to.y - from.y) * t + rand.around(0, 3) * s;
     return {
       d: blobPath(rand, {
         cx,
         cy,
-        radius: rand.mid(4.5, 9),
+        radius: rand.mid(4.5, 9) * s,
         wobble: 0.28,
         points: rand.int(6, 8),
         squash: rand.float(0.34, 0.52),
@@ -263,9 +285,10 @@ export function steppingStones(
 export function lanternString(
   from: Point,
   to: Point,
-  opts: { count: number; sag: number; seed: number },
+  opts: { count: number; sag: number; seed: number } & Scaled,
 ): { cord: string; lamps: { x: number; y: number; r: number }[] } {
   const rand = makeRng(opts.seed);
+  const s = opts.scale ?? 1;
   const at = (t: number) => ({
     x: from.x + (to.x - from.x) * t,
     // 4t(1-t) peaks at 1 in the middle and is 0 at both ends: a hanging cord.
@@ -276,7 +299,7 @@ export function lanternString(
   const lamps = Array.from({ length: opts.count }, (_, i) => {
     const t = (i + 0.5) / opts.count + rand.around(0, 0.03);
     const point = at(t);
-    const r = rand.float(2.6, 4.2);
+    const r = rand.float(2.6, 4.2) * s;
     return { x: point.x, y: point.y + r * 1.1, r };
   });
 

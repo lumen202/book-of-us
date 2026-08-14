@@ -51,22 +51,65 @@ import { useNightPreview } from "@/lib/night-preview/NightPreviewProvider";
 
 const STAR_SEED = 50505;
 
-/** Enough to read as a sky, few enough to stay a handful of nodes. */
-const STAR_COUNT = 64;
+/**
+ * A properly populated sky.
+ *
+ * This was 64, which is roughly what a city gives you: a scattering of dots
+ * that reads as "some stars have been placed here". The garden is not in a
+ * city. What makes a night sky feel *deep* is not a handful of bright points
+ * but the dim ones crowded behind them — density is the depth cue, the same way
+ * the difference in movement between near and far grass is the meadow's.
+ *
+ * Most of these are therefore faint and small on purpose. Read the distribution
+ * below as three populations rather than one: a dense dim field, a smaller mid
+ * layer, and a few genuinely bright stars. A uniform random size range would
+ * have produced a sky of identical medium stars, which is the same flatness the
+ * canopy's three tonal bands exist to avoid.
+ */
+const STAR_COUNT = 260;
+
+/**
+ * How many of them actually twinkle.
+ *
+ * Deliberately not all, for two independent reasons that happen to agree.
+ *
+ * A whole sky pulsing reads as a screensaver — real twinkling is atmospheric
+ * and shows mostly on the brighter stars, so a quarter of them shimmering while
+ * the rest hold still is both what a sky looks like and what keeps the sky from
+ * becoming the thing you are looking at.
+ *
+ * And every animated element is its own composited layer on a `-z-10` backdrop
+ * that a phone is already paying for. One in four of 260 is 65 animated nodes,
+ * which is what this file cost when it had 64 stars and animated all of them:
+ * the sky gets four times the stars for the same number of moving parts, and
+ * the extra 195 are static divs that rasterise once. See the node-count budget
+ * in `codebase-map/painted-world.md`.
+ */
+const SHIMMER_EVERY = 4;
 
 function stars() {
   const rand = makeRng(STAR_SEED);
-  return Array.from({ length: STAR_COUNT }, (_, i) => ({
-    id: i,
-    left: rand.float(0, 100),
-    // Kept to the upper half: stars behind the hills would be under the ground.
-    top: rand.float(0, 46),
-    r: rand.float(0.7, 1.9),
-    opacity: rand.float(0.35, 0.95),
-    // Slow, unrelated periods so the sky never pulses in time with itself.
-    period: rand.float(3.4, 9.6),
-    phase: -rand.float(0, 9),
-  }));
+  return Array.from({ length: STAR_COUNT }, (_, i) => {
+    // Most stars are faint; a few are not. `mid` clusters toward the middle of
+    // its range, and squaring that pushes the whole population down toward the
+    // dim end while leaving a thin tail of bright ones.
+    const magnitude = Math.pow(rand.mid(0, 1), 2);
+
+    return {
+      id: i,
+      left: rand.float(-2, 102),
+      // Kept to the upper half — stars behind the hills would be underground —
+      // and denser toward the top, thinning as they approach the horizon where
+      // the last of the daylight still sits.
+      top: Math.pow(rand.float(0, 1), 1.35) * 48,
+      r: 0.5 + magnitude * 1.5,
+      opacity: 0.28 + magnitude * 0.62,
+      // Slow, unrelated periods so the sky never pulses in time with itself.
+      period: rand.float(3.4, 9.6),
+      phase: -rand.float(0, 9),
+      shimmer: i % SHIMMER_EVERY === 0,
+    };
+  });
 }
 
 export function NightSky() {
@@ -89,7 +132,10 @@ export function NightSky() {
       {field.map((star) => (
         <div
           key={star.id}
-          className="ambient-star absolute rounded-full"
+          // Only the shimmering ones carry `ambient-star` — that class is what
+          // the single reduced-motion rule in globals.css keys off, and a
+          // static star has no animation for it to kill.
+          className={`absolute rounded-full${star.shimmer ? " ambient-star" : ""}`}
           style={{
             left: `${star.left}%`,
             top: `${star.top}%`,
@@ -97,9 +143,13 @@ export function NightSky() {
             width: star.r * 2,
             background: pigment.sparkle,
             opacity: star.opacity,
-            ["--star-o" as string]: star.opacity,
-            animation: `star-shimmer ${star.period}s ease-in-out infinite`,
-            animationDelay: `${star.phase}s`,
+            ...(star.shimmer
+              ? {
+                  ["--star-o" as string]: star.opacity,
+                  animation: `star-shimmer ${star.period}s ease-in-out infinite`,
+                  animationDelay: `${star.phase}s`,
+                }
+              : null),
           }}
         />
       ))}

@@ -1,3 +1,4 @@
+import { DEFAULT_COMPOSITION, type Composition } from "@/lib/ambient/composition";
 import { parallax, TRAVEL } from "@/lib/ambient/depth";
 import { BOUGH_VIEW, paintedBough } from "@/lib/ambient/flora";
 import { mix, pigment, veil } from "@/lib/ambient/palette";
@@ -100,13 +101,65 @@ function Bough({ seed }: { seed: number }) {
   );
 }
 
-export function FramingBoughs() {
+/**
+ * Where the two boughs come in from, per composition.
+ *
+ * A bough is drawn into an aspect-locked box, so like the tree it was never
+ * distorted by the tall frame — it was framing the wrong thing. In landscape
+ * the pair hang from the two top corners, which is where the frame's corners
+ * are. A portrait frame's top corners are barely a third as far apart, so the
+ * same staging put both boughs in a huddle over the middle of the sky and
+ * closed nothing in; that is why the right-hand one was simply hidden below
+ * `sm`, leaving a phone with a single bough and an open right edge.
+ *
+ * Portrait brings them in from the **sides** instead: the left one still hangs
+ * from its corner and reaches down the left edge, and the right one enters
+ * lower, from the right edge, well below it. Two boughs at different heights on
+ * opposite edges close a tall frame the way two top corners close a wide one —
+ * and the asymmetry is doing real work, because a pair placed symmetrically in
+ * a narrow frame reads as a wreath around the text rather than as branches you
+ * are sitting under.
+ *
+ * The middle of the frame stays open in both, which is the rule that actually
+ * matters: foliage in the corners, clear air where the book is.
+ */
+type BoughPlacement = {
+  /** Whole class strings — the Tailwind scanner only generates what it sees. */
+  readonly left: string;
+  readonly right: string;
+  readonly rightOpacity: number;
+};
+
+const BOUGH_STAGE: Record<Composition, BoughPlacement> = {
+  landscape: {
+    left: "absolute left-0 top-0 w-[52vw] sm:w-[38vw] lg:w-[30vw]",
+    // Hidden on phones, where a second bough hanging beside the first would
+    // close the frame in around the text rather than around the view.
+    right: "absolute right-0 top-0 hidden w-[34vw] sm:block lg:w-[27vw]",
+    rightOpacity: 0.82,
+  },
+  portrait: {
+    left: "absolute left-0 top-0 w-[74vw]",
+    // Far enough off the edge that the limb's root is out of frame, the way
+    // the left one's is — only the branch comes into view.
+    right: "absolute right-[-8vw] top-[16vh] w-[50vw]",
+    rightOpacity: 0.8,
+  },
+};
+
+export function FramingBoughs({
+  composition = DEFAULT_COMPOSITION,
+}: {
+  composition?: Composition;
+}) {
+  const stage = BOUGH_STAGE[composition];
+
   return (
     <div className="absolute inset-0" {...parallax(TRAVEL.boughs)}>
-      {/* left — always present, larger on small screens where it is the only
-          framing element */}
+      {/* left — always present, and the only framing element on a narrow
+          landscape fallback */}
       <div
-        className="absolute left-0 top-0 w-[52vw] origin-top-left sm:w-[38vw] lg:w-[30vw]"
+        className={stage.left}
         style={{ aspectRatio: `${BOUGH_VIEW.width} / ${BOUGH_VIEW.height}` }}
       >
         <div
@@ -121,10 +174,10 @@ export function FramingBoughs() {
         </div>
       </div>
 
-      {/* right — hidden on phones, where a second bough would close the frame
-          in around the text rather than around the view */}
+      {/* right — mirrored, and a different seed, because mirroring alone is
+          visible immediately */}
       <div
-        className="absolute right-0 top-0 hidden w-[34vw] origin-top-right sm:block lg:w-[27vw]"
+        className={stage.right}
         style={{
           aspectRatio: `${BOUGH_VIEW.width} / ${BOUGH_VIEW.height}`,
           transform: "scaleX(-1)",
@@ -134,7 +187,7 @@ export function FramingBoughs() {
           className="ambient-bough h-full w-full"
           style={{
             transformOrigin: "8% 4%",
-            opacity: 0.82,
+            opacity: stage.rightOpacity,
             animation: "bough-sway 31s ease-in-out infinite",
             animationDelay: "-9s",
           }}

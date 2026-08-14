@@ -1,4 +1,4 @@
-import { RIDGES } from "@/lib/ambient/terrain";
+import { RIDGE_BRUSHES } from "@/lib/ambient/terrain";
 
 /**
  * The brushes.
@@ -45,8 +45,15 @@ export function PaintFilters() {
       style={{ position: "absolute", width: 0, height: 0, overflow: "hidden" }}
     >
       <defs>
-        {/* One brush per ridge, tuned by depth. */}
-        {RIDGES.map((ridge, index) => (
+        {/*
+         * One brush per ridge, tuned by depth — and by *index*, which is why
+         * this maps `RIDGE_BRUSHES` rather than either composition's ridge
+         * list. Both compositions derive their ridges from that one array, so
+         * the filter bank is identical whichever staging is on screen and a
+         * portrait ridge can never end up painted with a brush belonging to a
+         * different distance.
+         */}
+        {RIDGE_BRUSHES.map((ridge, index) => (
           <filter
             key={ridge.id}
             id={`brush-${ridge.id}`}
@@ -115,7 +122,7 @@ export function PaintFilters() {
          * displacement scale can express — they were being generated and then
          * rounded away. The ridge silhouette is unchanged.
          */}
-        {RIDGES.map((ridge, index) => (
+        {RIDGE_BRUSHES.map((ridge, index) => (
           <filter
             key={`${ridge.id}-lite`}
             id={`brush-${ridge.id}-lite`}

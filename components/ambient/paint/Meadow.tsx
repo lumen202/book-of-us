@@ -1,5 +1,6 @@
+import { DEFAULT_COMPOSITION, type Composition } from "@/lib/ambient/composition";
 import { parallax, TRAVEL } from "@/lib/ambient/depth";
-import { meadow, MEADOW_VIEW, motes } from "@/lib/ambient/flora";
+import { meadow, MEADOW_STAGE, motes } from "@/lib/ambient/flora";
 import { mix, pigment, species, veil } from "@/lib/ambient/palette";
 
 /**
@@ -44,8 +45,13 @@ const ROW_TONE = [
   { blade: mix(pigment.grass, 62, pigment.grassDeep), lit: mix(pigment.grassLit, 62, pigment.grass) },
 ] as const;
 
-export function MeadowLayer() {
-  const field = meadow();
+export function MeadowLayer({
+  composition = DEFAULT_COMPOSITION,
+}: {
+  composition?: Composition;
+}) {
+  const stage = MEADOW_STAGE[composition];
+  const field = meadow(composition);
 
   return (
     <div
@@ -59,17 +65,32 @@ export function MeadowLayer() {
       }}
     >
       {/*
-       * On a phone the full 1440-unit field squeezed into ~390px would compress
-       * every tuft to a quarter of its width while leaving its height alone —
-       * spindly, wrong, and the one place `preserveAspectRatio="none"` really
-       * does bite. So narrow viewports show a *slice* of the same meadow at a
-       * sane scale instead: the SVG is drawn wider than its container and
-       * pulled left, and the container clips it. Same generated field, same
-       * flowers, just standing closer to it.
+       * The landscape composition still carries its old narrow-screen
+       * mitigation, and it is worth knowing why it is here and why it is no
+       * longer the answer.
+       *
+       * The full 1440-unit field squeezed into ~390px compresses every tuft to
+       * a quarter of its width while leaving its height alone — spindly, and
+       * the one place `preserveAspectRatio="none"` really does bite. So the
+       * landscape field is drawn wider than its container and pulled left, and
+       * the container clips it: a *slice* of the same meadow at a sane scale
+       * rather than the whole thing squashed.
+       *
+       * That fixes how wide a blade is and does nothing about how tall — the
+       * grass was still 1.56x too high — and it shows the middle of a field
+       * whose `edgeBias` arch is out at ±720, so the foreground stopped
+       * wrapping around the reading column on exactly the screens where the
+       * column is widest. The portrait composition regenerates the field at the
+       * phone's own width instead, and needs no slice: it is drawn full width,
+       * at its own aspect, with the arch back at the screen edges.
        */}
       <svg
-        className="absolute inset-y-0 -left-[60%] w-[220%] sm:left-0 sm:w-full"
-        viewBox={`0 0 ${MEADOW_VIEW.width} ${MEADOW_VIEW.height}`}
+        className={
+          composition === "portrait"
+            ? "absolute inset-0 h-full w-full"
+            : "absolute inset-y-0 -left-[60%] w-[220%] sm:left-0 sm:w-full"
+        }
+        viewBox={`0 0 ${stage.view.width} ${stage.view.height}`}
         preserveAspectRatio="none"
         fill="none"
       >

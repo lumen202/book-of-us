@@ -1,3 +1,4 @@
+import { DEFAULT_COMPOSITION, type Composition } from "@/lib/ambient/composition";
 import { TRAVEL } from "@/lib/ambient/depth";
 import { pathVerge } from "@/lib/ambient/flora";
 import { depthPigment, mix, pigment, species, veil } from "@/lib/ambient/palette";
@@ -13,13 +14,13 @@ import {
 } from "@/lib/ambient/props";
 import {
   forestCrowns,
-  HILL_VIEW,
-  RIDGES,
+  HILL_STAGE,
   ridgeBand,
   ridgeBody,
   ridgeSamples,
   slopeBlooms,
   slopePatches,
+  type HillStage,
   type RidgeSpec,
 } from "@/lib/ambient/terrain";
 
@@ -39,47 +40,50 @@ import {
  * across, not a vista — the far hedge should still be green.
  *
  * Split across two SVGs sharing one viewBox so the front half can have its own
- * parallax. They must keep identical geometry — same height, same offset — or
- * the ridges stop nesting.
+ * parallax. They must keep identical geometry — same stage, same height, same
+ * offset — or the ridges stop nesting.
+ *
+ * ## Composition
+ *
+ * Everything geometric here comes from `HILL_STAGE[composition]` rather than
+ * from constants in this file, because `preserveAspectRatio="none"` distorts a
+ * fixed viewBox into a frame of a different shape and the tall frame therefore
+ * needs its own ridges, its own horizon and its own prop placement rather than
+ * the wide one squeezed. The prop is only ever passed by the bake easel; see
+ * `lib/ambient/composition.ts`.
  */
-
-const FRAME = {
-  // Extended below the viewport so parallax can lift the layer without
-  // exposing the page underneath.
-  bottom: -52,
-  /*
-   * Taller below `sm`: a phone's viewport is a lot more vertical than a
-   * desktop window, and `vh` sizing alone gave every device the same 48%,
-   * which on a tall narrow screen reads as a wide plain band of sky sitting
-   * above a comparatively squeezed strip of hills — the scene has no side
-   * gutter of extra hillside to balance it the way desktop does. Taking more
-   * of the phone's own height for the hills (independent of the horizontal
-   * crop question, which is still open) moves the horizon up and gives the
-   * detailed part of the painting more of the screen it actually has.
-   */
-  heightClass: "h-[calc(60vh_+_52px)] sm:h-[calc(48vh_+_52px)]",
-  minHeightClass: "min-h-[420px] sm:min-h-[360px]",
-} as const;
 
 const HUES = [species.pink.petal, species.daisy.petal, species.buttercup.petal, species.lavender.petal];
 
-function Ridge({ spec, points }: { spec: RidgeSpec; points: Point[] }) {
+function Ridge({ spec, points, stage }: { spec: RidgeSpec; points: Point[]; stage: HillStage }) {
   const fill = depthPigment(spec.depth, spec.warmth);
-  const crowns = spec.forest ? forestCrowns(points, spec, spec.forest) : [];
+  const crowns = spec.forest ? forestCrowns(points, spec, spec.forest, stage) : [];
   const detail = 1 - spec.depth;
 
   return (
     <g className={`brush-${spec.id}`} filter={`url(#brush-${spec.id})`}>
-      <path d={ridgeBody(points)} fill={fill} />
+      <path d={ridgeBody(points, stage)} fill={fill} />
 
       {/* the crest, where the afternoon lands */}
       <path
-        d={ridgeBand(points, 480, HILL_VIEW.width + 90, 8 + detail * 18, spec.seed + 5)}
+        d={ridgeBand(
+          points,
+          stage.crest.from,
+          stage.crest.to,
+          (8 + detail * 18) * stage.scale,
+          spec.seed + 5,
+        )}
         fill={veil(pigment.grassLit, 18 + detail * 26)}
       />
       {/* and the side turned away from it — cool and green, never dark */}
       <path
-        d={ridgeBand(points, -90, 620, 10 + detail * 22, spec.seed + 9)}
+        d={ridgeBand(
+          points,
+          stage.shade.from,
+          stage.shade.to,
+          (10 + detail * 22) * stage.scale,
+          spec.seed + 9,
+        )}
         fill={veil(pigment.shadow, 4 + detail * 9)}
       />
 
@@ -94,14 +98,19 @@ function Ridge({ spec, points }: { spec: RidgeSpec; points: Point[] }) {
   );
 }
 
-function Slope({ spec, points }: { spec: RidgeSpec; points: Point[] }) {
-  const blooms = slopeBlooms(points, spec, 3 + Math.round((1 - spec.depth) * 3));
+function Slope({ spec, points, stage }: { spec: RidgeSpec; points: Point[]; stage: HillStage }) {
+  const blooms = slopeBlooms(
+    points,
+    spec,
+    stage.blooms.base + Math.round((1 - spec.depth) * stage.blooms.spread),
+    stage,
+  );
 
   return (
     <>
       {spec.patches ? (
         <g filter="url(#brush-shade)" fill={veil(pigment.shadow, 8 + (1 - spec.depth) * 8)}>
-          {slopePatches(points, spec, spec.patches).map((d, i) => (
+          {slopePatches(points, spec, spec.patches, stage).map((d, i) => (
             <path key={i} d={d} />
           ))}
         </g>
@@ -117,25 +126,28 @@ function Slope({ spec, points }: { spec: RidgeSpec; points: Point[] }) {
 }
 
 /** The two far rises — the other side of the bowl. */
-export function FarRange() {
-  const sampled = RIDGES.slice(0, 2).map((spec) => ({ spec, points: ridgeSamples(spec) }));
+export function FarRange({ composition = DEFAULT_COMPOSITION }: { composition?: Composition }) {
+  const stage = HILL_STAGE[composition];
+  const sampled = stage.ridges
+    .slice(0, 2)
+    .map((spec) => ({ spec, points: ridgeSamples(spec, stage) }));
 
   return (
     <svg
-      className={`absolute left-0 w-full ${FRAME.heightClass} ${FRAME.minHeightClass}`}
-      viewBox={`0 0 ${HILL_VIEW.width} ${HILL_VIEW.height}`}
+      className={`absolute left-0 w-full ${stage.frame.heightClass}`}
+      viewBox={`0 0 ${stage.view.width} ${stage.view.height}`}
       preserveAspectRatio="none"
       fill="none"
       style={{
-        bottom: FRAME.bottom,
+        bottom: stage.frame.bottom,
         transform: "translate3d(0, 0, 0)",
       }}
       data-parallax={TRAVEL.rangeFar}
     >
       {sampled.map(({ spec, points }) => (
         <g key={spec.id}>
-          <Ridge spec={spec} points={points} />
-          <Slope spec={spec} points={points} />
+          <Ridge spec={spec} points={points} stage={stage} />
+          <Slope spec={spec} points={points} stage={stage} />
         </g>
       ))}
     </svg>
@@ -163,40 +175,56 @@ export function FarRange() {
  *
  * All of it is low-contrast and small. The moment any one of these becomes
  * something you *look at*, it has stopped working.
+ *
+ * Every one of those relationships is preserved in both compositions and none
+ * of the coordinates are — the numbers come from `stage.props`, because the
+ * ridges are at different heights in a tall frame and `sampleAt` puts each
+ * object on the ground it actually finds.
  */
-export function NearHills() {
-  const sampled = RIDGES.slice(2).map((spec) => ({ spec, points: ridgeSamples(spec) }));
+export function NearHills({ composition = DEFAULT_COMPOSITION }: { composition?: Composition }) {
+  const stage = HILL_STAGE[composition];
+  const plan = stage.props;
+  const sampled = stage.ridges.slice(2).map((spec) => ({ spec, points: ridgeSamples(spec, stage) }));
 
   const fold = sampled[0].points; // knoll — the fold the creek runs into
   const bank = sampled[1].points; // near — where the fence and bench stand
-  const water = stream(fold, { x: 476, seed: 1487 });
-  const span = bridge(fold, { x: 448, width: 86, drop: 24 });
-  const fence = fenceLine(bank, { from: 44, to: 596, count: 11, height: 26, seed: 733 });
+  const water = stream(fold, { ...plan.stream, scale: stage.scale });
+  const span = bridge(fold, plan.bridge);
+  const fence = fenceLine(bank, plan.fence);
   const lanterns = lanternString(
-    { x: fence.posts[2].x, y: fence.posts[2].y - fence.posts[2].height },
-    { x: fence.posts[7].x, y: fence.posts[7].y - fence.posts[7].height },
-    { count: 5, sag: 13, seed: 219 },
+    {
+      x: fence.posts[plan.lanterns.fromPost].x,
+      y: fence.posts[plan.lanterns.fromPost].y - fence.posts[plan.lanterns.fromPost].height,
+    },
+    {
+      x: fence.posts[plan.lanterns.toPost].x,
+      y: fence.posts[plan.lanterns.toPost].y - fence.posts[plan.lanterns.toPost].height,
+    },
+    { ...plan.lanterns, scale: stage.scale },
   );
-  const seat = bench(bank, { x: 1034, width: 62, seed: 907 });
-  const trail = footpath();
-  const stones = steppingStones(trail.centre[3], trail.centre[8], { count: 5, seed: 611 });
-  const verge = pathVerge(trail.centre);
+  const seat = bench(bank, plan.bench);
+  const trail = footpath(plan.path);
+  const stones = steppingStones(trail.centre[plan.stones.from], trail.centre[plan.stones.to], {
+    ...plan.stones,
+    scale: stage.scale,
+  });
+  const verge = pathVerge(trail.centre, stage.scale);
 
   return (
     <svg
-      className={`absolute left-0 w-full ${FRAME.heightClass} ${FRAME.minHeightClass}`}
-      viewBox={`0 0 ${HILL_VIEW.width} ${HILL_VIEW.height}`}
+      className={`absolute left-0 w-full ${stage.frame.heightClass}`}
+      viewBox={`0 0 ${stage.view.width} ${stage.view.height}`}
       preserveAspectRatio="none"
       fill="none"
       style={{
-        bottom: FRAME.bottom,
+        bottom: stage.frame.bottom,
         transform: "translate3d(0, 0, 0)",
       }}
       data-parallax={TRAVEL.hillsNear}
     >
       <g>
-        <Ridge spec={sampled[0].spec} points={fold} />
-        <Slope spec={sampled[0].spec} points={fold} />
+        <Ridge spec={sampled[0].spec} points={fold} stage={stage} />
+        <Slope spec={sampled[0].spec} points={fold} stage={stage} />
       </g>
 
       {/* the creek, carrying a stripe of sky down the fold */}
@@ -211,37 +239,55 @@ export function NearHills() {
         <path
           d={span.rail}
           stroke={veil(pigment.wood, 62)}
-          strokeWidth="1.6"
+          strokeWidth={1.6 * stage.scale}
           strokeLinecap="round"
           fill="none"
         />
         {span.posts.map((d, i) => (
-          <path key={i} d={d} stroke={veil(pigment.wood, 54)} strokeWidth="1.4" strokeLinecap="round" />
+          <path
+            key={i}
+            d={d}
+            stroke={veil(pigment.wood, 54)}
+            strokeWidth={1.4 * stage.scale}
+            strokeLinecap="round"
+          />
         ))}
       </g>
 
       {sampled.slice(1).map(({ spec, points }) => (
         <g key={spec.id}>
-          <Ridge spec={spec} points={points} />
-          <Slope spec={spec} points={points} />
+          <Ridge spec={spec} points={points} stage={stage} />
+          <Slope spec={spec} points={points} stage={stage} />
         </g>
       ))}
 
       {/* the fence, and the lanterns waiting for the evening */}
       <g filter="url(#brush-prop)">
         {fence.rails.map((d, i) => (
-          <path key={i} d={d} stroke={veil(pigment.wood, 34)} strokeWidth="1.5" fill="none" strokeLinecap="round" />
+          <path
+            key={i}
+            d={d}
+            stroke={veil(pigment.wood, 34)}
+            strokeWidth={1.5 * stage.scale}
+            fill="none"
+            strokeLinecap="round"
+          />
         ))}
         {fence.posts.map((post, i) => (
           <path
             key={i}
-            d={`M${post.x} ${post.y} L${post.x + (i % 3) - 1} ${post.y - post.height}`}
+            d={`M${post.x} ${post.y} L${post.x + ((i % 3) - 1) * stage.scale} ${post.y - post.height}`}
             stroke={veil(pigment.wood, 46)}
-            strokeWidth={2.4 - (i / fence.posts.length) * 1.2}
+            strokeWidth={(2.4 - (i / fence.posts.length) * 1.2) * stage.scale}
             strokeLinecap="round"
           />
         ))}
-        <path d={lanterns.cord} stroke={veil(pigment.wood, 30)} strokeWidth="0.8" fill="none" />
+        <path
+          d={lanterns.cord}
+          stroke={veil(pigment.wood, 30)}
+          strokeWidth={0.8 * stage.scale}
+          fill="none"
+        />
         {lanterns.lamps.map((lamp, i) => (
           <g key={i}>
             <ellipse cx={lamp.x} cy={lamp.y} rx={lamp.r * 0.8} ry={lamp.r} fill={veil(pigment.lantern, 82)} />
@@ -280,14 +326,24 @@ export function NearHills() {
         <path d={seat.back} fill={veil(pigment.wood, 68)} />
         <path d={seat.seat} fill={veil(pigment.wood, 78)} />
         {[...seat.legs, ...seat.arms].map((d, i) => (
-          <path key={i} d={d} stroke={veil(pigment.wood, 62)} strokeWidth="1.6" strokeLinecap="round" />
+          <path
+            key={i}
+            d={d}
+            stroke={veil(pigment.wood, 62)}
+            strokeWidth={1.6 * stage.scale}
+            strokeLinecap="round"
+          />
         ))}
       </g>
 
       {/* the path out of the bottom of the frame */}
       <g filter="url(#brush-prop)">
         <path d={trail.body} fill={veil(pigment.path, 58)} />
-        <path d={trail.body} fill={veil(pigment.shadow, 6)} transform="translate(-3 2)" />
+        <path
+          d={trail.body}
+          fill={veil(pigment.shadow, 6)}
+          transform={`translate(${-3 * stage.scale} ${2 * stage.scale})`}
+        />
         {stones.map((stone, i) => (
           <path key={i} d={stone.d} fill={veil(pigment.stone, 62)} />
         ))}

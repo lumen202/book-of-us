@@ -466,6 +466,37 @@ body {
   }
 }
 
+/*
+ * And the day plate underneath it goes out — at the last instant, not gradually.
+ *
+ * This is the fix for the "peeking lights": the plates are *transparent* PNGs
+ * stacked on one another, so a night plate laid over a day plate only replaces
+ * the day art where the night art is opaque. On the `tree` band the night
+ * version has no sun shafts at all (`.ambient-ray` is faded out at night by the
+ * block near the top of this file, so they were never painted into it), and the
+ * day version does — so the day plate's shafts showed straight through the
+ * night one, on a night sky, with the sun down. Every band had a quieter
+ * version of the same problem: two paintings of the same hillside, superimposed.
+ *
+ * Holding at `opacity: 1` for the whole duration and dropping to 0 on the final
+ * frame is deliberate, and is why this is a keyframe rather than a transition.
+ * A true cross-fade would take both layers to partial alpha at the same time,
+ * and two half-transparent plates composite to *less* than full coverage — on
+ * the sky band, the cream page behind the scene would wash through the middle
+ * of the fade. This way the day plate is only ever removed from under a night
+ * plate that has already reached full opacity, so nothing is uncovered at any
+ * point.
+ */
+@keyframes plate-daylight-out {
+  0%,
+  99% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 /* Clouds crossing the sky, left to right, off both edges.
    Distances are in `vw`, not `%`: a percentage in a transform resolves
    against the element's own width, which for a 220px cloud is a nudge, not a

@@ -18,9 +18,31 @@ export type Meteor = {
   duration: number;
 };
 
-/** Seconds between meteors — rare enough that one is a small event, not weather. */
-const CADENCE: [number, number] = [6, 16];
-const MAX_CONCURRENT = 3;
+/**
+ * Seconds between meteors.
+ *
+ * This was `[6, 16]`, tuned on the reasoning that a falling star should be rare
+ * enough to feel like a small event rather than like weather. That is the right
+ * instinct for an ordinary night and the wrong one for this night: the 5th is
+ * the one evening the garden is *supposed* to be putting on a show, and at a
+ * ten-second average most readers saw one or two and could not have told you
+ * whether they were a feature.
+ *
+ * `[2.5, 7]` is a shower rather than a drizzle — a few a minute becomes a few
+ * every ten seconds — while still being random enough per-meteor that it never
+ * settles into a rhythm, which is the rule the whole scene is built on.
+ */
+const CADENCE: [number, number] = [2.5, 7];
+
+/**
+ * How many can be in the air at once.
+ *
+ * The cap is what stops a burst of short intervals stacking into a downpour.
+ * Raised with the cadence so the faster spawn rate can actually land — at 3 a
+ * meteor was frequently dropped on the floor — but kept low enough that the sky
+ * never reads as a rain of them.
+ */
+const MAX_CONCURRENT = 5;
 
 function spawn(id: number): Meteor {
   const r = Math.random;

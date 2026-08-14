@@ -130,7 +130,7 @@ export const PLATES: readonly PlateSpec[] = [
 export type PlateLight = "day" | "night";
 
 /**
- * Portrait, and the mistake to not repeat.
+ * Portrait, and the mistake not to repeat.
  *
  * This was originally documented as "a different composition, not a crop", on
  * the reasoning that because the paint layers are fixed-`viewBox` and stretched
@@ -142,14 +142,17 @@ export type PlateLight = "day" | "night";
  * spikes. It also left roughly 60% of the frame as empty sky, because the
  * horizon sits where the landscape composition put it.
  *
- * The real fix is an authored portrait composition — its own horizon height,
- * its own tree placement and scale, its own bough framing, and terrain
- * regenerated for a tall aspect rather than squeezed into one. That means
- * parameterising the geometry in `terrain.ts` / `flora.ts` / the `*_VIEW`
- * constants by composition, and baking each from its own. Until that exists,
- * these portrait plates are known-distorted.
+ * **This is now fixed.** `lib/ambient/composition.ts` carries two authored
+ * stagings, and the portrait one has its own view boxes — sized so their aspect
+ * matches the box they are drawn into, which is what actually removes the
+ * distortion — plus its own horizon height, ridges, prop placement, object
+ * scale, tree placement and bough framing. `app/plate/[layer]` picks the
+ * staging from the bake viewport, so the portrait pass photographs a genuinely
+ * different painting rather than a squeezed one. Read `composition.ts` first if
+ * you are changing any of it.
  *
- * Note the trap in the cheap alternatives: switching the bake to
+ * Note the trap in the cheap alternatives, because it is what makes this look
+ * like a one-line fix when it is not: switching the bake to
  * `preserveAspectRatio="xMidYMid slice"` removes the distortion but crops the
  * frame instead, and `object-cover` on the plate does the same thing at
  * runtime. Both trade a squashed picture for an amputated one. Neither is a
