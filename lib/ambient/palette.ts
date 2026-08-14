@@ -16,9 +16,24 @@
  *   That is the correct way to paint a wistful autumn hillside, and it is why
  *   the whole world came out olive and lonely. Nothing here mixes into `ink`
  *   any more except bark.
- * - **Shade is cool and coloured, never dark.** `shadow` below is a green-
- *   lavender, and it is used at low alpha. There is no black in this world and
- *   no grey; even the deepest thing in the picture is a colour you could name.
+ * - **Shade is cool and coloured — and, since the value pass, genuinely dark.**
+ *   This rule used to read "never dark", and that was wrong. Desaturating the
+ *   assembled scene showed it living in one narrow brightness band (mean 199,
+ *   stdev 34 of 255): no dark zone anywhere, which is what made a painted world
+ *   read as flat vector illustration. Ghibli backgrounds are built on three
+ *   legible brightness zones — light, mid, dark — and this one had one. So
+ *   `shadowDeep`, `canopyShade`, `grassShade` and `contact` below are allowed to
+ *   be *dark*, and are used at real strength rather than as a whisper.
+ *
+ *   What survives from the old rule, and is still absolute: there is no black in
+ *   this world and no grey. Every dark here is a saturated colour you could
+ *   name, mixed from `--color-shade` (a deep cool green), never toward `ink` and
+ *   never toward neutral. Dark and drab are different things — the first is how
+ *   gouache builds form, the second is how the very first version of this file
+ *   came out olive and lonely.
+ *
+ *   The light key has not moved. This is still the middle of a good afternoon;
+ *   it now has somewhere for the light to fall *from*.
  * - **Light is butter, not orange.** Sunlight mixes from `--color-butter`,
  *   which keeps highlights golden instead of tipping the whole scene toward
  *   sunset melancholy.
@@ -56,6 +71,8 @@ const T = {
   lilac: "var(--color-lilac)",
   butter: "var(--color-butter)",
   sky: "var(--color-sky)",
+  /** The dark end. Deep cool green — see `shade` in lib/theme/tokens.ts. */
+  shade: "var(--color-shade)",
 } as const;
 
 function clampPct(n: number): number {
@@ -133,8 +150,30 @@ export const pigment = {
   air,
   /** Pale, fresh green for the far side of the meadow. */
   grassPale: mix(T.leaf, 56, T.paper),
-  /** The universal shade: green going lavender. Used at low alpha, always. */
+  /** The universal soft shade: green going lavender. Low alpha, ambient
+   *  occlusion rather than a cast shadow — the light half of the shadow family. */
   shadow: mix(T.leafDeep, 58, T.lilac),
+
+  /* the dark zone --------------------------------------------------------- */
+  /*
+   * Everything below is what the scene was missing. See the value-range note in
+   * this file's header before softening any of it: these read as too strong in
+   * isolation and are correct in the assembled picture, which is the usual way
+   * round for shadow and the reason the scene had none.
+   */
+  /** Grass out of the sun — the meadow inside the tree's shadow. */
+  grassShade: mix(T.shade, 62, T.leafDeep),
+  /** The shadowed underside of a canopy. The darkest large mass in the frame. */
+  canopyShade: mix(T.shade, 78, T.leafDeep),
+  /** Canopy between lit top and shaded underside. */
+  canopyMid: mix(T.leafDeep, 74, T.shade),
+  /** Where an object meets the ground. Short, dense, and the single cheapest
+   *  thing that stops the tree, bench, bridge and fence from floating. */
+  contact: mix(T.shade, 84, T.lilac),
+  /** A cast shadow lying across the grass, away from the contact point. */
+  shadowDeep: mix(T.shade, 58, T.lilac),
+  /** Bark on the side away from the sun. */
+  barkShade: mix(T.shade, 46, mix(T.ink, 62, T.warm)),
 
   /* incidentals ---------------------------------------------------------- */
   bark: mix(T.ink, 56, T.warm),

@@ -86,6 +86,28 @@ export const gardenTokens = {
     butter: "#f8d98d",
     /** Optimistic pastel sky. */
     sky: "#9ecfec",
+    /**
+     * The dark end of the world — deep cool green, for shadow *masses*.
+     *
+     * Added for the same reason the rest of this block exists: it is not
+     * reachable by mixing what was already here. The palette's darkest existing
+     * pigment is `leafDeep`, which is a mid-tone, and every route to something
+     * darker ran through `ink` (a warm brown) and came out olive — the exact
+     * failure documented at the top of `lib/ambient/palette.ts`.
+     *
+     * Why it was needed: desaturating the assembled scene showed it occupying a
+     * single narrow brightness band (mean 199, stdev 34 out of 255) — a picture
+     * with no dark zone at all, which is what made it read as flat vector art
+     * rather than as painting. Ghibli backgrounds are built on three legible
+     * brightness zones (light / mid / dark), and the scene had one.
+     *
+     * This does **not** break the palette's "no true grey, no black" rule, and
+     * must not be changed in a way that does. It is dark *and* saturated —
+     * a colour you could name — which is precisely how gouache shadow works and
+     * how a shadow stays part of a warm afternoon instead of turning it to dusk.
+     * Never mix this toward `ink` or toward grey.
+     */
+    shade: "#2f5b4d",
   },
 } as const;
 

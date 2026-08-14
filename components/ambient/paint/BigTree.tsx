@@ -45,15 +45,35 @@ export function BigTree() {
           fill="none"
           style={{ overflow: "visible", display: "block" }}
         >
-          {/* the pool of shade it throws on the grass */}
+          {/*
+            The pool of shade it throws on the grass.
+
+            Two passes, and the second is the one that matters. A single soft
+            pool at low alpha is ambient occlusion: it darkens a region but never
+            says where the tree *meets the ground*, which is why the tree used to
+            float above the meadow. A real shadow is densest at the point of
+            contact and loses density with distance, and reproducing just that
+            one gradient is most of what makes an object sit in a scene rather
+            than hover over it.
+          */}
           <g filter="url(#brush-shade)">
-            <path d={tree.groundShade} fill={veil(pigment.shadow, 24)} />
+            <path d={tree.groundShade} fill={veil(pigment.shadowDeep, 44)} />
+            <path d={tree.groundShade} fill={veil(pigment.contact, 34)} />
           </g>
 
-          {/* trunk and limbs */}
+          {/*
+            Trunk and limbs.
+
+            The sun sits off the top-right (see `SunGlow`), so the shaded side of
+            the trunk is on the left and the lit edge on the right. Three offset
+            copies — shade, body, lit — is what turns a flat silhouette into
+            something round; it is the same light/mid/dark banding the canopy
+            uses below, at the scale of a single form.
+          */}
           <g filter="url(#brush-prop)">
-            <path d={tree.trunk} fill={pigment.bark} />
-            <path d={tree.trunk} fill={veil(pigment.barkLit, 40)} transform="translate(4 0)" />
+            <path d={tree.trunk} fill={pigment.barkShade} />
+            <path d={tree.trunk} fill={pigment.bark} transform="translate(2 0)" />
+            <path d={tree.trunk} fill={veil(pigment.barkLit, 52)} transform="translate(5 0)" />
             <g fill={pigment.bark}>
               {tree.limbs.map((d, i) => (
                 <path key={i} d={d} />
@@ -86,8 +106,17 @@ export function BigTree() {
             </g>
           </g>
 
-          {/* canopy: shade, structure showing through, body, then the light */}
-          <g className="brush-leaf" filter="url(#brush-leaf)" fill={mix(pigment.grassDeep, 88, pigment.lilac)}>
+          {/*
+            Canopy: shade, structure showing through, body, then the light.
+
+            The three bands were always here; what was wrong was their *values*.
+            This bottom band used to be `grassDeep` nudged toward lilac, which is
+            a mid-tone — so the canopy's "shadow", "mid" and "lit" layers all
+            landed within a few percent of each other and the whole mass read as
+            one flat sticker. It is now genuinely the dark end of the picture.
+            See the value-range note in `lib/ambient/palette.ts`.
+          */}
+          <g className="brush-leaf" filter="url(#brush-leaf)" fill={pigment.canopyShade}>
             {tree.shadow.map((d, i) => (
               <path key={i} d={d} />
             ))}
@@ -97,7 +126,7 @@ export function BigTree() {
               <path key={i} d={d} />
             ))}
           </g>
-          <g className="brush-leaf" filter="url(#brush-leaf)" fill={pigment.grass}>
+          <g className="brush-leaf" filter="url(#brush-leaf)" fill={pigment.canopyMid}>
             {tree.mid.map((d, i) => (
               <path key={i} d={d} />
             ))}

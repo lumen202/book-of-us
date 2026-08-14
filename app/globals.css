@@ -28,6 +28,10 @@
   --color-lilac: #b7a9dc;
   --color-butter: #f8d98d;
   --color-sky: #9ecfec;
+  /* The dark end of the world. Deep cool green, never grey — see the `shade`
+     comment in lib/theme/tokens.ts for why the scene needed a real dark zone
+     and why this one cannot be reached by mixing the pigments above it. */
+  --color-shade: #2f5b4d;
 
   /*
    * The colour the painted world's air dilutes into. Every sky, horizon, far
@@ -50,6 +54,7 @@
   --color-accent-warm: #efc389;
   --color-leaf: #9ac773;
   --color-leaf-deep: #629c5b;
+  --color-shade: #2d5850;
 }
 
 :root[data-season="tag-init"] {
@@ -58,6 +63,7 @@
   --color-accent-warm: #e5a659;
   --color-leaf: #a8ca77;
   --color-leaf-deep: #6d9e58;
+  --color-shade: #35604b;
 }
 
 :root[data-season="tag-ulan"] {
@@ -66,6 +72,7 @@
   --color-accent-warm: #dfa07a;
   --color-leaf: #87c065;
   --color-leaf-deep: #53924f;
+  --color-shade: #2a5a4b;
 }
 
 /*
@@ -116,6 +123,8 @@
   /* Grass by moonlight: green pushed cool and deep, still unmistakably green. */
   --color-leaf: #4e7f6a;
   --color-leaf-deep: #2f5348;
+  /* Night shadow: deeper and bluer, still green rather than black. */
+  --color-shade: #1b3a3a;
   /* Light stays gold. At night it belongs to the lanterns rather than the sun,
      which is exactly why it must not go silver — a warm point of light in a
      blue field is the entire romance of the scene. */
@@ -280,7 +289,25 @@ body {
   font-family: var(--font-sans);
   line-height: 1.6;
   position: relative;
-  overflow-x: hidden;
+  /*
+   * `clip`, not `hidden` — and the difference is load-bearing.
+   *
+   * `overflow-x: hidden` makes this element a *scroll container*. Any
+   * `position: sticky` descendant then sticks relative to that container rather
+   * than to the viewport, which in practice means it silently does not stick at
+   * all. That is what the sticky app header needs from this line.
+   *
+   * `clip` does the same visual job — no horizontal scrollbar, nothing bleeding
+   * sideways — without establishing a scroll container, so sticky keeps
+   * working. It is the modern fix for exactly this conflict.
+   *
+   * Note this is unrelated to the two rules it sits next to:
+   * `overscroll-behavior-y` stops rubber-banding past the document bounds, and
+   * the Android toolbar gap is handled by sizing the scene to `100lvh` (see
+   * StorybookSky and BUG-003). Three separate mechanisms, three separate fixes;
+   * don't collapse them.
+   */
+  overflow-x: clip;
   overscroll-behavior-y: none;
 }
 
@@ -320,6 +347,89 @@ body {
 }
 
 /*
+ * ===========================================================================
+ * Paper, not glass — the card vocabulary
+ * ===========================================================================
+ *
+ * Every card in the book sits on a hand-painted world, and the fastest way to
+ * break that illusion is to give the card its own light. An inner white bevel
+ * (`inset 0 1px 0 rgba(255,255,255,.5)`) and a top-corner radial sheen are the
+ * two signatures of a glass panel in browser chrome, and they were doing
+ * exactly that on the chapter covers: a watercolour meadow with
+ * Stripe-dashboard cards laid over it.
+ *
+ * The rule these classes encode: **light comes from the world, never from the
+ * object.** A page in a book has no bevel and no highlight of its own. It has
+ * an edge, a shadow the room casts, and the same paper tooth as everything
+ * else.
+ *
+ * Three mechanisms, all free:
+ *
+ * 1. **An irregular radius.** A single `border-radius` value is a machine
+ *    radius — the giveaway that a shape was specified rather than cut. The
+ *    eight-value form below gives each corner its own horizontal and vertical
+ *    radius, so no two corners match and the outline reads as a cut sheet. The
+ *    variation is small (~0.3rem); it should register as handmade, not wonky.
+ * 2. **A warm shadow.** Mixed toward `--color-ink`, never black. The palette's
+ *    "no true grey" rule (see lib/theme/tokens.ts) has to survive contact with
+ *    shadows, or the page picks up a cold cast from its elevation alone.
+ * 3. **No self-light.** No inset highlight, no gradient sheen. Elevation is
+ *    carried entirely by the cast shadow.
+ *
+ * Deliberately *not* a `filter`-based edge treatment, though a turbulence
+ * displacement would give a truer torn edge: these cards sit above the meadow
+ * and the creatures, and a filter establishes a filtered subtree that must be
+ * re-rasterised whenever anything inside it changes. Decoration that can be
+ * painted as a sibling (a radius, a box-shadow) never joins that subtree.
+ */
+.paper-card {
+  border-radius: 1.15rem 1.4rem 1.2rem 1.5rem / 1.45rem 1.15rem 1.5rem 1.2rem;
+  box-shadow: 0 14px 34px -26px color-mix(in srgb, var(--color-ink) 42%, transparent);
+  transition:
+    transform 500ms ease-out,
+    box-shadow 500ms ease-out,
+    border-color 500ms ease-out,
+    background-color 500ms ease-out;
+}
+
+/* The mirrored cut, for alternating cards. Two sheets cut the same way in a
+   row is the machine tell coming back in through the side door. */
+.paper-card-alt {
+  border-radius: 1.45rem 1.2rem 1.5rem 1.15rem / 1.2rem 1.5rem 1.15rem 1.4rem;
+}
+
+.paper-card:hover {
+  box-shadow: 0 18px 40px -24px color-mix(in srgb, var(--color-ink) 55%, transparent);
+}
+
+/*
+ * The quiet label — what replaces `text-[11px] uppercase tracking-[0.26em]`.
+ *
+ * Wide-tracked uppercase micro-type is the eyebrow label of every SaaS
+ * dashboard ever shipped, and it is the most app-like signal in this book's
+ * type. A picture book sets its captions in the serif, at a readable size, in
+ * the ink's own muted tone — quiet because it is small and soft, not because
+ * it has been shouted in a tiny voice.
+ *
+ * Kept as a class rather than applied file-by-file so the ~40 surfaces still
+ * using the old pattern can migrate a few at a time without a flag day, and so
+ * the decision lives in one place when it gets revisited.
+ *
+ * Pairs with `.ink-legible-label` when it sits directly on the scene — that
+ * halo was tuned for thin letter-spaced uppercase and works at least as well
+ * for italic serif, which has more opaque stroke to begin with.
+ */
+.label-quiet {
+  font-family: var(--font-serif);
+  font-size: 0.9375rem;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.4;
+  text-transform: none;
+}
+
+/*
  * The painted scene itself lives in components/ambient/StorybookSky.tsx.
  * These keyframes drive it. They're here rather than inline because several
  * elements share them at different durations/offsets, and because every one of
@@ -337,6 +447,24 @@ body {
  *    continuously behind the whole book. Note in particular that no SVG filter
  *    primitive is ever animated — see the note in PaintFilters.tsx.
  */
+
+/*
+ * Dusk arriving on the 5th.
+ *
+ * The night plate mounts a beat after the day one (see `Plate.tsx` for why it
+ * is not rendered underneath from the start) and fades in over the top of it.
+ * Slow enough to read as light changing rather than as an image swapping in.
+ * Ends at `both` so the final frame is held even if the animation is
+ * interrupted — a half-faded garden would be neither afternoon nor evening.
+ */
+@keyframes plate-nightfall {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
 
 /* Clouds crossing the sky, left to right, off both edges.
    Distances are in `vw`, not `%`: a percentage in a transform resolves
@@ -1057,4 +1185,51 @@ body {
 }
 .brush-meadow {
   filter: url(#brush-meadow-lite) !important;
+}
+
+/*
+ * ===========================================================================
+ * The bake: full fidelity, once, on a developer's machine
+ * ===========================================================================
+ *
+ * Everything above this line is an economy — brushwork halved, grain passes
+ * dropped, animations frozen — paid because the painting was being re-derived
+ * in the reader's browser on every visit. `scripts/bake-plates.ts` is the
+ * answer to that: the static depth bands get painted once, at full quality, and
+ * ship as pixels (see `lib/ambient/plates.ts`).
+ *
+ * `data-bake` is set only by `app/plate/[layer]/PlateStage.tsx`, only in
+ * development, and reverts those economies for the duration of the screenshot.
+ * Cost genuinely does not matter here — it is one render, offline, and the
+ * output is a PNG. This is the mechanism by which a phone finally gets the
+ * two-pass brushwork it has never been able to render live.
+ *
+ * Only the brushes are listed. The grain is not baked into the plates (it has
+ * to stay live to unify the cels over the top — see `plates.ts`), and the
+ * frozen ambient animations are *wanted* frozen here, because their resting
+ * state is exactly the frame the plate should capture.
+ */
+:root[data-bake="true"] .brush-far {
+  filter: url(#brush-far) !important;
+}
+:root[data-bake="true"] .brush-middle {
+  filter: url(#brush-middle) !important;
+}
+:root[data-bake="true"] .brush-knoll {
+  filter: url(#brush-knoll) !important;
+}
+:root[data-bake="true"] .brush-near {
+  filter: url(#brush-near) !important;
+}
+:root[data-bake="true"] .brush-bank {
+  filter: url(#brush-bank) !important;
+}
+:root[data-bake="true"] .brush-cloud {
+  filter: url(#brush-cloud) !important;
+}
+:root[data-bake="true"] .brush-leaf {
+  filter: url(#brush-leaf) !important;
+}
+:root[data-bake="true"] .brush-meadow {
+  filter: url(#brush-meadow) !important;
 }

@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test": "tsx --test \"lib/**/*.test.ts\" && npm run check:demo-parity",
     "check:demo-parity": "tsx scripts/check-demo-parity.ts",
-    "build:places": "tsx scripts/build-places.ts"
+    "build:places": "tsx scripts/build-places.ts",
+    "bake:plates": "tsx scripts/bake-plates.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.6.0",

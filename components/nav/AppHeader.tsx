@@ -18,7 +18,29 @@ export async function AppHeader() {
   const isDemo = (await getActiveProjectFromCookies()) === "demo";
 
   return (
-    <header className="mx-auto flex w-full max-w-5xl items-center justify-between gap-x-5 px-6 pb-2 pt-6">
+    /*
+      Sticky, not fixed: the nav has to stay reachable while reading a long
+      shelf, and `sticky` keeps its layout box so nothing below needs a spacer
+      offset that would then have to be maintained in two places.
+
+      The scrim is doing real work, not decoration. The header's type is
+      `.ink-legible` — pale letterforms with a halo, tuned to sit on the painted
+      sky. Once the header stops scrolling, cream chapter cards travel *under*
+      it, and pale-on-pale is unreadable for the moment a card is passing. A
+      soft top-down wash of the scene's own paper colour keeps a consistent
+      field behind the type without drawing a bar across the painting — it
+      reads as light pooling at the top of the frame, which is where the sun
+      already is.
+
+      `-mb-*` on the scrim is avoided deliberately: it is a sibling absolutely
+      positioned behind the row, so it adds no height and cannot shift the
+      header's own layout.
+    */
+    <header className="sticky top-0 z-40 mx-auto flex w-full max-w-5xl items-center justify-between gap-x-5 px-6 pb-2 pt-6">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[calc(100%+1.75rem)] bg-[linear-gradient(to_bottom,color-mix(in_srgb,var(--color-scene-paper,var(--color-background))_82%,transparent)_0%,color-mix(in_srgb,var(--color-scene-paper,var(--color-background))_52%,transparent)_58%,transparent_100%)]"
+      />
       <Link href="/" className="group flex flex-col text-ink">
         <span className="ink-legible ink-legible-label text-[10px] uppercase tracking-[0.28em] text-ink-muted">A keepsake</span>
         <span className="ink-legible font-serif text-2xl leading-none transition group-hover:text-accent">

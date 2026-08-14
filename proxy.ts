@@ -14,6 +14,13 @@ export const config = {
     // to /login for anyone not already signed in, including Android's own
     // background fetch when installing a home-screen shortcut (which is why
     // the installed icon wasn't the real one: Android never got to see it).
-    "/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // `plate` is the bake easel (app/plate/[layer]) — a development-only route
+    // that `scripts/bake-plates.ts` screenshots to repaint the ambient scene.
+    // Excluded so re-baking the garden needs nothing but `npm run dev`, rather
+    // than also needing working Supabase demo credentials on the machine. It is
+    // a 404 in any production build (the guard is in the route itself), so this
+    // adds no public surface — but if you change this line, re-check it from a
+    // client with no session, per the note above.
+    "/((?!_next/static|_next/image|favicon.ico|icon|apple-icon|manifest.webmanifest|plate|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

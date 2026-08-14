@@ -42,8 +42,14 @@ function Bough({ seed }: { seed: number }) {
       fill="none"
       style={{ overflow: "visible", display: "block" }}
     >
-      {/* shade: the underside of the canopy — cool green, never heavy */}
-      <g className="brush-leaf" filter="url(#brush-leaf)" fill={mix(pigment.grassDeep, 88, pigment.lilac)}>
+      {/*
+        Shade: the underside of the canopy. This is the nearest foliage in the
+        frame and therefore the darkest — the boughs are what the reader is
+        looking *through*, and a canopy with no dark underside reads as a decal
+        stuck on the corner of the screen. Kept in step with `BigTree`'s canopy
+        on purpose; see the value-range note in lib/ambient/palette.ts.
+      */}
+      <g className="brush-leaf" filter="url(#brush-leaf)" fill={pigment.canopyShade}>
         {bough.shadow.map((d, i) => (
           <path key={i} d={d} />
         ))}
@@ -64,7 +70,7 @@ function Bough({ seed }: { seed: number }) {
       </g>
 
       {/* the body of the canopy */}
-      <g className="brush-leaf" filter="url(#brush-leaf)" fill={pigment.grass}>
+      <g className="brush-leaf" filter="url(#brush-leaf)" fill={pigment.canopyMid}>
         {bough.mid.map((d, i) => (
           <path key={i} d={d} />
         ))}
