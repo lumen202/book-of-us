@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "K=\"/Users/macbookpro/Desktop/Unified-Brain/brain/.recall/kernel.md\"; if [ -f \"$K\" ]; then jq -n --rawfile k \"$K\" --arg tail \"\n\n---\nThe kernel above is the standing context, auto-injected \u2014 no tool call needed to see it. It is not exhaustive: before non-trivial work, still call brain_recall with a plain description of the task to pull anything beyond the kernel. If MCP tools are deferred, run ToolSearch(query: select:mcp__brain__brain_recall) first \u2014 an InputValidationError means the schema is not loaded yet, not that the server is unavailable.\" \"{hookSpecificOutput:{hookEventName:\\\"SessionStart\\\",additionalContext:(\\$k + \\$tail)}}\"; else echo \"{\\\"hookSpecificOutput\\\":{\\\"hookEventName\\\":\\\"SessionStart\\\",\\\"additionalContext\\\":\\\"Unified-Brain: kernel not found at .recall/kernel.md \u2014 the adopted brain exists but its index looks unbuilt or unreachable. Call brain_recall directly; if that also fails, tell the user the kernel needs rebuilding (npm run recall:build in the brain repo).\\\"}}\"; fi\n",
+            "command": "node /Users/macbookpro/Desktop/Unified-Brain/brain/tools/recall/kernel-hook.mjs",
             "statusMessage": "Loading brain kernel"
           }
         ]
@@ -18,6 +18,24 @@
           {
             "type": "command",
             "command": "node /Users/macbookpro/Desktop/Unified-Brain/brain/tools/hooks/recall-gate.mjs check"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/macbookpro/Desktop/Unified-Brain/brain/tools/hooks/hypothesis-gate.mjs check"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/macbookpro/Desktop/Unified-Brain/brain/tools/hooks/destructive-git-gate.mjs check"
           }
         ]
       }
@@ -47,6 +65,37 @@
           {
             "type": "command",
             "command": "node /Users/macbookpro/Desktop/Unified-Brain/brain/tools/hooks/capture-gate.mjs mark-edit"
+          },
+          {
+            "type": "command",
+            "command": "node /Users/macbookpro/Desktop/Unified-Brain/brain/tools/signature-scan/scan.mjs hook"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__brain__brain_recall",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/macbookpro/Desktop/Unified-Brain/brain/tools/hooks/hypothesis-gate.mjs mark-recall"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__brain__brain_context",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/macbookpro/Desktop/Unified-Brain/brain/tools/hooks/hypothesis-gate.mjs mark-recall"
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__brain__brain_hypothesis",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/macbookpro/Desktop/Unified-Brain/brain/tools/hooks/hypothesis-gate.mjs mark-hypothesis"
           }
         ]
       }
@@ -57,6 +106,10 @@
           {
             "type": "command",
             "command": "node /Users/macbookpro/Desktop/Unified-Brain/brain/tools/hooks/capture-gate.mjs check"
+          },
+          {
+            "type": "command",
+            "command": "node /Users/macbookpro/Desktop/Unified-Brain/brain/tools/hooks/refusal-gate.mjs check"
           }
         ]
       }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 import { CURRENT_SEASON } from "@/lib/theme/tokens";
+import { ServiceWorkerRegistrar } from "@/components/pwa/ServiceWorkerRegistrar";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -31,7 +32,13 @@ export default function RootLayout({
       data-season={CURRENT_SEASON}
       className={`${cormorant.variable} ${manrope.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-background text-ink">{children}</body>
+      <body className="min-h-full flex flex-col bg-background text-ink">
+        {children}
+        {/* Renders nothing — registers the service worker that makes the
+            Android install real. Here rather than in `(app)` so it also runs
+            on the login screen, which is where the install prompt is decided. */}
+        <ServiceWorkerRegistrar />
+      </body>
     </html>
   );
 }

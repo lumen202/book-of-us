@@ -10,7 +10,10 @@
     "test": "tsx --test \"lib/**/*.test.ts\" && npm run check:demo-parity",
     "check:demo-parity": "tsx scripts/check-demo-parity.ts",
     "build:places": "tsx scripts/build-places.ts",
-    "bake:plates": "tsx scripts/bake-plates.ts"
+    "bake:plates": "tsx scripts/bake-plates.ts",
+    "android:update": "cd android && bubblewrap update --skipVersionUpgrade",
+    "android:build": "cd android && bubblewrap build --skipPwaValidation",
+    "android:fingerprint": "keytool -list -v -keystore android/bookofus.keystore -alias bookofus | grep 'SHA256:'"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.6.0",

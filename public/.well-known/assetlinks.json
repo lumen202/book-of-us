@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.bookofus.app",
+      "sha256_cert_fingerprints": [
+        "EE:09:EA:8D:7D:D6:84:7E:1B:95:60:61:AB:62:F8:67:84:26:6C:EF:0C:BE:4D:10:AA:21:3A:E5:C9:7E:91:86"
+      ]
+    }
+  }
+]
